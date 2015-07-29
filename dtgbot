@@ -1,0 +1,3 @@
+#! /bin/sh
+. /etc/profile.d/DomoticzData.sh
+/usr/bin/lua5.2 $BotHomePath"dtgbot.lua" >$BotLuaLog 2>$BotLuaLog.errors
