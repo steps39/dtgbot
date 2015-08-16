@@ -11,9 +11,9 @@ function SwitchID(DeviceName, idx, DeviceType, state, SendTo)
         	return "state must be on or off!";
         end
         t = server_url.."/json.htm?type=command&param=switch"..DeviceType.."&idx="..idx.."&switchcmd="..state;
-        print ("JSON request <"..t..">");
+        print_to_log ("JSON request <"..t..">");
         jresponse, status = http.request(t)
-        print("raw jason", jresponse)
+        print_to_log("raw jason", jresponse)
         response = 'Switched '..DeviceName..' '..command
 	return response
 end
@@ -22,7 +22,7 @@ function switch(parsed_cli)
   command = parsed_cli[2]
   DeviceName = form_device_name(parsed_cli)
   if DeviceName ~= nil then
-    print('Device Name: '..DeviceName)
+    print_to_log('Device Name: '..DeviceName)
     -- DeviceName can either be a device / group / scene name or a number refering to list previously generated
     if tonumber(DeviceName) ~= nil then
       NewDeviceName = StoredList[tonumber(DeviceName)]

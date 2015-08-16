@@ -19,7 +19,7 @@ function help_module.handler(parsed_cli)
   local DotPos = 0
   HelpText='⚠️ Available Lua commands ⚠️ \n'
   for i,help in pairs(commands) do
-    print(help.description)
+    print_to_log(help.description)
    --send_msg(SendTo,help,ok_cb,false)
     HelpText = HelpText..string.gmatch(help.description, "%S+")[[1]]..', '
   end
@@ -28,7 +28,7 @@ function help_module.handler(parsed_cli)
   local Functions = io.popen("ls " .. UserScriptPath)
   HelpText = HelpText..'⚠️ Available Shell commands ⚠️ \n'
   for line in Functions:lines() do
-    print(line)
+    print_to_log(line)
     DotPos=string.find(line, "%.")
     HelpText = HelpText .. "-" .. string.sub(line,0,DotPos-1).."\n" 
   end

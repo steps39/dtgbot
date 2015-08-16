@@ -1,5 +1,5 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.1 150725
+-- Version 0.2 150816
 -- Automation bot framework for telegram to control Domoticz
 -- domoticz2telegram.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
@@ -12,17 +12,21 @@
 -- shared between the two bots.
 -- -------------------------------------------------------
 
-print ("-----------------------------------------")
-print ("Starting Telegram api Bot message handler")
-print ("-----------------------------------------")
+function print_to_log(logmessage)
+  print(os.date("%Y-%m-%d %H:%M:%S")..' - '..tostring(logmessage))
+end
+
+print_to_log ("-----------------------------------------")
+print_to_log ("Starting Telegram api Bot message handler")
+print_to_log ("-----------------------------------------")
 
 function domoticzdata(envvar)
   -- loads get environment variable and prints in log
   localvar = os.getenv(envvar)
   if localvar ~= nil then
-    print(envvar..": "..localvar)
+    print_to_log(envvar..": "..localvar)
   else
-    print(envvar.." not found check /etc/profile.d/DomoticzData.sh")
+    print_to_log(envvar.." not found check /etc/profile.d/DomoticzData.sh")
   end
   return localvar
 end
@@ -95,9 +99,9 @@ function vardump(value, depth, key)
   if type(value) == 'table' then
     mTable = getmetatable(value)
     if mTable == nil then
-      print(spaces ..linePrefix.."(table) ")
+      print_to_log(spaces ..linePrefix.."(table) ")
     else
-      print(spaces .."(metatable) ")
+      print_to_log(spaces .."(metatable) ")
       value = mTable
     end		
     for tableKey, tableValue in pairs(value) do
@@ -108,9 +112,9 @@ function vardump(value, depth, key)
   type(value)	== 'userdata' or
   value		== nil
   then
-    print(spaces..tostring(value))
+    print_to_log(spaces..tostring(value))
   else
-    print(spaces..linePrefix.."("..type(value)..") "..tostring(value))
+    print_to_log(spaces..linePrefix.."("..type(value)..") "..tostring(value))
   end
 end
 
@@ -140,7 +144,6 @@ function list_device_attr(dev, mode)
   return result;
 end
 
-
 function form_device_name(parsed_cli)
 -- joins together parameters after the command name to form the full "device name"
   command = parsed_cli[2]
@@ -162,18 +165,18 @@ function variable_list()
   -- Domoticz seems to take a while to respond to getuservariables after start-up
   -- So just keep trying after 1 second sleep
   while (jresponse == nil) do
-    print ("JSON request <"..t..">");
+    print_to_log ("JSON request <"..t..">");
     jresponse, status = http.request(t)
     if (jresponse == nil) then
       socket.sleep(1)
       domoticz_tries = domoticz_tries + 1
       if domoticz_tries > 100 then
-        print('Domoticz not sending back user variable list')
+        print_to_log('Domoticz not sending back user variable list')
         break
       end
     end
   end
-  print('Domoticz returned getuservariables after '..domoticz_tries..' attempts')
+  print_to_log('Domoticz returned getuservariables after '..domoticz_tries..' attempts')
   decoded_response = JSON:decode(jresponse)
   return decoded_response
 end
@@ -185,7 +188,7 @@ function idx_from_variable_name(DeviceName)
   for k,record in pairs(result) do
     if type(record) == "table" then
       if string.lower(record['Name']) == string.lower(DeviceName) then
-        print(record['idx'])
+        print_to_log(record['idx'])
         idx = record['idx']
       end
     end
@@ -196,17 +199,17 @@ end
 function get_variable_value(idx)
   local t, jresponse, decoded_response
   t = server_url.."/json.htm?type=command&param=getuservariable&idx="..tostring(idx)
-  print ("JSON request <"..t..">");
+  print_to_log ("JSON request <"..t..">");
   jresponse, status = http.request(t)
   decoded_response = JSON:decode(jresponse)
-  print('Decoded '..decoded_response["result"][1]["Value"])
+  print_to_log('Decoded '..decoded_response["result"][1]["Value"])
   return decoded_response["result"][1]["Value"]
 end
 
 function set_variable_value(idx,name,value)
   local t, jresponse, decoded_response
   t = server_url.."/json.htm?type=command&param=updateuservariable&idx="..idx.."&vname="..name.."&vtype=integer&vvalue="..tostring(value)
-  print ("JSON request <"..t..">");
+  print_to_log ("JSON request <"..t..">");
   jresponse, status = http.request(t)
   return
 end
@@ -214,7 +217,7 @@ end
 function device_list(DeviceType)
   local t, jresponse, status, decoded_response
   t = server_url.."/json.htm?type="..DeviceType.."&order=name"
-  print ("JSON request <"..t..">");
+  print_to_log ("JSON request <"..t..">");
   jresponse, status = http.request(t)
   decoded_response = JSON:decode(jresponse)
   return decoded_response
@@ -227,7 +230,7 @@ function idx_from_name(DeviceName,DeviceType)
   for k,record in pairs(result) do
     if type(record) == "table" then
       if string.lower(record['Name']) == string.lower(DeviceName) then
-        print(record['idx'])
+        print_to_log(record['idx'])
         idx = record['idx']
       end
     end
@@ -240,20 +243,15 @@ function file_exists(name)
   if f~=nil then io.close(f) return true else return false end
 end
 
---print("Checking for Domoticz running")
---while (not file_exists(domoticz_pid)) do
---end
---print("Domoticz running")
--- Load the modules that handle the commands. each module can have more than one command associated with it (see the list example)
-print("Loading command modules...")
+print_to_log("Loading command modules...")
 for i, m in ipairs(command_modules) do
-  print("Loading module <"..m..">");
+  print_to_log("Loading module <"..m..">");
   t = assert(loadfile(BotLuaScriptPath..m..".lua"))();
   cl = t:get_commands();
   for c, r in pairs(cl) do
-    print("found command <"..c..">");
+    print_to_log("found command <"..c..">");
     commands[c] = r;
-    print(commands[c].handler);
+    print_to_log(commands[c].handler);
   end
 end
 
@@ -271,7 +269,7 @@ function timedifference(s)
 end
 
 function HandleCommand(cmd, SendTo, MessageId)
-  print("Handle command function started with " .. cmd .. " and " .. SendTo)
+  print_to_log("Handle command function started with " .. cmd .. " and " .. SendTo)
   --- parse the command
   if command_prefix == "" then
     -- Command prefix is not needed, as can be enforced by Telegram api directly
@@ -279,48 +277,147 @@ function HandleCommand(cmd, SendTo, MessageId)
   else
     parsed_command = {}
   end
-  for w in string.gmatch(cmd, "(%w+)") do
+--?for w in string.gmatch(cmd, "(%w+)") do
+--?    table.insert(parsed_command, w)
+--?  end
+
+  --~	added "-_"to allowed characters a command/word
+  for w in string.gmatch(cmd, "([%w-_]+)") do
     table.insert(parsed_command, w)
   end
+
   if command_prefix ~= "" then
-    if parsed_command[1] ~= command_prefix then -- command prefex has not been found so ignore message
+    if parsed_command[1] ~= command_prefix then -- command prefix has not been found so ignore message
       return 1 -- not a command so successful but nothing done
     end
   end
   local found=0
+
+  ---------------------------------------------------------------------------
+  -- Change for menu.lua option
+  -- When LastCommand starts with menu then assume the rest is for menu.lua
+  ---------------------------------------------------------------------------
+  -- ensure the Array is initialised for this SendTo to keep track of the commands and other info
+  if LastCommand[SendTo] == nil then
+    LastCommand[SendTo] = {}
+    LastCommand[SendTo]["menu"] = ""
+    LastCommand[SendTo]["submenu"] = ""
+    LastCommand[SendTo]["button"] = ""
+    LastCommand[SendTo]["l3menu"] = ""
+    LastCommand[SendTo]["replymarkup"] = ""
+    LastCommand[SendTo]["prompt"] = false
+  end
+  -- Dispatch it through the Menu Handler in case the command isn't in the overall table.
+  -- This will allow for processing submenu command directly
+  if commands[string.lower(tostring(parsed_command[2]))] == nil
+  or LastCommand[SendTo]["menu"] == "menu" then
+    command_dispatch = commands["menu"];
+    local menu_cli = {}
+    table.insert(menu_cli, parsed_command[1])
+    table.insert(menu_cli, parsed_command[2])
+    table.insert(menu_cli, cmd)
+    table.insert(menu_cli, parsed_command[3])
+    -- send whole cmd line instead of first word
+    status, text, replymarkup = command_dispatch.handler(menu_cli,SendTo);
+--~ 		print("====> End menu_module.handler:", status, text, replymarkup)
+    -- rebuild the command to run by using previous as param 1 and current as param 2
+    if status == 9999 then
+      print("change params =>",parsed_command[2],parsed_command[3])
+      status = 0
+      parsed_command[3] = parsed_command[2]
+      parsed_command[2] = text
+      text = ""
+    elseif status ~= 0 then
+      -- stop the process when status is 1
+      if text ~= "" then
+        while string.len(text)>0 do
+          send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
+          text = string.sub(text,4000,-1)
+        end
+      end
+--~ 			print("dtgbot: LastCommand[SendTo]["menu"]:",LastCommand[SendTo]["menu"])
+--~ 			print("dtgbot: LastCommand[SendTo]["submenu"]:",LastCommand[SendTo]["submenu"])
+--~ 			print("dtgbot: LastCommand[SendTo]["button"]:",LastCommand[SendTo]["button"])
+--~ 			print("dtgbot: LastCommand[SendTo]["l3menu"]:",LastCommand[SendTo]["l3menu"])
+--~ 			print("dtgbot: status:",status)
+--~ 			print("dtgbot: text:",text)
+--~ 			print("dtgbot: replymarkup:",replymarkup)
+      print("dtgbot: menu ended and text send ...return:"..status)
+      -- no need to process anything further
+      return 1
+    end
+    print("params =>",parsed_command[2],parsed_command[3])
+    print("dtgbot:continue regular processing")
+  end
+  ---------------------------------------------------------------------------
+  -- End change for menu.lua option
+  ---------------------------------------------------------------------------
+
+
+  --? if(parsed_command[2]~=nil) then
   command_dispatch = commands[string.lower(parsed_command[2])];
+
+--~ change to allow for replymarkup.
+  local savereplymarkup = replymarkup
+--~ 	print("debug1." ,replymarkup)
+
   if command_dispatch then
-    status, text = command_dispatch.handler(parsed_command);
+--?      status, text = command_dispatch.handler(parsed_command);
+--~ change to allow for replymarkup.
+    status, text, replymarkup = command_dispatch.handler(parsed_command,SendTo);
+
     found=1
   else
     text = ""
     local f = io.popen("ls " .. BotBashScriptPath)
-    cmda = string.lower(parsed_command[2])
+--?      cmda = string.lower(parsed_command[2])
+--~ change to avoid nil error
+    cmda = string.lower(tostring(parsed_command[2]))
     len_parsed_command = #parsed_command
     stuff = ""
     for i = 3, len_parsed_command do
       stuff = stuff..parsed_command[i]
     end
     for line in f:lines() do
-      print("checking line ".. line)
+      print_to_log("checking line ".. line)
       if(line:match(cmda)) then
-        print(line)
+        print_to_log(line)
         os.execute(BotBashScriptPath  .. line .. ' ' .. SendTo .. ' ' .. stuff)
         found=1
       end
     end
   end
+
+--~ replymarkup
+  if replymarkup == nil or replymarkup == "" then
+    -- restore the menu supplied replymarkup in case the shelled LUA didn't provide one
+    replymarkup = savereplymarkup
+  end
+--~ 	print("debug2." ,replymarkup)
+
   if found==0 then
-    text = "command <"..parsed_command[2].."> not found";
+--?      text = "command <"..parsed_command[2].."> not found";
+--~ change to avoid nil error
+    text = "command <"..tostring(parsed_command[2]).."> not found";
   end
-  if text ~= "" then
---    if string.len(text)>4000 then
-    while string.len(text)>0 do
-      send_msg(SendTo,string.sub(text,1,4000),MessageId)
-      text = string.sub(text,4000,-1)
-    end
+--?else
+--?  text ='No command found'
+--?end
+if text ~= "" then
+  while string.len(text)>0 do
+--?      send_msg(SendTo,string.sub(text,1,4000),MessageId)
+
+--~         added replymarkup to allow for custom keyboard
+    send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
+
+    text = string.sub(text,4000,-1)
   end
-  return found
+elseif replymarkup ~= "" then
+--~     added replymarkup to allow for custom keyboard reset also in case there is no text to send.
+--~     This could happen after running a bash file.
+  send_msg(SendTo,"done",MessageId,replymarkup)
+end
+return found
 end
 
 function url_encode(str)
@@ -333,13 +430,28 @@ function url_encode(str)
   return str	
 end
 
-function send_msg(SendTo, Message,MessageId)
-  print(telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
-  response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+--~ added replymarkup to allow for custom keyboard
+function send_msg(SendTo, Message, MessageId, replymarkup)
+	if replymarkup == nil or replymarkup == "" then
+		print_to_log(telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+		response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+	else
+		print_to_log(telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
+		response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
+	end
 --  response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&text=hjk')
-  print(status)
-  return
+	print_to_log(status)
+	return
 end
+
+--?function send_msg(SendTo, Message,MessageId)
+--?  print_to_log(telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+--?  response, status = --?https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+--  response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&text=hjk')
+--?  print_to_log(status)
+--?  return
+--?end
+
 
 
 --Commands.Smiliesoverview = "Smiliesoverview - sends a range of smilies"
@@ -362,9 +474,9 @@ function id_check(SendTo)
   else
     SendTo = tostring(SendTo)
     --Check id against whitelist
-    print('No on WhiteList: '..#WhiteList)
+    print_to_log('No on WhiteList: '..#WhiteList)
     for i = 1, #WhiteList do
-      print('WhiteList: '..WhiteList[i])
+      print_to_log('WhiteList: '..WhiteList[i])
       if SendTo == WhiteList[i] then
         return true
       end
@@ -398,16 +510,16 @@ function on_msg_receive (msg)
 --Check to see if id is whitelisted, if not record in log and exit
     if id_check(msg_from) then
       if HandleCommand(ReceivedText, tostring(msg_from),msg_id) == 1 then
-        print "Succesfully handled incoming request"
+        print_to_log "Succesfully handled incoming request"
       else
-        print "Invalid command received"
-        print(msg_from)
+        print_to_log "Invalid command received"
+        print_to_log(msg_from)
         send_msg(msg_from,'⚡️ INVALID COMMAND ⚡️',msg_id)
         --      os.execute("sleep 5")
         --      Help(tostring (msg_from))
       end
     else
-      print('id '..msg_from..' not on white list, command ignored')
+      print_to_log('id '..msg_from..' not on white list, command ignored')
       send_msg(msg_from,'⚡️ ID Not Recognised - Command Ignored ⚡️',msg_id)
     end
   end
@@ -441,7 +553,7 @@ function get_names_from_variable(DividedString)
   Names = {}
   for Name in string.gmatch(DividedString, "[^|]+") do
     Names[#Names + 1] = Name
-    print('Name :'..Name)
+    print_to_log('Name :'..Name)
   end
   return Names
 end
@@ -449,51 +561,51 @@ end
 -- Retrieve id white list
 WLidx = idx_from_variable_name(WLName)
 if WLidx == nil then
-  print(WLName..' user variable does not exist in Domoticz')
-  print('So will allow any id to use the bot')
+  print_to_log(WLName..' user variable does not exist in Domoticz')
+  print_to_log('So will allow any id to use the bot')
 else
-  print('WLidx '..WLidx)
+  print_to_log('WLidx '..WLidx)
   WLString = get_variable_value(WLidx)
-  print('WLString: '..WLString)
+  print_to_log('WLString: '..WLString)
   WhiteList = get_names_from_variable(WLString)
 end
 
 -- Get the updates
-print('Getting '..TBOName..' the previous Telegram bot message offset from Domoticz')
+print_to_log('Getting '..TBOName..' the previous Telegram bot message offset from Domoticz')
 TBOidx = idx_from_variable_name(TBOName)
 if TBOidx == nil then
-  print(TBOName..' user variable does not exist in Domoticz')
+  print_to_log(TBOName..' user variable does not exist in Domoticz')
   os.exit()
 else
-  print('TBOidx '..TBOidx)
+  print_to_log('TBOidx '..TBOidx)
 end
 TelegramBotOffset=get_variable_value(TBOidx)
-print('TBO '..TelegramBotOffset)
-print(telegram_url)
+print_to_log('TBO '..TelegramBotOffset)
+print_to_log(telegram_url)
 --while TelegramBotOffset do
 while file_exists(dtgbot_pid) do
   response, status = https.request(telegram_url..'getUpdates?timeout=60&offset='..TelegramBotOffset)
   if status == 200 then
     if response ~= nil then
       io.write('.')
-      print(response)
+      print_to_log(response)
       decoded_response = JSON:decode(response)
       result_table = decoded_response['result']
       tc = #result_table
       for i = 1, tc do
-        print('Message: '..i)
+        print_to_log('Message: '..i)
         tt = table.remove(result_table,1)
         msg = tt['message']
-        print('update_id ',tt.update_id)
-        print(msg.text)
+        print_to_log('update_id ',tt.update_id)
+        print_to_log(msg.text)
         TelegramBotOffset = tt.update_id + 1
         on_msg_receive(msg)
-        print('TelegramBotOffset '..TelegramBotOffset)
+        print_to_log('TelegramBotOffset '..TelegramBotOffset)
         set_variable_value(TBOidx,TBOName,TelegramBotOffset)
       end
     else
-      print(status)
+      print_to_log(status)
     end
   end
 end
-print(dtgbot_pid..' does not exist, so exiting')
+print_to_log(dtgbot_pid..' does not exist, so exiting')

@@ -4,7 +4,7 @@ local http = require "socket.http";
 
 function DevicesScenes(DeviceType, qualifier)
   local response = "", ItemNumber, result, decoded_response, record, k;
-        print(qualifier)
+        print_to_log(qualifier)
   if qualifier ~= nil then   
     response = 'All '..DeviceType..' starting with '..qualifier
     qaulifier = string.lower(qualifier)
