@@ -33,55 +33,55 @@ local http = require "socket.http";
 -- Start Functions to SORT the TABLE
 --------------------------------------
 function __genOrderedIndex( t )
-  local orderedIndex = {}
-  for key in pairs(t) do
-    table.insert( orderedIndex, key )
-  end
-  table.sort( orderedIndex )
-  return orderedIndex
+    local orderedIndex = {}
+    for key in pairs(t) do
+        table.insert( orderedIndex, key )
+    end
+    table.sort( orderedIndex )
+    return orderedIndex
 end
 
 function table.map_length(t)
-  local c = 0
-  for k,v in pairs(t) do
-    c = c+1
-  end
-  return c
+    local c = 0
+    for k,v in pairs(t) do
+         c = c+1
+    end
+    return c
 end
 
 function orderedNext(t, state)
-  -- Equivalent of the next function, but returns the keys in the alphabetic
-  -- order. We use a temporary ordered key table that is stored in the
-  -- table being iterated.
+    -- Equivalent of the next function, but returns the keys in the alphabetic
+    -- order. We use a temporary ordered key table that is stored in the
+    -- table being iterated.
+    key = nil
+    --print("orderedNext: state = "..tostring(state) )
+    if state == nil then
+        -- the first time, generate the index
+        t.__orderedIndex = __genOrderedIndex( t )
+        key = t.__orderedIndex[1]
+    else
+        -- fetch the next value
+        for i = 1,table.map_length(t.__orderedIndex) do
+            if t.__orderedIndex[i] == state then
+                key = t.__orderedIndex[i+1]
+            end
+        end
 
-  key = nil
-  --print("orderedNext: state = "..tostring(state) )
-  if state == nil then
-    -- the first time, generate the index
-    t.__orderedIndex = __genOrderedIndex( t )
-    key = t.__orderedIndex[1]
-  else
-    -- fetch the next value
-    for i = 1,table.map_length(t.__orderedIndex) do
-      if t.__orderedIndex[i] == state then
-        key = t.__orderedIndex[i+1]
-      end
     end
-  end
 
-  if key then
-    return key, t[key]
-  end
+    if key then
+        return key, t[key]
+    end
 
-  -- no more value to return, cleanup
-  t.__orderedIndex = nil
-  return
+    -- no more value to return, cleanup
+    t.__orderedIndex = nil
+    return
 end
 
 function orderedPairs(t)
-  -- Equivalent of the pairs() function on tables. Allows to iterate
-  -- in order
-  return orderedNext, t, nil
+    -- Equivalent of the pairs() function on tables. Allows to iterate
+    -- in order
+    return orderedNext, t, nil
 end
 --------------------------------------
 -- END Functions to SORT the TABLE
@@ -97,75 +97,31 @@ function SwitchName(DeviceName, DeviceType, SwitchType,idx,state)
 --~ 	idx, Type = idx_from_name(DeviceName,DeviceType)
 --~ 	print(Type)
   if idx == nil then
-    response = 'Device '..DeviceName..'  not found.'
+       response = 'Device '..DeviceName..'  not found.'
   else
     local subgroup = "light"
     if DeviceType == "scenes" then
       subgroup = "scene"
     end
     if string.lower(state) == "on" then
-      state = "On";
+          state = "On";
       t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd="..state;
-    elseif string.lower(state) == "off" then
-      state = "Off";
+        elseif string.lower(state) == "off" then
+          state = "Off";
       t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd="..state;
     elseif string.lower(string.sub(state,1,9)) == "set level" then
       t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd=Set%20Level&level="..string.sub(state,11)
-    else
-      return "state must be on, off or Set Level!";
-    end
+        else
+          return "state must be on, off or Set Level!";
+        end
 --~         print ("JSON request <"..t..">");
-    jresponse, status = http.request(t)
+        jresponse, status = http.request(t)
 --~         print("JSON feedback: ", jresponse)
-    response = menu_lang[language].text["Switched"] .. ' ' ..DeviceName..' => '..state
+        response = menu_lang[language].text["Switched"] .. ' ' ..DeviceName..' => '..state
   end
-  print("   -< SwitchName:",DeviceName,status,response)
+  print_to_log("   -< SwitchName:",DeviceName,idx, status,response)
   return response, status
 end
-
-function SwitchGetStatus(DeviceName,DeviceType,idx)
-  local status=""
-  local found=1
-  local SwitchType=""
---~ 	print("=== Start SwitchGetStatus")
-  print('    -> Devicename ', DeviceName,' DeviceType ', DeviceType,'  idx:', idx)
-  if DeviceType == "devices" then
-    jresponse, status = http.request(server_url.."/json.htm?type="..DeviceType.."&rid=" .. idx)
-    decoded_response = JSON:decode(jresponse)
---~ 		print("jresponse:",jresponse)
-    for k,record in pairs(decoded_response) do
---~ 		print(k, type(record))
-      if k=="result" and type(record) == "table" then
-        for k1, v1 in pairs(record) do
---~ 					print("table:",k1, v1.Type)
---~ 					print("status:",k1, v1.Status)
---~ 					print("SwitchType:",k1, v1.SwitchType,v1.Type)
-          if v1.Type == "Temp" then
-            status = tostring(v1.Temp)
-            SwitchType = "temp"
-          elseif v1.Type == "Temp + Humidity" then
-            status = tostring(v1.Temp) .. "-" .. tostring(v1.Humidity).."%"
-            SwitchType = "temp"
-          else
-            status = tostring(v1.Status)
-            SwitchType = v1.SwitchType
-          end
-          if status == nil then
-            status = ""
-          end
-          if SwitchType == nil then
-            SwitchType = ""
-          end
-        end
-      end
-    end
-  end
-  print("     -< SwitchGetStatus:",DeviceName,status, SwitchType, found)
-  return status, SwitchType, found
-end
------------------------------------------------
---- END Functions to set and retrieve status.
------------------------------------------------
 
 -----------------------------------------------
 --- START Build the reply_markup functions.
@@ -184,7 +140,7 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
   if SwitchType == nil then
     SwitchType = ""
   end
-  print("  -> makereplymenu  Level:",Level,"submenu",submenu,"devicename",devicename,"SwitchType",SwitchType)
+  print_to_log("  -> makereplymenu  Level:",Level,"submenu",submenu,"devicename",devicename,"SwitchType",SwitchType)
   local t=1
   local l1menu=""
   local l2menu=""
@@ -211,11 +167,13 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
 --~ 				print(" #debug2 - Submenu item:",i,menu_submenus[submenu].showdevstatus,get.DeviceType,get.idx)
         if i ~= devicename or menu_submenus[submenu].NoDevMenu then
           local switchstatus = ""
-          print("   - Submenu item:",i,menu_submenus[submenu].showdevstatus,get.DeviceType,get.idx)
+          print_to_log("   - Submenu item:",i,menu_submenus[submenu].showdevstatus,get.DeviceType,get.idx,get.status)
           if get.whitelist == "" or ChkInTable(get.whitelist,SendTo) then
             if menu_submenus[submenu].showdevstatus == "y" then
-              switchstatus = tostring(SwitchGetStatus(i,get.DeviceType,get.idx))
-              if switchstatus ~= "" then
+              switchstatus = get.status
+              if ChkEmpty(switchstatus) then
+                switchstatus = ""
+              else
                 switchstatus = switchstatus:gsub("Set Level: ", "")
                 switchstatus = " - " .. switchstatus
 --~ 							print(switchstatus)
@@ -224,7 +182,7 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
             l2menu=l2menu .. i .. switchstatus .. "|"
             -- show the actions menu immediately for this devices since that is requested in the config
             if get.showactions then
-              print("  - Changing to Device action level due to showactions:",i)
+              print_to_log("  - Changing to Device action level due to showactions:",i)
               Level = "devicemenu"
               devicename = i
             end
@@ -236,16 +194,16 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
         and Level == "devicemenu" and i == devicename then
           -- set reply markup to the override when provide
           l3menu = get.actions
-          print(" ---< ",SwitchType," using replymarkup:",l3menu)
+          print_to_log(" ---< ",SwitchType," using replymarkup:",l3menu)
           -- else use the default reply menu for the SwitchType
           if l3menu == nil or l3menu == "" then
             l3menu = menu_lang[language].devices_options[SwitchType]
             if l3menu == nil then
-              print("  !!! No default menu_lang[language].devices_options for SwitchType:",SwitchType)
+              print_to_log("  !!! No default menu_lang[language].devices_options for SwitchType:",SwitchType)
               l3menu = "Aan,Uit"
             end
           end
-          print("   -< " .. SwitchType .. " using replymarkup:",l3menu)
+          print_to_log("   -< " .. SwitchType .. " using replymarkup:",l3menu)
         end
       end
     end
@@ -288,12 +246,12 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
 
   -- save the full replymarkup and only send it again when it changed to minimize traffic to the TG client
   if LastCommand[SendTo]["replymarkup"] == replymarkup then
-    print("  -< replymarkup: No update needed")
+    print_to_log("  -< replymarkup: No update needed")
   else
-    print("  -< replymarkup:"..replymarkup)
+    print_to_log("  -< replymarkup:"..replymarkup)
     LastCommand[SendTo]["replymarkup"] = replymarkup
   end
---~ 	print('=== End makereplymenu ==========================================================')
+--~ 	print_to_log('=== End makereplymenu ==========================================================')
   return replymarkup, devicename
 end
 --
@@ -317,7 +275,7 @@ function buildmenu(menuitems,width,extrachar)
   if replymenu ~= "" then
     replymenu = replymenu .. ']'
   end
-  print("    -< buildmenu:",replymenu)
+  print_to_log("    -< buildmenu:",replymenu)
   return replymenu
 end
 -----------------------------------------------
@@ -393,6 +351,7 @@ function menu_module.handler(menu_cli, SendTo)
   --
   print_to_log("==> menu.lua    Start" )
   -- populate the room info each cycle to allow for updates in Domotics
+  PopulateMenuTab()
   MakeRoomMenus()
   print_to_log(" => SendTo:",SendTo,"menu_cli[2]:",menu_cli[2],"[3]:",menu_cli[3], "[4]:",menu_cli[4])
   print_to_log(' => LastCommand[SendTo]["menu"]:',LastCommand[SendTo]["menu"],'["submenu"]:',LastCommand[SendTo]["submenu"])
@@ -437,7 +396,7 @@ function menu_module.handler(menu_cli, SendTo)
       LastCommand[SendTo]["submenu"] = ""
       LastCommand[SendTo]["button"] = ""
       LastCommand[SendTo]["l3menu"] = ""
-      print("==< Show main menu")
+      print_to_log("==< Show main menu")
       return status, response, replymarkup
     end
   end
@@ -446,13 +405,13 @@ function menu_module.handler(menu_cli, SendTo)
   -- else look for the given command
   local ismenu,isbutton,bidx,btype,bsubmenu
   if LastCommand[SendTo]["prompt"] then
-    print("Returned from prompt..looking up:",LastCommand[SendTo]["button"].Name)
-    ismenu,isbutton,bidx,btype,bsubmenu=isdevice(LastCommand[SendTo]["button"].Name,SendTo)
+    print_to_log(" - Returned from prompt..looking up:",LastCommand[SendTo]["button"])
+    ismenu,isbutton,bidx,btype,bsubmenu=isdevice(LastCommand[SendTo]["button"],SendTo)
   else
-    print("looking up:",command)
+    print_to_log(" - looking up:",command)
     ismenu,isbutton,bidx,btype,bsubmenu=isdevice(command,SendTo)
   end
-  print(" -->isdevice:",ismenu,isbutton,bidx,btype,bsubmenu)
+  print_to_log(" -->isdevice:",ismenu,isbutton,bidx,btype,bsubmenu)
   -- When returning from prompt then hand back to DTGBOT with previous command + param
   if LastCommand[SendTo]["prompt"] then
 --~ 		replymarkup = makereplymenu(SendTo,"submenu",bsubmenu)
@@ -462,12 +421,12 @@ function menu_module.handler(menu_cli, SendTo)
     LastCommand[SendTo]["button"] = ""
     LastCommand[SendTo]["l3menu"] = ""
     LastCommand[SendTo]["prompt"] = false
-    print("==<1 found regular lua command and param was given. -> hand back to dtgbot to run")
+    print_to_log("==<1 found regular lua command and param was given. -> hand back to dtgbot to run")
     return status, response, replymarkup
   elseif isbutton
   and btype == "command"
   and ChkEmpty(menu_submenus[bsubmenu].buttons[command].actions) then
-    --  filter the DeviceType "command" that can be ran by dtgbot and simply hand it back without updating the keyboard
+  --  filter the DeviceType "command" that can be ran by dtgbot and simply hand it back without updating the keyboard
     if menu_submenus[LastCommand[SendTo]["submenu"]].buttons[commandline].prompt then
       LastCommand[SendTo]["button"] = commandline
       LastCommand[SendTo]["prompt"] = true
@@ -475,43 +434,43 @@ function menu_module.handler(menu_cli, SendTo)
       LastCommand[SendTo]["replymarkup"] = replymarkup
       status = 1
       response="param needed"
-      print("==<1 found regular lua command that need Param ")
+      print_to_log("==<1 found regular lua command that need Param ")
     else
 --~ 			replymarkup = makereplymenu(SendTo,"submenu",bsubmenu)
       replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
       status = 0
       LastCommand[SendTo]["button"] = ""
       LastCommand[SendTo]["l3menu"] = ""
-      print("==<1 found regular lua command. -> hand back to dtgbot to run")
+      print_to_log("==<1 found regular lua command. -> hand back to dtgbot to run")
     end
     return status, response, replymarkup
   elseif LastCommand[SendTo]["button"] ~= ""
   and menu_submenus[LastCommand[SendTo]["submenu"]].buttons[LastCommand[SendTo]["button"]].DeviceType == "command"
   and ChkInTable(tostring(menu_submenus[LastCommand[SendTo]["submenu"]].buttons[LastCommand[SendTo]["button"]].actions),command) then
-    --  if command is one of the actions of a command DeviceType hand it now back to DTGBOT
+  --  if command is one of the actions of a command DeviceType hand it now back to DTGBOT
     status = 9999
     response = LastCommand[SendTo]["button"]
-    print("==<2 found regular lua command. -> hand back to dtgbot to run:"..LastCommand[SendTo]["button"].. " " .. command )
+    print_to_log("==<2 found regular lua command. -> hand back to dtgbot to run:"..LastCommand[SendTo]["button"].. " " .. command )
 --~ 		replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
     return status, response, replymarkup
   elseif menu_submenus[commandline] ~= nil and param == nil then
-    -- when there is just one parameter and it matches a Submenu  we assume a submenu was provided
-    print("- found submenu:", command)
+  -- when there is just one parameter and it matches a Submenu  we assume a submenu was provided
+    print_to_log("- found submenu:", command)
     submenu = lcommand
     devicename = ""
     action = ""
   elseif isbutton then
-    print("- found device:", command)
+    print_to_log("- found device:", command)
     submenu = bsubmenu
     devicename = command
     action = ""
-    -- check both command and commandline as command is stripped from characters line % so would not recognize percentages
+  -- check both command and commandline as command is stripped from characters line % so would not recognize percentages
   elseif ChkInTable(LastCommand[SendTo]["l3menu"],command)
-  or ChkInTable(LastCommand[SendTo]["l3menu"],commandline) then
+    or ChkInTable(LastCommand[SendTo]["l3menu"],commandline) then
     submenu = LastCommand[SendTo]["submenu"]
     devicename = LastCommand[SendTo]["button"]
     action = command
-    print("- Command is action..")
+    print_to_log("- Command is action..")
   else
     -- We do not know this command so handing it back to dtgbot
     LastCommand[SendTo]["menu"] = "menu"
@@ -521,7 +480,7 @@ function menu_module.handler(menu_cli, SendTo)
     replymarkup, status = makereplymenu(SendTo,"mainmenu")
     response = ""
     status = 0
-    print("==< Unknown command for Menu. -> Show Main menu and hand back to dtgbot to handle the command")
+    print_to_log("==< Unknown command for Menu. -> Show Main menu and hand back to dtgbot to handle the command")
     return status, response, replymarkup
   end
   -- retrieve the information from the table for the device.
@@ -540,29 +499,28 @@ function menu_module.handler(menu_cli, SendTo)
     end
 
   end
-  print(" => --Command lexing done ------------------")
-  print(" => submenu:"..submenu, "devicename:"..devicename, "action:"..action)
-  print(" => idx:".. idx, "DeviceType:"..DeviceType, "SwitchType:"..SwitchType,"btype:"..btype)
+  print_to_log(" => --Command lexing done ------------------")
+  print_to_log(" => submenu:"..submenu, "devicename:"..devicename, "action:"..action)
+  print_to_log(" => idx:".. idx, "DeviceType:"..DeviceType, "SwitchType:"..SwitchType,"btype:"..btype)
   -- ==== start the logic =========================================
 
   LastCommand[SendTo]["submenu"] = submenu
   LastCommand[SendTo]["button"] = devicename
   -- ==== Show Submenu when no device is specified================
   if devicename == "" then
-    print('Showing Submenu as no device name specified')
-    print('submenu: '..submenu)
+    print_to_log(' - Showing Submenu as no device name specified. submenu: '..submenu)
     local rdevicename
     -- when showactions is defined for a device, the devicename will be returned
     replymarkup, rdevicename = makereplymenu(SendTo,"submenu",submenu)
     -- not an menu command received
     if rdevicename ~= "" then
       LastCommand[SendTo]["button"] = rdevicename
-      print(" -- Changed to devicelevel due to showactions defined for device "..rdevicename )
+      print_to_log(" -- Changed to devicelevel due to showactions defined for device "..rdevicename )
       response=menu_lang[language].text["SelectOptionwo"] .. " " .. rdevicename
     else
       response= submenu .. ":" .. menu_lang[language].text["Select"]
     end
-    print("==< show options in submenu.")
+    print_to_log("==< show options in submenu.")
     return status, response, replymarkup;
   end
   -- ==== Show devicemenu when no action is specified================
@@ -582,20 +540,20 @@ function menu_module.handler(menu_cli, SendTo)
       if menu_submenus[submenu].showdevstatus == "y" then
         response = menu_lang[language].text["SelectOptionwo"]
       else
-        switchstatus = SwitchGetStatus(devicename,DeviceType,idx)
+        switchstatus = menu_submenus[submenu].button[devicename].status
         response = menu_lang[language].text["SelectOption"] .. " " .. switchstatus
       end
     else
       response = menu_lang[language].text["Select"]
     end
     replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename,SwitchType)
-    print("==< Show device options menu plus other devices in submenu.")
+    print_to_log("==< Show device options menu plus other devices in submenu.")
     return status, response, replymarkup;
   end
 
   action = string.lower(action)
-  print(action)
-  print(string.lower(menu_lang[language].switch_options["Off"]))
+--~ 	print(action)
+--~ 	print(string.lower(menu_lang[language].switch_options["Off"]))
   if ChkInTable(string.lower(menu_lang[language].switch_options["Off"]),action) then
     response= SwitchName(devicename,DeviceType,SwitchType,idx,'Off')
     status=1
@@ -611,7 +569,7 @@ function menu_module.handler(menu_cli, SendTo)
     status=1
   end
 
-  print("==<"..response)
+  print_to_log("==<"..response)
   return status, response, replymarkup;
 end
 -----------------------------------------------
@@ -621,7 +579,7 @@ end
 local menu_commands = {
   ["start"] = {handler=menu_module.handler, description="Mainmenu"},
   ["menu"] = {handler=menu_module.handler, description="Mainmenu"}
-}
+  }
 
 function menu_module.get_commands()
   return menu_commands;
@@ -660,10 +618,10 @@ function devinfo_from_name(DeviceName,Devlist,Scenelist)
     for k,record in pairs(result) do
       if type(record) == "table" then
         if string.lower(record['Name']) == string.lower(DeviceName) then
-          idx = record.idx
-          DeviceType="scenes"
-          Type=record.Type
-          SwitchType="Scene"
+        idx = record.idx
+        DeviceType="scenes"
+        Type=record.Type
+        SwitchType="Scene"
         end
       end
     end
@@ -711,42 +669,37 @@ function PopulateMenuTab(opt)
         for k,record in pairs(result) do
 -- 			 		print(k,record['Name'],DeviceName)
           if type(record) == "table" then
-            local button = ""
-            local DeviceType = ""
+            local rbutton = ""
             local sType = record.SwitchType
---~ 						print( record.Name, record.Type, record.SwitchType,inSwitchType)
+            local DeviceType
+            local SwitchType
+            local status
+--~ 					print(record.Name)
             if record.Type == "Temp" then
               sType="temp"
               DeviceType="devices"
+              status = tostring(record.Temp)
             elseif record.Type == "Temp + Humidity" then
               sType="temp"
               DeviceType="devices"
-            elseif record.Type == "Scene" or Type == "Group" then
+              status = tostring(record.Temp) .. "-" .. tostring(record.Humidity).."%"
+            elseif record.Type == "Scene" or record.Type == "Group" then
               sType=record.Type
               DeviceType="scenes"
-              SwitchType="Scene"
+              SwitchType=record.Type
             elseif record.SwitchType ~= nil then
               sType=record.SwitchType
               DeviceType="devices"
               SwitchType=record.SwitchType
+              status = tostring(record.Status)
             else
               sType="unknown"
               DeviceType="devices"
+              status = tostring(v1.Status)
             end
--- 						print( record.Used, record.Name, record.Type, record.SwitchType,inSwitchType)
-            if string.lower(sType) == string.lower(inSwitchType) and (record.Used == 1 or DeviceType ~= "devices") then
-              if menu_submenus[submenu].buttons == nil then
-                menu_submenus[submenu].buttons={}
-              end
-              if menu_submenus[submenu].buttons[record.Name] == nil then
-                menu_submenus[submenu].buttons[record.Name]={}
-              end
-              menu_submenus[submenu].buttons[record.Name].idx = record.idx
-              menu_submenus[submenu].buttons[record.Name].whitelist = ""
-              menu_submenus[submenu].buttons[record.Name].DeviceType = DeviceType
-              menu_submenus[submenu].buttons[record.Name].Type = sType
-              menu_submenus[submenu].buttons[record.Name].SwitchType = SwitchType
-              print_to_log("  ->",submenu,record.Name, record.idx,DeviceType,Type,SwitchType)
+            if string.lower(sType) == string.lower(inSwitchType) then
+              menu_submenus[rbutton].buttons[record.Name] = {whitelist = "",Name=room_name,idx=record.idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=sType,status=status}
+              print_to_log("  ->",submenu,record.Name, record.idx,DeviceType,Type,SwitchType,status)
             end
           end
         end
@@ -761,61 +714,92 @@ end
 function MakeRoomMenus()
   print_to_log("Creating Room Menus")
   room_number = 0
+  -- retrieve all plan's from Domoticz
   Roomlist = device_list("plans")
-  result2 = Roomlist["result"]
-  for p,record2 in pairs(result2) do
-    room_name = record2.Name
-    room_number = record2.idx
+  planresult = Roomlist["result"]
+  -- get IDX device table
+  Deviceslist = device_list("devices&used=true")
+  -- get IDX scenes table
+  Sceneslist = device_list("scenes")
+  -- process plan records
+  for p,precord in pairs(planresult) do
+    room_name = precord.Name
+    room_number = precord.idx
     local rbutton = string.lower(room_name:gsub(" ", "_"))
-    DevicesList = device_list("devices&used=true&plan="..room_number)
-    result = DevicesList["result"]
-    if result ~= nil then
-      print_to_log('For room '..room_name..' got some devices')
---?			menu_submenus[rbutton] = {whitelist="",showdevstatus="y",buttons={}}
-      buttons = {}
-      for k,record in pairs(result) do
-        local sType
-        local DeviceType
-        local SwitchType
-        if type(record) == "table" then
---~ 					print(record.Name)
-          if record.Type == "Temp" then
-            sType="temp"
-            DeviceType="devices"
-          elseif record.Type == "Temp + Humidity" then
-            sType="temp"
-            DeviceType="devices"
-          elseif record.Type == "Scene" or Type == "Group" then
-            sType=record.Type
-            DeviceType="scenes"
-            SwitchType="Scene"
-          elseif record.SwitchType ~= nil then
-            sType=record.SwitchType
-            DeviceType="devices"
-            SwitchType=record.SwitchType
+    -- retrieve all devices for this plan from Domoticz
+    Devsinplan = device_list("command&param=getplandevices&idx="..room_number)
+    DIPresult = Devsinplan["result"]
+    if DIPresult ~= nil then
+      print_to_log('For room '..room_name..' got some devices and/or scenes')
+      menu_submenus[rbutton] = {whitelist="",showdevstatus="y",buttons={}}
+        -- process all found entries in the plan record
+        buttons = {}
+        for d,DIPrecord in pairs(DIPresult) do
+        if type(DIPrecord) == "table" then
+          local DeviceType="devices"
+          local SwitchType
+          local Type
+          local status="?"
+          local idx=DIPrecord.devidx
+          local name=DIPrecord.Name
+          print(" - Plan record:",DIPrecord.Name,DIPrecord.devidx,DIPrecord.type)
+          if DIPrecord.type == 1 then
+--~ 						print("--> scene record")
+            result = Sceneslist["result"]
           else
-            sType="unknown"
-            DeviceType="devices"
+--~ 						print("--> device record")
+            result = Deviceslist["result"]
           end
-          -- Remove the name of the room from the device if it is present
-          record_name = string.gsub(record.Name,room_name,"")
-          -- But reinstate it if lees than 3 letters are left
-          if #record_name < 3 then
-            record_name = record.Name
+          for k,record in pairs(result) do
+  -- 			 		print(k,record['Name'],DeviceName)
+            if type(record) == "table" and record.idx == DIPrecord.devidx then
+              local sType = record.SwitchType
+              local DeviceType
+              local SwitchType
+              local status
+  --~ 					print(record.Name)
+              if record.Type == "Temp" then
+                sType="temp"
+                DeviceType="devices"
+                status = tostring(record.Temp)
+              elseif record.Type == "Temp + Humidity" then
+                sType="temp"
+                DeviceType="devices"
+                status = tostring(record.Temp) .. "-" .. tostring(record.Humidity).."%"
+              elseif record.Type == "Scene" or record.Type == "Group" then
+                sType=record.Type
+                DeviceType="scenes"
+                SwitchType=record.Type
+              elseif record.SwitchType ~= nil then
+                sType=record.SwitchType
+                DeviceType="devices"
+                SwitchType=record.SwitchType
+                status = tostring(record.Status)
+              else
+                sType="unknown"
+                DeviceType="devices"
+                status = tostring(v1.Status)
+              end
+              -- Remove the name of the room from the device if it is present
+              record_name = string.gsub(record.Name,room_name,"")
+              -- But reinstate it if lees than 3 letters are left
+              if #record_name < 3 then
+                record_name = record.Name
+              end
+              -- Remove any spaces from the device name
+              record_name = string.gsub(record_name,"%s+", "")
+              buttons[record_name] = {whitelist = "",Name=record.Name,idx=record.idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=sType,status=status}
+              print_to_log("  ->",rbutton,record.Name, record.idx,DeviceType,Type,SwitchType,status)
+            end
           end
-          -- Remove any spaces from the device name
-          record_name = string.gsub(string.lower(record_name),"%s+", "")
-          buttons[record_name] = {whitelist = "",Name=record.Name,idx=record.idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=sType}
+          menu_submenus[rbutton] = {whitelist="",showdevstatus="y",buttons=buttons}
         end
---?        menu_submenus[rbutton].buttons[record.Name] = {whitelist = "",Name=room_name,idx=record.idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=sType}
-        menu_submenus[rbutton] = {whitelist="",showdevstatus="y",buttons=buttons}
       end
     end
   end
 end
-
 -- populate the status definitions only at startup
 --~ MakeRoomMenus()
-PopulateMenuTab()
+--~ PopulateMenuTab()
 
 return menu_module;
