@@ -128,7 +128,7 @@ function SwitchGetStatus(DeviceName,DeviceType,idx)
 	local found=1
 	local SwitchType=""
 --~ 	print("=== Start SwitchGetStatus")
-	print('    -> DeviceType '.. DeviceType ..'  idx:'.. idx)
+	print('    -> Devicename ', DeviceName,' DeviceType ', DeviceType,'  idx:', idx)
 	if DeviceType == "devices" then
 		jresponse, status = http.request(server_url.."/json.htm?type="..DeviceType.."&rid=" .. idx)
 		decoded_response = JSON:decode(jresponse)
@@ -391,10 +391,12 @@ function menu_module.handler(menu_cli, SendTo)
 	local idx = ""
 	local replymarkup = ""
 	--
-	print("==> menu.lua    Start" )
-	print(" => SendTo:",SendTo,"menu_cli[2]:",menu_cli[2],"[3]:",menu_cli[3], "[4]:",menu_cli[4])
-	print(' => LastCommand[SendTo]["menu"]:',LastCommand[SendTo]["menu"],'["submenu"]:',LastCommand[SendTo]["submenu"])
-	print(' => LastCommand[SendTo]["button"]:',LastCommand[SendTo]["button"],'["l3menu"]:',LastCommand[SendTo]["l3menu"])
+	print_to_log("==> menu.lua    Start" )
+	-- populate the room info each cycle to allow for updates in Domotics
+	MakeRoomMenus()
+	print_to_log(" => SendTo:",SendTo,"menu_cli[2]:",menu_cli[2],"[3]:",menu_cli[3], "[4]:",menu_cli[4])
+	print_to_log(' => LastCommand[SendTo]["menu"]:',LastCommand[SendTo]["menu"],'["submenu"]:',LastCommand[SendTo]["submenu"])
+	print_to_log(' => LastCommand[SendTo]["button"]:',LastCommand[SendTo]["button"],'["l3menu"]:',LastCommand[SendTo]["l3menu"])
 	local match_type, mode;
 	--
 	-- check if received command is a submenu:
@@ -678,14 +680,14 @@ function devinfo_from_name(DeviceName,Devlist,Scenelist)
 end
 --
 function PopulateMenuTab(opt)
-	print("####  Start populating menuarray")
+	print_to_log("####  Start populating menuarray")
 	-- get IDX device table
 	Deviceslist = device_list("devices&used=true")
 	-- get IDX scenes table
 	Sceneslist = device_list("scenes")
-	print("Submenu table including buttons defined in dtgbot.cfg:")
+	print_to_log("Submenu table including buttons defined in dtgbot.cfg:")
 	for submenu,get in pairs(menu_submenus) do
-		print("=>",submenu, get.whitelist, get.showdevstatus,get.Menuwidth)
+		print_to_log("=>",submenu, get.whitelist, get.showdevstatus,get.Menuwidth)
 		if menu_submenus[submenu].buttons ~= nil then
 			for button,dev in pairs(menu_submenus[submenu].buttons) do
 				idx,DeviceType,Type,SwitchType = devinfo_from_name(button,Deviceslist,Sceneslist)
@@ -693,23 +695,21 @@ function PopulateMenuTab(opt)
 				menu_submenus[submenu].buttons[button].DeviceType = DeviceType
 				menu_submenus[submenu].buttons[button].Type = Type
 				menu_submenus[submenu].buttons[button].SwitchType = SwitchType
-				print("  ->",submenu,button, dev.idx,dev.DeviceType,dev.Type,dev.SwitchType)
+				print_to_log("  ->",submenu,button, dev.idx,dev.DeviceType,dev.Type,dev.SwitchType)
 			end
 		end
 		-- added all defined switchtypes to this menu dynamiccally
 		if menu_submenus[submenu].selectswitchtype ~= nil then
 			for inSwitchType in string.gmatch(menu_submenus[submenu].selectswitchtype, "[^|,]+") do
 				if ChkInTable("Group,Scene",inSwitchType) then
-					print( "Search scenes for "..inSwitchType)
---~ 					add_switchtype_to_table(menu_submenus[submenu],Sceneslist,SwitchType)
+-- 					print( "Search scenes for "..inSwitchType)
 					result = Sceneslist["result"]
 				else
-					print( "Search devices for "..inSwitchType)
---~ 					add_switchtype_to_table(menu_submenus[submenu],Deviceslist,SwitchType)
+-- 					print( "Search devices for "..inSwitchType)
 					result = Deviceslist["result"]
 	end
 				for k,record in pairs(result) do
---~ 			 		print(k,record['Name'],DeviceName)
+-- 			 		print(k,record['Name'],DeviceName)
 					if type(record) == "table" then
 						local button = ""
 						local DeviceType = ""
@@ -733,11 +733,7 @@ function PopulateMenuTab(opt)
 							sType="unknown"
 							DeviceType="devices"
 						end
-						Type = record.Type
-						if Type == nil then
-							type = ""
-						end
---~ 						print( record.Used, record.Name, record.Type, record.SwitchType,inSwitchType)
+-- 						print( record.Used, record.Name, record.Type, record.SwitchType,inSwitchType)
 						if string.lower(sType) == string.lower(inSwitchType) and (record.Used == 1 or DeviceType ~= "devices") then
 							if menu_submenus[submenu].buttons == nil then
 								menu_submenus[submenu].buttons={}
@@ -750,17 +746,18 @@ function PopulateMenuTab(opt)
 							menu_submenus[submenu].buttons[record.Name].DeviceType = DeviceType
 							menu_submenus[submenu].buttons[record.Name].Type = sType
 							menu_submenus[submenu].buttons[record.Name].SwitchType = SwitchType
---~ 							print("  ->",submenu,record.Name, record.idx,DeviceType,Type,SwitchType)
+							print_to_log("  ->",submenu,record.Name, record.idx,DeviceType,Type,SwitchType)
 						end
 					end
 				end
 			end
 		end
 	end
-	print("####  End populating menuarray")
+	print_to_log("####  End populating menuarray")
 	return
 end
-
+--
+-- Create a button per room.
 function MakeRoomMenus()
 	print_to_log("Creating Room Menus")
 	room_number = 0
@@ -776,16 +773,38 @@ function MakeRoomMenus()
 			print_to_log('For room '..room_name..' got some devices')
 			menu_submenus[rbutton] = {whitelist="",showdevstatus="y",buttons={}}
 			for k,record in pairs(result) do
+				local sType
+				local DeviceType
+				local SwitchType
 				if type(record) == "table" then
-					print(record.Name)
-					menu_submenus[rbutton].buttons[record.Name] = {whitelist = "",Name=room_name,idx=room_number}
+--~ 					print(record.Name)
+						if record.Type == "Temp" then
+							sType="temp"
+							DeviceType="devices"
+						elseif record.Type == "Temp + Humidity" then
+							sType="temp"
+							DeviceType="devices"
+						elseif record.Type == "Scene" or Type == "Group" then
+							sType=record.Type
+							DeviceType="scenes"
+							SwitchType="Scene"
+						elseif record.SwitchType ~= nil then
+							sType=record.SwitchType
+							DeviceType="devices"
+							SwitchType=record.SwitchType
+						else
+							sType="unknown"
+							DeviceType="devices"
+						end
+					menu_submenus[rbutton].buttons[record.Name] = {whitelist = "",Name=room_name,idx=record.idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=sType}
 				end
 			end
 		end
 	end
 end
 
-MakeRoomMenus()
+-- populate the status definitions only at startup
+--~ MakeRoomMenus()
 PopulateMenuTab()
 
 return menu_module;
