@@ -12,8 +12,10 @@
 -- shared between the two bots.
 -- -------------------------------------------------------
 
-function print_to_log(logmessage)
-  print(os.date("%Y-%m-%d %H:%M:%S")..' - '..tostring(logmessage))
+function print_to_log(logmessage,lm2,lm3,lm4,lm5,lm6,lm7,lm8,lm9)
+	logmessage=tostring(logmessage)..' 2: '..tostring(lm2)..' 3: '..tostring(lm3)..' 4: '..tostring(lm4)..' 5: '..tostring(lm5)..' 6: '..tostring(lm6)..' 7: '..tostring(lm7)..' 8: '..tostring(lm8)..' 9: '..tostring(lm9)
+	logmessage=tostring(logmessage):gsub(" .: nil","")
+	print(os.date("%Y-%m-%d %H:%M:%S")..' - '..logmessage)
 end
 
 print_to_log ("-----------------------------------------")
