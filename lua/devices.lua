@@ -40,7 +40,7 @@ function DevicesScenes(DeviceType, qualifier)
       response = response..'\n'..ItemNumber..' - '..StoredList[ItemNumber]
     end
   else
-    response = response..'none found'
+    response = response..' none found'
   end
   return response
 end

@@ -287,7 +287,7 @@ function HandleCommand(cmd, SendTo, MessageId)
   for w in string.gmatch(cmd, "([%w-_]+)") do
     table.insert(parsed_command, w)
   end
-
+  
   if command_prefix ~= "" then
     if parsed_command[1] ~= command_prefix then -- command prefix has not been found so ignore message
       return 1 -- not a command so successful but nothing done
@@ -321,7 +321,7 @@ function HandleCommand(cmd, SendTo, MessageId)
     table.insert(menu_cli, parsed_command[3])
     -- send whole cmd line instead of first word
     status, text, replymarkup = command_dispatch.handler(menu_cli,SendTo);
---~ 		print("====> End menu_module.handler:", status, text, replymarkup)
+ 		print("====> End menu_module.handler:", status, text, replymarkup)
     -- rebuild the command to run by using previous as param 1 and current as param 2
     if status == 9999 then
       print("change params =>",parsed_command[2],parsed_command[3])
@@ -358,7 +358,6 @@ function HandleCommand(cmd, SendTo, MessageId)
 
   --? if(parsed_command[2]~=nil) then
   command_dispatch = commands[string.lower(parsed_command[2])];
-
 --~ change to allow for replymarkup.
   local savereplymarkup = replymarkup
 --~ 	print("debug1." ,replymarkup)
