@@ -24,6 +24,7 @@
 --	reply_markup={"keyboard":[["menu"]],"resize_keyboard":true}
 --  reply_markup={"keyboard":[["opt 1","opt 2","opt 3"],["menu"]],"resize_keyboard":true}
 
+local config = assert(loadfile(BotHomePath.."lua/menu.cfg"))();
 local menu_module = {};
 
 local http = require "socket.http";
@@ -53,6 +54,7 @@ function orderedNext(t, state)
     -- Equivalent of the next function, but returns the keys in the alphabetic
     -- order. We use a temporary ordered key table that is stored in the
     -- table being iterated.
+
     key = nil
     --print("orderedNext: state = "..tostring(state) )
     if state == nil then
@@ -66,7 +68,6 @@ function orderedNext(t, state)
                 key = t.__orderedIndex[i+1]
             end
         end
-
     end
 
     if key then
