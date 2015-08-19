@@ -15,7 +15,11 @@ function get_temperature(DeviceName)
   result = decoded_response["result"]
   record = result[1]
   Temperature = record["Temp"]
-  Humidity = record["Humidity"]
+  if record["Type"] == "Temp + Humidity" then
+    Humidity = record["Humidity"]
+  else
+    Humidity = -999
+  end
   LastUpdate = record["LastUpdate"]
   DeviceName = record["Name"]
   return DeviceName, Temperature, Humidity, LastUpdate;
@@ -28,8 +32,13 @@ function temperature(DeviceName)
     print(DeviceName..' does not exist')
     return 1, DeviceName..' does not exist'
   end
-  print(DeviceName .. ' temperature is ' .. Temperature .. '°C and relative humidity is ' .. Humidity .. '%')
-  response = DeviceName.. ' ' .. Temperature .. '°C & ' .. Humidity .. '%'
+  if Humidity ~= -999 then
+    print(DeviceName .. ' temperature is ' .. Temperature .. '°C and relative humidity is ' .. Humidity .. '%')
+    response = DeviceName.. ' ' .. Temperature .. '°C & ' .. Humidity .. '%'
+  else
+    print(DeviceName .. ' temperature is ' .. Temperature .. '°C')
+    response = DeviceName.. ' ' .. Temperature .. '°C'
+  end
   return status, response;
 end
 
