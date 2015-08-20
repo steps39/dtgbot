@@ -493,11 +493,13 @@ function dtgmenu_module.handler(menu_cli,SendTo)
 	if cmdisbutton then
 		submenu    = LastCommand[SendTo]["submenu"]
 		devicename = command  -- use command as that should only contain the values of the first param
+		realdevicename = dtgmenu_submenus[submenu].buttons[devicename].Name
 		Type       = dtgmenu_submenus[submenu].buttons[devicename].Type
 		idx        = dtgmenu_submenus[submenu].buttons[devicename].idx
 		DeviceType = dtgmenu_submenus[submenu].buttons[devicename].DeviceType
 		SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
 		print_to_log(' => devicename :',devicename)
+		print_to_log(' => realdevicename :',realdevicename)
 		print_to_log(' => idx:',idx)
 		print_to_log(' => Type :',Type)
 		print_to_log(' => DeviceType :',DeviceType)
@@ -506,12 +508,14 @@ function dtgmenu_module.handler(menu_cli,SendTo)
 	if cmdisaction then
 		submenu    = LastCommand[SendTo]["submenu"]
 		devicename = LastCommand[SendTo]["device"]
+		realdevicename = dtgmenu_submenus[submenu].buttons[devicename].Name
 		action     = lcommand  -- use lcommand as that should only contain the values of the first param
 		Type       = dtgmenu_submenus[submenu].buttons[devicename].Type
 		idx        = dtgmenu_submenus[submenu].buttons[devicename].idx
 		DeviceType = dtgmenu_submenus[submenu].buttons[devicename].DeviceType
 		SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
 		print_to_log(' => devicename :',devicename)
+		print_to_log(' => realdevicename :',realdevicename)
 		print_to_log(' => idx:',idx)
 		print_to_log(' => Type :',Type)
 		print_to_log(' => DeviceType :',DeviceType)
@@ -652,12 +656,12 @@ function dtgmenu_module.handler(menu_cli,SendTo)
 	-- process action button pressed
 	-------------------------------------------------
 	if ChkInTable(string.lower(dtgmenu_lang[language].switch_options["Off"]),action) then
-		response= SwitchName(devicename,DeviceType,SwitchType,idx,'Off')
+		response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'Off')
 	elseif ChkInTable(string.lower(dtgmenu_lang[language].switch_options["On"]),action) then
-		response= SwitchName(devicename,DeviceType,SwitchType,idx,'On')
+		response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'On')
 	elseif string.find(action, "%d") then
 		response = "Set level " .. action
-		response= SwitchName(devicename,DeviceType,SwitchType,idx,"Set Level " .. action)
+		response= SwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level " .. action)
 	else
 		response = dtgmenu_lang[language].text["UnknownChoice"] .. action
 	end
@@ -817,7 +821,7 @@ function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
             local status=""
             local idx=DIPrecord.devidx
             local name=DIPrecord.Name
-            if iSubmenu == string.lower(room_name) or "[scene] ".. iSubmenu == string.lower(room_name) then
+            if iSubmenu == string.lower(rbutton) or "[scene] ".. iSubmenu == string.lower(rbutton) then
       --~ 					print_to_log(" - Plan record:",DIPrecord.Name,DIPrecord.devidx,DIPrecord.type)
               if DIPrecord.type == 1 then
       --~ 						print("--> scene record")
