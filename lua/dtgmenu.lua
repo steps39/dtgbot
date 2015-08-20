@@ -487,6 +487,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   local SwitchType = ""
   local idx        = ""
   local Type       = ""
+  local MaxDimLevel= 0
   if cmdissubmenu then
     submenu    = commandline
   end
@@ -498,12 +499,14 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     idx        = dtgmenu_submenus[submenu].buttons[devicename].idx
     DeviceType = dtgmenu_submenus[submenu].buttons[devicename].DeviceType
     SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
+    MaxDimLevel = dtgmenu_submenus[submenu].buttons[devicename].MaxDimLevel
     print_to_log(' => devicename :',devicename)
     print_to_log(' => realdevicename :',realdevicename)
     print_to_log(' => idx:',idx)
     print_to_log(' => Type :',Type)
     print_to_log(' => DeviceType :',DeviceType)
     print_to_log(' => SwitchType :',SwitchType)
+    print_to_log(' => MaxDimLevel :',MaxDimLevel)
   end
   if cmdisaction then
     submenu    = LastCommand[SendTo]["submenu"]
@@ -514,12 +517,14 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     idx        = dtgmenu_submenus[submenu].buttons[devicename].idx
     DeviceType = dtgmenu_submenus[submenu].buttons[devicename].DeviceType
     SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
+    MaxDimLevel = dtgmenu_submenus[submenu].buttons[devicename].MaxDimLevel
     print_to_log(' => devicename :',devicename)
     print_to_log(' => realdevicename :',realdevicename)
     print_to_log(' => idx:',idx)
     print_to_log(' => Type :',Type)
     print_to_log(' => DeviceType :',DeviceType)
     print_to_log(' => SwitchType :',SwitchType)
+    print_to_log(' => MaxDimLevel :',MaxDimLevel)
   end
   local jresponse
   local decoded_response
@@ -660,6 +665,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   elseif ChkInTable(string.lower(dtgmenu_lang[language].switch_options["On"]),action) then
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'On')
   elseif string.find(action, "%d") then
+    action = tostring(MaxDimLevel/100*tonumber(action))
     response = "Set level " .. action
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level " .. action)
   else
@@ -693,6 +699,7 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
   local found = 0
   local rDeviceName=""
   local status=""
+  local MaxDimLevel=100
   local ridx=0
   -- Check for Devices
 --~ 	print("==> start devinfo_from_name", idx,DeviceName)
@@ -713,6 +720,7 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
           status = tostring(record.Temp) .. "-" .. tostring(record.Humidity).."%"
         else
           SwitchType=record.SwitchType
+          MaxDimLevel=record.MaxDimLevel
           status = tostring(record.Status)
         end
         found = 1
@@ -749,7 +757,7 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
     SwitchType="command"
   end
 --~  	print(" --< devinfo_from_name:",found,ridx,rDeviceName,DeviceType,Type,SwitchType,status)
-  return ridx,rDeviceName,DeviceType,Type,SwitchType,status
+  return ridx,rDeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status
 end
 --
 function PopulateMenuTab(iLevel,iSubmenu)
@@ -771,9 +779,9 @@ function PopulateMenuTab(iLevel,iSubmenu)
       buttons = {}
       if iLevel ~= "mainmenu" and iSubmenu == string.lower(submenu) then
         for button,dev in pairs(static_dtgmenu_submenus[submenu].buttons) do
-            idx,DeviceName,DeviceType,Type,SwitchType,status = devinfo_from_name(9999,button,Deviceslist,Sceneslist)
-            buttons[button] = {whitelist = dev.whitelist,actions=dev.actions,prompt=dev.prompt,showactions=dev.showactions,Name=DeviceName,idx=idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=Type,status=status}
-            print_to_log(" static ->",submenu,button,DeviceName, idx,DeviceType,Type,SwitchType,status)
+            idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button,Deviceslist,Sceneslist)
+            buttons[button] = {whitelist = dev.whitelist,actions=dev.actions,prompt=dev.prompt,showactions=dev.showactions,Name=DeviceName,idx=idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=Type,MaxDimLevel=MaxDimLevel,status=status}
+            print_to_log(" static ->",submenu,button,DeviceName, idx,DeviceType,Type,SwitchType,MaxDimLevel,status)
         end
       end
       dtgmenu_submenus[submenu] = {whitelist=get.whitelist,buttons=buttons}
@@ -823,15 +831,16 @@ function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
             local SwitchType
             local Type
             local status=""
+            local MaxDimLevel=100
             local idx=DIPrecord.devidx
             local name=DIPrecord.Name
     --~ 					print_to_log(" - Plan record:",DIPrecord.Name,DIPrecord.devidx,DIPrecord.type)
             if DIPrecord.type == 1 then
     --~ 						print("--> scene record")
-              idx,DeviceName,DeviceType,Type,SwitchType,status = devinfo_from_name(idx,"",Deviceslist,Sceneslist)
+              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Deviceslist,Sceneslist)
             else
     --~ 						print("--> device record")
-              idx,DeviceName, DeviceType,Type,SwitchType,status = devinfo_from_name(idx,"",Deviceslist,Sceneslist)
+              idx,DeviceName, DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Deviceslist,Sceneslist)
             end
             -- Remove the name of the room from the device if it is present
             record_name = string.gsub(DeviceName,room_name,"")
@@ -841,8 +850,8 @@ function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
             end
             -- Remove any spaces from the device name
             record_name = string.gsub(record_name,"%s+", "")
-            buttons[record_name] = {whitelist = "",Name=DeviceName,idx=idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=Type,status=status}
-            print_to_log(" dynam ->",rbutton,DeviceName, idx,DeviceType,Type,SwitchType,status)
+            buttons[record_name] = {whitelist = "",Name=DeviceName,idx=idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=Type,MaxDimLevel=MaxDimLevel,status=status}
+            print_to_log(" dynam ->",rbutton,DeviceName, idx,DeviceType,Type,SwitchType,MaxDimLevel,status)
           end
         end
       end
