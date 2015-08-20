@@ -80,46 +80,24 @@ function temperature_module.handler(parsed_cli)
     status, response = temperature(DeviceName)
   else
     idx = idx_from_variable_name('DevicesWithTemperatures')
-    -- Get list of all user variables
---    t = server_url.."/json.htm?type=command&param=getuservariables"
---    print ("JSON request <"..t..">");  
---    jresponse, status = http.request(t)
---    decoded_response = JSON:decode(jresponse)
---    result = decoded_response["result"]
---    idx = 0
---    for k,record in pairs(result) do
---      if type(record) == "table" then
---        if record['Name'] == 'DevicesWithTemperatures' then
---          print(record['idx'])
---          idx = record['idx']
---        end
---      end
---    end
     if idx == 0 then
       print('User Variable DevicesWithTemperatures not set in Domoticz')
       return 1, 'User Variable DevicesWithTemperatures not set in Domoticz'
     end
     -- Get user variable DevicesWithTemperature
     DevicesWithTemperatures = get_variable_value(idx)
---    t = server_url.."/json.htm?type=command&param=getuservariable&idx="..idx
---    print ("JSON request <"..t..">");  
---    jresponse, status = http.request(t)
---    decoded_response = JSON:decode(jresponse)
---    result = decoded_response["result"]
---    record = result[1]
---    DevicesWithTemperatures = record["Value"]
---    DeviceNames = {}
     print(DevicesWithTemperatures)
---    for DeviceName in string.gmatch(DevicesWithTemperatures, "[^|]+") do
---      DeviceNames[#DeviceNames + 1] = DeviceName
---    end
     -- Retrieve the names
     DeviceNames = get_names_from_variable(DevicesWithTemperatures)
     -- Loop round each of the devices with temperature
-    response = ''
-    for i,DeviceName in ipairs(DeviceNames) do
-      status, r = temperature(DeviceName)
-      response = response .. r .. '\n'
+    if DeviceNames ~= nil then
+      response = ''
+      for i,DeviceName in ipairs(DeviceNames) do
+        status, r = temperature(DeviceName)
+        response = response .. r .. '\n'
+      end
+    else
+      response = 'No device names found in '..DevicesWithTemperatures
     end
   end
   return status, response

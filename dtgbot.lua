@@ -443,6 +443,9 @@ function get_names_from_variable(DividedString)
     Names[#Names + 1] = Name
     print('Name :'..Name)
   end
+  if Names == {} then
+    Names = nil
+  end
   return Names
 end
 
