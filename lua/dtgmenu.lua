@@ -573,13 +573,13 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
       response = ""
       -- add previous command ot the current command
-      cmd = LastCommand[SendTo]["device"] .. " " .. commandline
+      commandline = LastCommand[SendTo]["device"] .. " " .. commandline
       LastCommand[SendTo]["submenu"] = ""
       LastCommand[SendTo]["device"] = ""
       LastCommand[SendTo]["l1menu"] = ""
       LastCommand[SendTo]["l2menu"] = ""
       LastCommand[SendTo]["l3menu"] = ""
-      print_to_log("==<2 found regular lua command. -> hand back to dtgbot to run:"..LastCommand[SendTo]["device"].. " " .. command )
+      print_to_log("==<2 found regular lua command. -> hand back to dtgbot to run:"..LastCommand[SendTo]["device"].. " " .. commandline )
   --~ 		replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
       return status, response, replymarkup, commandline
     end
