@@ -767,12 +767,12 @@ function PopulateMenuTab(iLevel,iSubmenu)
 			if iLevel ~= "mainmenu" and iSubmenu == string.lower(submenu) then
         for button,dev in pairs(static_dtgmenu_submenus[submenu].buttons) do
             idx,DeviceName,DeviceType,Type,SwitchType,status = devinfo_from_name(9999,button,Deviceslist,Sceneslist)
-            buttons[button] = {whitelist = dev.whitelist,actions=dev.actions,showactions=dev.showactions,Name=DeviceName,idx=idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=Type,status=status}
+            buttons[button] = {whitelist = dev.whitelist,actions=dev.actions,prompt=dev.prompt,showactions=dev.showactions,Name=DeviceName,idx=idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=Type,status=status}
             print_to_log(" static ->",submenu,button,DeviceName, idx,DeviceType,Type,SwitchType,status)
         end
       end
-      dtgmenu_submenus[submenu] = {whitelist="",showdevstatus="y",buttons=buttons}
- 		end
+      dtgmenu_submenus[submenu] = {whitelist=get.whitelist,buttons=buttons}
+ 	  end
 	end
 	-- Add the room/plan menu's after the statis is populated
 	MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
