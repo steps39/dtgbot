@@ -5,7 +5,7 @@ local http = require "socket.http";
 --- the handler for the list commands. a module can have more than one handler. in this case the same handler handles two commands
 function help_module.handler(parsed_cli)
 	local response = "", status;
-  
+
   command = parsed_cli[3]
   if (command ~= "" and command ~= nil) then
     command_dispatch = commands[string.lower(command)];
@@ -21,7 +21,7 @@ function help_module.handler(parsed_cli)
   for i,help in pairs(commands) do
     print_to_log(help.description)
    --send_msg(SendTo,help,ok_cb,false)
-    HelpText = HelpText..string.gmatch(help.description, "%S+")[[1]]..', '
+    HelpText = HelpText.."/"..string.gmatch(help.description, "%S+")[[1]]..', '
   end
   HelpText = string.sub(HelpText,1,-3)..'\nHelp Command - gives usage information, i.e. Help On \n\n'
 --  send_msg(SendTo,HelpText,ok_cb,false)
@@ -30,7 +30,7 @@ function help_module.handler(parsed_cli)
   for line in Functions:lines() do
     print_to_log(line)
     DotPos=string.find(line, "%.")
-    HelpText = HelpText .. "-" .. string.sub(line,0,DotPos-1).."\n" 
+    HelpText = HelpText .. "-" .. string.sub(line,0,DotPos-1).."\n"
   end
 	return status, HelpText;
 end
