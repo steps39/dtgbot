@@ -613,8 +613,8 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   -- process device button pressed
   -------------------------------------------------
   status=1
-  replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename,SwitchType)
   if cmdisbutton then
+    replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename,SwitchType)
     -- show initial menu with only devices when shown first time
     LastCommand[SendTo]["device"] = devicename
     local switchstatus=""
@@ -667,6 +667,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   end
   status=1
 
+  replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename,SwitchType)
   print_to_log("==<"..response)
   return status, response, replymarkup, commandline;
 end
