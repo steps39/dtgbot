@@ -620,6 +620,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       response="DTGMENU is now disabled. send DTGMENU On to start the menus again."
       replymarkup='{"hide_keyboard":true}'
       set_variable_value(Menuidx,"TelegramBotMenu",2,"Off")
+      LastCommand[SendTo]["replymarkup"]=""
     elseif Menuval == "Off" and lparam1 == "on" then
       print_to_log(0, " Set DTGMENU On")
       response="DTGMENU is now enabled. send DTGMENU Off to stop the menus."
@@ -630,6 +631,9 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       else
         set_variable_value(Menuidx,"TelegramBotMenu",2,"On")
       end
+    elseif Menuval == "On" then
+      -- reset menu to main menu in case dtgmenu command is send
+      replymarkup = makereplymenu(SendTo, "mainmenu")
     end
     status=1
     LastCommand[SendTo]["submenu"] = ""
