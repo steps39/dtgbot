@@ -12,11 +12,31 @@
 -- shared between the two bots.
 -- -------------------------------------------------------
 
-function print_to_log(logmessage,lm2,lm3,lm4,lm5,lm6,lm7,lm8,lm9)
-  logmessage=tostring(logmessage)..' 2: '..tostring(lm2)..' 3: '..tostring(lm3)..' 4: '..tostring(lm4)..' 5: '..tostring(lm5)..' 6: '..tostring(lm6)..' 7: '..tostring(lm7)..' 8: '..tostring(lm8)..' 9: '..tostring(lm9)
-  logmessage=tostring(logmessage):gsub(" .: nil","")
-  print(os.date("%Y-%m-%d %H:%M:%S")..' - '..logmessage)
+
+-- set default loglevel which will be retrieve later from the domoticz user variable TelegramBotLoglevel
+dtgbotLogLevel=0
+
+-- loglevel 0 - Always shown
+-- loglevel 1 - only shown when TelegramBotLoglevel >= 1
+
+function print_to_log(loglevel, logmessage, ...)
+ -- when only one parameter is provided => set the loglevel to 0 and assume the parameter is the messagetext
+  if tonumber(loglevel) == nil or logmessage == nil then
+    logmessage = loglevel
+    loglevel=0
+  end
+  if loglevel <= dtgbotLogLevel then
+    logcount = #{...}
+    if logcount > 0 then
+      for i, v in pairs({...}) do
+        logmessage = logmessage ..' ('..tostring(i)..') '..tostring(v)
+      end
+      logmessage=tostring(logmessage):gsub(" (.+) nil","")
+    end
+    print(os.date("%Y-%m-%d %H:%M:%S")..' - '..tostring(logmessage))
+  end
 end
+
 
 print_to_log ("-----------------------------------------")
 print_to_log ("Starting Telegram api Bot message handler")
@@ -26,9 +46,9 @@ function domoticzdata(envvar)
   -- loads get environment variable and prints in log
   localvar = os.getenv(envvar)
   if localvar ~= nil then
-    print_to_log(envvar..": "..localvar)
+    print_to_log(0,envvar..": "..localvar)
   else
-    print_to_log(envvar.." not found check /etc/profile.d/DomoticzData.sh")
+    print_to_log(0,envvar.." not found check /etc/profile.d/DomoticzData.sh")
   end
   return localvar
 end
@@ -101,9 +121,9 @@ function vardump(value, depth, key)
   if type(value) == 'table' then
     mTable = getmetatable(value)
     if mTable == nil then
-      print_to_log(spaces ..linePrefix.."(table) ")
+      print_to_log(0,spaces ..linePrefix.."(table) ")
     else
-      print_to_log(spaces .."(metatable) ")
+      print_to_log(0,spaces .."(metatable) ")
       value = mTable
     end
     for tableKey, tableValue in pairs(value) do
@@ -114,9 +134,9 @@ function vardump(value, depth, key)
   type(value)	== 'userdata' or
   value		== nil
   then
-    print_to_log(spaces..tostring(value))
+    print_to_log(0,spaces..tostring(value))
   else
-    print_to_log(spaces..linePrefix.."("..type(value)..") "..tostring(value))
+    print_to_log(0,spaces..linePrefix.."("..type(value)..") "..tostring(value))
   end
 end
 
@@ -168,18 +188,18 @@ function variable_list()
   -- Domoticz seems to take a while to respond to getuservariables after start-up
   -- So just keep trying after 1 second sleep
   while (jresponse == nil) do
-    print_to_log ("JSON request <"..t..">");
+   print_to_log(1,"JSON request <"..t..">");
     jresponse, status = http.request(t)
     if (jresponse == nil) then
       socket.sleep(1)
       domoticz_tries = domoticz_tries + 1
       if domoticz_tries > 100 then
-        print_to_log('Domoticz not sending back user variable list')
+        print_to_log(0,'Domoticz not sending back user variable list')
         break
       end
     end
   end
-  print_to_log('Domoticz returned getuservariables after '..domoticz_tries..' attempts')
+  print_to_log(0,'Domoticz returned getuservariables after '..domoticz_tries..' attempts')
   decoded_response = JSON:decode(jresponse)
   return decoded_response
 end
@@ -191,7 +211,7 @@ function idx_from_variable_name(DeviceName)
   for k,record in pairs(result) do
     if type(record) == "table" then
       if string.lower(record['Name']) == string.lower(DeviceName) then
-        print_to_log(record['idx'])
+        print_to_log(0,record['idx'])
         idx = record['idx']
       end
     end
@@ -205,17 +225,17 @@ function get_variable_value(idx)
       return ""
     end
     t = server_url.."/json.htm?type=command&param=getuservariable&idx="..tostring(idx)
-  print_to_log ("JSON request <"..t..">");
+ print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   decoded_response = JSON:decode(jresponse)
-  print_to_log('Decoded '..decoded_response["result"][1]["Value"])
+  print_to_log(0,'Decoded '..decoded_response["result"][1]["Value"])
   return decoded_response["result"][1]["Value"]
 end
 
 function set_variable_value(idx,name,type,value)
   local t, jresponse, decoded_response
   t = server_url.."/json.htm?type=command&param=updateuservariable&idx="..idx.."&vname="..name.."&vtype="..type.."&vvalue="..tostring(value)
-  print_to_log ("JSON request <"..t..">");
+ print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   return
 end
@@ -223,7 +243,7 @@ end
 function create_variable(name,type,value)
   local t, jresponse, decoded_response
   t = server_url.."/json.htm?type=command&param=saveuservariable&vname="..name.."&vtype="..type.."&vvalue="..tostring(value)
-  print_to_log ("JSON request <"..t..">");
+ print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   return
 end
@@ -231,7 +251,7 @@ end
 function device_list(DeviceType)
   local t, jresponse, status, decoded_response
   t = server_url.."/json.htm?type="..DeviceType.."&order=name"
-  print_to_log ("JSON request <"..t..">");
+ print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   decoded_response = JSON:decode(jresponse)
   return decoded_response
@@ -244,7 +264,7 @@ function idx_from_name(DeviceName,DeviceType)
   for k,record in pairs(result) do
     if type(record) == "table" then
       if string.lower(record['Name']) == string.lower(DeviceName) then
-        print_to_log(record['idx'])
+        print_to_log(0,record['idx'])
         idx = record['idx']
       end
     end
@@ -257,15 +277,26 @@ function file_exists(name)
   if f~=nil then io.close(f) return true else return false end
 end
 
-print_to_log("Loading command modules...")
+-- get the require loglevel
+dtgbotLogLevelidx = idx_from_variable_name("TelegramBotLoglevel")
+if dtgbotLogLevelidx ~= nil then
+  dtgbotLogLevel = tonumber(get_variable_value(dtgbotLogLevelidx))
+  if dtgbotLogLevel == nil then
+    dtgbotLogLevel=0
+  end
+end
+print_to_log(0,' dtgbotLogLevel set to: '..tostring(dtgbotLogLevel))
+
+
+print_to_log(0,"Loading command modules...")
 for i, m in ipairs(command_modules) do
-  print_to_log("Loading module <"..m..">");
+  print_to_log(0,"Loading module <"..m..">");
   t = assert(loadfile(BotLuaScriptPath..m..".lua"))();
   cl = t:get_commands();
   for c, r in pairs(cl) do
-    print_to_log("found command <"..c..">");
+    print_to_log(0,"found command <"..c..">");
     commands[c] = r;
-    print_to_log(commands[c].handler);
+    print_to_log(0,commands[c].handler);
   end
 end
 
@@ -283,7 +314,7 @@ function timedifference(s)
 end
 
 function HandleCommand(cmd, SendTo, MessageId)
-  print_to_log("Handle command function started with " .. cmd .. " and " .. SendTo)
+  print_to_log(0,"Handle command function started with " .. cmd .. " and " .. SendTo)
   --- parse the command
   if command_prefix == "" then
     -- Command prefix is not needed, as can be enforced by Telegram api directly
@@ -304,7 +335,7 @@ function HandleCommand(cmd, SendTo, MessageId)
   if Menuidx ~= nil then
     Menuval = get_variable_value(Menuidx)
     if Menuval == "On" then
-      print_to_log("dtgbot: Start DTGMENU ...", cmd)
+      print_to_log(0,"dtgbot: Start DTGMENU ...", cmd)
       local menu_cli = {}
       table.insert(menu_cli, "")  -- make it compatible
       table.insert(menu_cli, cmd)
@@ -319,11 +350,11 @@ function HandleCommand(cmd, SendTo, MessageId)
             text = string.sub(text,4000,-1)
           end
         end
-        print_to_log("dtgbot: dtgmenu ended and text send ...return:"..status)
+        print_to_log(0,"dtgbot: dtgmenu ended and text send ...return:"..status)
         -- no need to process anything further
         return 1
       end
-      print_to_log("dtgbot:continue regular processing. cmd =>",cmd)
+      print_to_log(0,"dtgbot:continue regular processing. cmd =>",cmd)
     end
   end
   ---------------------------------------------------------------------------
@@ -362,9 +393,9 @@ function HandleCommand(cmd, SendTo, MessageId)
       stuff = stuff..parsed_command[i]
     end
     for line in f:lines() do
-      print_to_log("checking line ".. line)
+      print_to_log(0,"checking line ".. line)
       if(line:match(cmda)) then
-        print_to_log(line)
+        print_to_log(0,line)
         os.execute(BotBashScriptPath  .. line .. ' ' .. SendTo .. ' ' .. stuff)
         found=1
       end
@@ -413,22 +444,22 @@ end
 --~ added replymarkup to allow for custom keyboard
 function send_msg(SendTo, Message, MessageId, replymarkup)
   if replymarkup == nil or replymarkup == "" then
-    print_to_log(telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+    print_to_log(0,telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
     response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
   else
-    print_to_log(telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
+    print_to_log(0,telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
     response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
   end
 --  response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&text=hjk')
-  print_to_log(status)
+  print_to_log(0,status)
   return
 end
 
 --?function send_msg(SendTo, Message,MessageId)
---?  print_to_log(telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+--?  print_to_log(0,telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
 --?  response, status = --?https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
 --  response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&text=hjk')
---?  print_to_log(status)
+--?  print_to_log(0,status)
 --?  return
 --?end
 
@@ -454,9 +485,9 @@ function id_check(SendTo)
   else
     SendTo = tostring(SendTo)
     --Check id against whitelist
-    print_to_log('No on WhiteList: '..#WhiteList)
+    print_to_log(0,'No on WhiteList: '..#WhiteList)
     for i = 1, #WhiteList do
-      print_to_log('WhiteList: '..WhiteList[i])
+      print_to_log(0,'WhiteList: '..WhiteList[i])
       if SendTo == WhiteList[i] then
         return true
       end
@@ -493,13 +524,13 @@ function on_msg_receive (msg)
         print_to_log "Succesfully handled incoming request"
       else
         print_to_log "Invalid command received"
-        print_to_log(msg_from)
+        print_to_log(0,msg_from)
         send_msg(msg_from,'⚡️ INVALID COMMAND ⚡️',msg_id)
         --      os.execute("sleep 5")
         --      Help(tostring (msg_from))
       end
     else
-      print_to_log('id '..msg_from..' not on white list, command ignored')
+      print_to_log(0,'id '..msg_from..' not on white list, command ignored')
       send_msg(msg_from,'⚡️ ID Not Recognised - Command Ignored ⚡️',msg_id)
     end
   end
@@ -533,7 +564,7 @@ function get_names_from_variable(DividedString)
   Names = {}
   for Name in string.gmatch(DividedString, "[^|]+") do
     Names[#Names + 1] = Name
-    print_to_log('Name :'..Name)
+    print_to_log(0,'Name :'..Name)
   end
   if Names == {} then
     Names = nil
@@ -541,54 +572,64 @@ function get_names_from_variable(DividedString)
   return Names
 end
 
+-- get the require loglevel
+dtgbotLogLevelidx = idx_from_variable_name("TelegramBotLoglevel")
+if dtgbotLogLevelidx ~= nil then
+  dtgbotLogLevel = tonumber(get_variable_value(dtgbotLogLevelidx))
+  if dtgbotLogLevel == nil then
+    dtgbotLogLevel=0
+  end
+end
+print_to_log(0,' dtgbotLogLevel set to: '..tostring(dtgbotLogLevel))
+
 -- Retrieve id white list
 WLidx = idx_from_variable_name(WLName)
 if WLidx == nil then
-  print_to_log(WLName..' user variable does not exist in Domoticz')
-  print_to_log('So will allow any id to use the bot')
+  print_to_log(0,WLName..' user variable does not exist in Domoticz')
+  print_to_log(0,'So will allow any id to use the bot')
 else
-  print_to_log('WLidx '..WLidx)
+  print_to_log(0,'WLidx '..WLidx)
   WLString = get_variable_value(WLidx)
-  print_to_log('WLString: '..WLString)
+  print_to_log(0,'WLString: '..WLString)
   WhiteList = get_names_from_variable(WLString)
 end
 
 -- Get the updates
-print_to_log('Getting '..TBOName..' the previous Telegram bot message offset from Domoticz')
+print_to_log(0,'Getting '..TBOName..' the previous Telegram bot message offset from Domoticz')
 TBOidx = idx_from_variable_name(TBOName)
 if TBOidx == nil then
-  print_to_log(TBOName..' user variable does not exist in Domoticz')
+  print_to_log(0,TBOName..' user variable does not exist in Domoticz')
   os.exit()
 else
-  print_to_log('TBOidx '..TBOidx)
+  print_to_log(0,'TBOidx '..TBOidx)
 end
 TelegramBotOffset=get_variable_value(TBOidx)
-print_to_log('TBO '..TelegramBotOffset)
-print_to_log(telegram_url)
+print_to_log(0,'TBO '..TelegramBotOffset)
+print_to_log(0,telegram_url)
 --while TelegramBotOffset do
 while file_exists(dtgbot_pid) do
   response, status = https.request(telegram_url..'getUpdates?timeout=60&offset='..TelegramBotOffset)
   if status == 200 then
     if response ~= nil then
       io.write('.')
-      print_to_log(response)
+      print_to_log(0,response)
       decoded_response = JSON:decode(response)
       result_table = decoded_response['result']
       tc = #result_table
       for i = 1, tc do
-        print_to_log('Message: '..i)
+        print_to_log(0,'Message: '..i)
         tt = table.remove(result_table,1)
         msg = tt['message']
-        print_to_log('update_id ',tt.update_id)
-        print_to_log(msg.text)
+        print_to_log(0,'update_id ',tt.update_id)
+        print_to_log(0,msg.text)
         TelegramBotOffset = tt.update_id + 1
         on_msg_receive(msg)
-        print_to_log('TelegramBotOffset '..TelegramBotOffset)
+        print_to_log(0,'TelegramBotOffset '..TelegramBotOffset)
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
       end
     else
-      print_to_log(status)
+      print_to_log(0,status)
     end
   end
 end
-print_to_log(dtgbot_pid..' does not exist, so exiting')
+print_to_log(0,dtgbot_pid..' does not exist, so exiting')

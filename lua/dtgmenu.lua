@@ -56,7 +56,7 @@ function orderedNext(t, state)
     -- table being iterated.
 
     key = nil
-    --print("orderedNext: state = "..tostring(state) )
+    print_to_log(1,"orderedNext: state = "..tostring(state) )
     if state == nil then
         -- the first time, generate the index
         t.__orderedIndex = __genOrderedIndex( t )
@@ -90,13 +90,10 @@ end
 
 
 -----------------------------------------------
--- Start Functions to set and retrieve status.
+-- Start Function to set devicestatus.
 -----------------------------------------------
 function SwitchName(DeviceName, DeviceType, SwitchType,idx,state)
   local status
---~ 	print("=== Start SwitchName ==> ")
---~ 	idx, Type = idx_from_name(DeviceName,DeviceType)
---~ 	print(Type)
   if idx == nil then
        response = 'Device '..DeviceName..'  not found.'
   else
@@ -115,12 +112,12 @@ function SwitchName(DeviceName, DeviceType, SwitchType,idx,state)
         else
           return "state must be on, off or Set Level!";
         end
---~         print ("JSON request <"..t..">");
+        print_to_log(1,"JSON request <"..t..">");
         jresponse, status = http.request(t)
---~         print("JSON feedback: ", jresponse)
+        print_to_log(1,"JSON feedback: ", jresponse)
         response = dtgmenu_lang[language].text["Switched"] .. ' ' ..DeviceName..' => '..state
   end
-  print_to_log("   -< SwitchName:",DeviceName,idx, status,response)
+  print_to_log(0,"   -< SwitchName:",DeviceName,idx, status,response)
   return response, status
 end
 
@@ -131,10 +128,9 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
   -- mainmenu
   -- submenu
   -- devicemenu
---~ 	print('=== Start makereplymenu ==========================================================')
 
 -- Update Menu to the rreequired level
-  print("Start makereplymenu:",SendTo, Level, submenu, devicename,SwitchTyp)
+  print_to_log(1,"Start makereplymenu:",SendTo, Level, submenu, devicename,SwitchTyp)
   PopulateMenuTab(Level,submenu)
 --
   if submenu == nil then
@@ -146,14 +142,13 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
   if SwitchType == nil then
     SwitchType = ""
   end
-  print_to_log("  -> makereplymenu  Level:",Level,"submenu",submenu,"devicename",devicename,"SwitchType",SwitchType)
+  print_to_log(1,"  -> makereplymenu  Level:",Level,"submenu",submenu,"devicename",devicename,"SwitchType",SwitchType)
   local t=1
   local l1menu=""
   local l2menu=""
   local l3menu=""
 --~   using orderedPairs to sort the entries.
   for i,get in orderedPairs(dtgmenu_submenus) do
---~ 		print(i, get.submenu, get.menuoptions)
     -- ==== Build mainmenu
     if i ~= "menu" and i ~= "start" then
       if get.whitelist == "" or ChkInTable(get.whitelist,SendTo) then
@@ -162,20 +157,17 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
     end
   end
 -- ==== Build Submenu
---~ print('submenu: '..submenu)
+  print_to_log(1,'submenu: '..submenu)
   if Level == "submenu" or Level == "devicemenu" then
     if dtgmenu_submenus[submenu] ~= nil
     and dtgmenu_submenus[submenu].buttons ~= nil then
       for i,get in orderedPairs(dtgmenu_submenus[submenu].buttons) do
---~ 			print(" #debug1 - Submenu item:",i,get.submenu)
+        print_to_log(1," Submenu item:",i,get.submenu)
         -- Do not show the selected Device as Keyboard button as you just pressed it
-        -- Exception is when the option dtgmenu_submenus[submenu].NoDevMenu is defined as that is just for status display
---~ 				print(" #debug2 - Submenu item:",i,dtgmenu_submenus[submenu].showdevstatus,get.DeviceType,get.idx)
---~ 				if dtgmenu_submenus[submenu].NoDevMenu then
---~ 				if i ~= devicename or dtgmenu_submenus[submenu].NoDevMenu then
+        -- Exception is when the option dtgmenu_submenus[submenu].NoDevMenu is defined, as that is just for status display
         if i ~= "" or dtgmenu_submenus[submenu].NoDevMenu then
           local switchstatus = ""
-          print_to_log("   - Submenu item:",i,dtgmenu_submenus[submenu].showdevstatus,get.DeviceType,get.idx,get.status)
+          print_to_log(1,"   - Submenu item:",i,dtgmenu_submenus[submenu].showdevstatus,get.DeviceType,get.idx,get.status)
           if get.whitelist == "" or ChkInTable(get.whitelist,SendTo) then
             if dtgmenu_submenus[submenu].showdevstatus == "y" then
               switchstatus = get.status
@@ -185,34 +177,34 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
                 switchstatus = tostring(switchstatus)
                 switchstatus = switchstatus:gsub("Set Level: ", "")
                 switchstatus = " - " .. switchstatus
---~ 							print(switchstatus)
+--~ 							print_to_log(0,switchstatus)
               end
             end
             l2menu=l2menu .. i .. switchstatus .. "|"
             -- show the actions menu immediately for this devices since that is requested in the config
             if get.showactions then
-              print_to_log("  - Changing to Device action level due to showactions:",i)
+              print_to_log(1,"  - Changing to Device action level due to showactions:",i)
               Level = "devicemenu"
               devicename = i
             end
           end
         end
---~ 				print(l2menu)
+				print_to_log(1,l2menu)
         -- ==== Build DeviceActionmenu
         if dtgmenu_submenus[submenu].NoDevMenu ~= true
         and Level == "devicemenu" and i == devicename then
           -- set reply markup to the override when provide
           l3menu = get.actions
-          print_to_log(" ---< ",SwitchType," using replymarkup:",l3menu)
+          print_to_log(1," ---< ",SwitchType," using replymarkup:",l3menu)
           -- else use the default reply menu for the SwitchType
           if l3menu == nil or l3menu == "" then
             l3menu = dtgmenu_lang[language].devices_options[SwitchType]
             if l3menu == nil then
-              print_to_log("  !!! No default dtgmenu_lang[language].devices_options for SwitchType:",SwitchType)
+              print_to_log(1,"  !!! No default dtgmenu_lang[language].devices_options for SwitchType:",SwitchType)
               l3menu = "Aan,Uit"
             end
           end
-          print_to_log("   -< " .. SwitchType .. " using replymarkup:",l3menu)
+          print_to_log(1,"   -< " .. SwitchType .. " using replymarkup:",l3menu)
         end
       end
     end
@@ -254,23 +246,22 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
 
   -- save the full replymarkup and only send it again when it changed to minimize traffic to the TG client
   if LastCommand[SendTo]["replymarkup"] == replymarkup then
-    print_to_log("  -< replymarkup: No update needed")
+    print_to_log(0,"  -< replymarkup: No update needed")
   else
-    print_to_log("  -< replymarkup:"..replymarkup)
+    print_to_log(0,"  -< replymarkup:"..replymarkup)
     LastCommand[SendTo]["replymarkup"] = replymarkup
   end
 -- save menus
   LastCommand[SendTo]["l1menu"] = l1menu  -- rooms or submenu items
   LastCommand[SendTo]["l2menu"] = l2menu  -- Devices scenes or commands
   LastCommand[SendTo]["l3menu"] = l3menu  -- actions
---~ 	print_to_log('=== End makereplymenu ==========================================================')
   return replymarkup, devicename
 end
 --
 function buildmenu(menuitems,width,extrachar)
   local replymenu=""
   local t=0
---~ 	print(" process buildmenu:",menuitems," w:",width)
+	print_to_log(1," process buildmenu:",menuitems," w:",width)
   for dev in string.gmatch(menuitems, "[^|,]+") do
     if t == width then
       replymenu = replymenu .. '],'
@@ -282,12 +273,11 @@ function buildmenu(menuitems,width,extrachar)
       replymenu = replymenu .. ',"' .. extrachar .. '' .. dev .. '"'
     end
     t = t + 1
---~ 		print(replymenu)
   end
   if replymenu ~= "" then
     replymenu = replymenu .. ']'
   end
-  print_to_log("    -< buildmenu:",replymenu)
+  print_to_log(1,"    -< buildmenu:",replymenu)
   return replymenu
 end
 -----------------------------------------------
@@ -299,16 +289,16 @@ end
 -----------------------------------------------
 -- SCAN through provided delimited string for the second parameter
 function ChkInTable(itab,idev)
---~ 	print( " ChkInTable: ", itab)
+	print_to_log(1, " ChkInTable: ", itab)
   if itab ~= nil then
     for dev in string.gmatch(itab, "[^|,]+") do
       if dev == idev then
---~ 				print( "- ChkInTable found: ".. dev)
+--~ 				print_to_log(0, "- ChkInTable found: ".. dev)
         return true
       end
     end
   end
---~ 	print( "- ChkInTable not found: "..idev)
+	print_to_log(1, "- ChkInTable not found: "..idev)
   return false
 end
 --
@@ -329,7 +319,6 @@ end
 function dtgmenu_module.handler(menu_cli,SendTo)
   -- initialise the user table in case it runs the firsttime
   if LastCommand[SendTo] == nil then
-    print("init LastCommand[SendTo]")
     LastCommand[SendTo] = {}
     LastCommand[SendTo]["submenu"] = ""
     LastCommand[SendTo]["device"] = ""
@@ -345,8 +334,8 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     table.insert(dtgmenu_cli, w)
   end
   --
-  print_to_log("==> menu.lua Start" )
-  print_to_log(" => SendTo:",SendTo)
+  print_to_log(0,"==> menu.lua process:" ..  menu_cli[2])
+  print_to_log(1," => SendTo:",SendTo)
   local commandline = menu_cli[2]
   local command = tostring(dtgmenu_cli[1])
   local lcommand = string.lower(command)
@@ -357,19 +346,19 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   else
     param1  = tostring(dtgmenu_cli[2]) -- the command came in via the DTGMENU exit routine
   end
-  print_to_log(" => commandline  :",commandline)
-  print_to_log(" => command      :",command)
-  print_to_log(" => param1       :",param1)
---~ 	print_to_log(" => full commandline  :",menu_cli[2])
---~ 	print_to_log(" => menu_cli[3]       :",tostring(menu_cli[3]))
---~ 	print_to_log(" => dtgmenu_cli[1]    :",dtgmenu_cli[1])
---~ 	print_to_log(" => dtgmenu_cli[2]    :",dtgmenu_cli[2])
-  print_to_log(' => Lastmenu submenu  :',LastCommand[SendTo]["l1menu"])
-  print_to_log(' => Lastmenu devs/cmds:',LastCommand[SendTo]["l2menu"])
-  print_to_log(' => Lastmenu actions  :',LastCommand[SendTo]["l3menu"])
-  print_to_log(' => Lastcmd prompt :',LastCommand[SendTo]["prompt"])
-  print_to_log(' => Lastcmd submenu:',LastCommand[SendTo]["submenu"])
-  print_to_log(' => Lastcmd device :',LastCommand[SendTo]["device"])
+  print_to_log(1," => commandline  :",commandline)
+  print_to_log(1," => command      :",command)
+  print_to_log(1," => param1       :",param1)
+--~ 	print_to_log(1," => full commandline  :",menu_cli[2])
+--~ 	print_to_log(1," => menu_cli[3]       :",tostring(menu_cli[3]))
+--~ 	print_to_log(1," => dtgmenu_cli[1]    :",dtgmenu_cli[1])
+--~ 	print_to_log(1," => dtgmenu_cli[2]    :",dtgmenu_cli[2])
+  print_to_log(1,' => Lastmenu submenu  :',LastCommand[SendTo]["l1menu"])
+  print_to_log(1,' => Lastmenu devs/cmds:',LastCommand[SendTo]["l2menu"])
+  print_to_log(1,' => Lastmenu actions  :',LastCommand[SendTo]["l3menu"])
+  print_to_log(1,' => Lastcmd prompt :',LastCommand[SendTo]["prompt"])
+  print_to_log(1,' => Lastcmd submenu:',LastCommand[SendTo]["submenu"])
+  print_to_log(1,' => Lastcmd device :',LastCommand[SendTo]["device"])
 
   -------------------------------------------------
   -- set local variables
@@ -378,9 +367,9 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   local cmdisaction  = ChkInTable(LastCommand[SendTo]["l3menu"],commandline)
   local cmdisbutton  = ChkInTable(LastCommand[SendTo]["l2menu"],commandline)
   local cmdissubmenu = ChkInTable(LastCommand[SendTo]["l1menu"],commandline)
-  print_to_log(' => cmdisaction :',cmdisaction)
-  print_to_log(' => cmdisbutton :',cmdisbutton)
-  print_to_log(' => cmdissubmenu:',cmdissubmenu)
+  print_to_log(1,' => cmdisaction :',cmdisaction)
+  print_to_log(1,' => cmdisbutton :',cmdisbutton)
+  print_to_log(1,' => cmdissubmenu:',cmdissubmenu)
 
   -------------------------------------------------
   -- Process start or menu commands
@@ -395,12 +384,12 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     end
     response="DTGMENU is currently "..Menuval
     if Menuval == "On" and lparam1 == "off" then
-      print( " Set DTGMENU Off")
+      print_to_log(0, " Set DTGMENU Off")
       response="DTGMENU is now disabled. send DTGMENU On to start the menus again."
       replymarkup='{"hide_keyboard":true}'
       set_variable_value(Menuidx,"DTGMENU",2,"Off")
     elseif Menuval == "Off" and lparam1 == "on" then
-      print( " Set DTGMENU On")
+      print_to_log(0, " Set DTGMENU On")
       response="DTGMENU is now enabled. send DTGMENU Off to stop the menus."
       response=dtgmenu_lang[language].text["main"]
       replymarkup = makereplymenu(SendTo, "mainmenu")
@@ -415,7 +404,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     LastCommand[SendTo]["device"] = ""
     LastCommand[SendTo]["l2menu"] = ""
     LastCommand[SendTo]["l3menu"] = ""
-    print_to_log("==< Show main menu")
+    print_to_log(0,"==< Show main menu")
     return status, response, replymarkup, commandline
   end
 
@@ -428,7 +417,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     LastCommand[SendTo]["device"] = ""
     LastCommand[SendTo]["l2menu"] = ""
     LastCommand[SendTo]["l3menu"] = ""
-    print_to_log("==< Show main menu")
+    print_to_log(0,"==< Show main menu")
     return status, response, replymarkup, commandline
   end
 
@@ -449,7 +438,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     LastCommand[SendTo]["l2menu"] = ""
     LastCommand[SendTo]["l3menu"] = ""
     LastCommand[SendTo]["prompt"] = false
-    print_to_log("==<1 promt and found regular lua command and param was given. -> hand back to dtgbot to run",commandline)
+    print_to_log(0,"==<1 promt and found regular lua command and param was given. -> hand back to dtgbot to run",commandline)
     return status, response, replymarkup, commandline
   end
 
@@ -471,7 +460,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     LastCommand[SendTo]["l2menu"] = ""
     LastCommand[SendTo]["l3menu"] = ""
     LastCommand[SendTo]["prompt"] = false
-    print_to_log("==<1 found regular lua command and param was given. -> hand back to dtgbot to run",commandline )
+    print_to_log(0,"==<1 found regular lua command and param was given. -> hand back to dtgbot to run",commandline )
     return status, response, replymarkup, commandline
   end
 
@@ -500,13 +489,13 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     DeviceType = dtgmenu_submenus[submenu].buttons[devicename].DeviceType
     SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
     MaxDimLevel = dtgmenu_submenus[submenu].buttons[devicename].MaxDimLevel
-    print_to_log(' => devicename :',devicename)
-    print_to_log(' => realdevicename :',realdevicename)
-    print_to_log(' => idx:',idx)
-    print_to_log(' => Type :',Type)
-    print_to_log(' => DeviceType :',DeviceType)
-    print_to_log(' => SwitchType :',SwitchType)
-    print_to_log(' => MaxDimLevel :',MaxDimLevel)
+    print_to_log(1,' => devicename :',devicename)
+    print_to_log(1,' => realdevicename :',realdevicename)
+    print_to_log(1,' => idx:',idx)
+    print_to_log(1,' => Type :',Type)
+    print_to_log(1,' => DeviceType :',DeviceType)
+    print_to_log(1,' => SwitchType :',SwitchType)
+    print_to_log(1,' => MaxDimLevel :',MaxDimLevel)
   end
   if cmdisaction then
     submenu    = LastCommand[SendTo]["submenu"]
@@ -518,13 +507,13 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     DeviceType = dtgmenu_submenus[submenu].buttons[devicename].DeviceType
     SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
     MaxDimLevel = dtgmenu_submenus[submenu].buttons[devicename].MaxDimLevel
-    print_to_log(' => devicename :',devicename)
-    print_to_log(' => realdevicename :',realdevicename)
-    print_to_log(' => idx:',idx)
-    print_to_log(' => Type :',Type)
-    print_to_log(' => DeviceType :',DeviceType)
-    print_to_log(' => SwitchType :',SwitchType)
-    print_to_log(' => MaxDimLevel :',MaxDimLevel)
+    print_to_log(1,' => devicename :',devicename)
+    print_to_log(1,' => realdevicename :',realdevicename)
+    print_to_log(1,' => idx:',idx)
+    print_to_log(1,' => Type :',Type)
+    print_to_log(1,' => DeviceType :',DeviceType)
+    print_to_log(1,' => SwitchType :',SwitchType)
+    print_to_log(1,' => MaxDimLevel :',MaxDimLevel)
   end
   local jresponse
   local decoded_response
@@ -555,7 +544,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
         LastCommand[SendTo]["replymarkup"] = replymarkup
         status = 1
         response="param needed"
-        print_to_log("==<1 found regular lua command that need Param ")
+        print_to_log(0,"==<1 found regular lua command that need Param ")
 
       -- no prompt defined so simply return to dtgbot with status 0 so it will be performed and reset the keyboard to just MENU
       else
@@ -566,7 +555,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
         LastCommand[SendTo]["l1menu"] = ""
         LastCommand[SendTo]["l2menu"] = ""
         LastCommand[SendTo]["l3menu"] = ""
-        print_to_log("==<1 found regular lua command. -> hand back to dtgbot to run")
+        print_to_log(0,"==<1 found regular lua command. -> hand back to dtgbot to run")
       end
       return status, response, replymarkup, commandline
     end
@@ -584,7 +573,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       LastCommand[SendTo]["l1menu"] = ""
       LastCommand[SendTo]["l2menu"] = ""
       LastCommand[SendTo]["l3menu"] = ""
-      print_to_log("==<2 found regular lua command. -> hand back to dtgbot to run:"..LastCommand[SendTo]["device"].. " " .. commandline )
+      print_to_log(0,"==<2 found regular lua command. -> hand back to dtgbot to run:"..LastCommand[SendTo]["device"].. " " .. commandline )
   --~ 		replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
       return status, response, replymarkup, commandline
     end
@@ -596,20 +585,20 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   -- ==== Show Submenu when no device is specified================
   if cmdissubmenu then
     LastCommand[SendTo]["submenu"]=submenu
-    print_to_log(' - Showing Submenu as no device name specified. submenu: '..submenu)
+    print_to_log(1,' - Showing Submenu as no device name specified. submenu: '..submenu)
     local rdevicename
     -- when showactions is defined for a device, the devicename will be returned
     replymarkup, rdevicename = makereplymenu(SendTo,"submenu",submenu)
     -- not an menu command received
     if rdevicename ~= "" then
       LastCommand[SendTo]["device"] = rdevicename
-      print_to_log(" -- Changed to devicelevel due to showactions defined for device "..rdevicename )
+      print_to_log(1," -- Changed to devicelevel due to showactions defined for device "..rdevicename )
       response=dtgmenu_lang[language].text["SelectOptionwo"] .. " " .. rdevicename
     else
       response= submenu .. ":" .. dtgmenu_lang[language].text["Select"]
     end
     status=1
-    print_to_log("==< show options in submenu.")
+    print_to_log(0,"==< show options in submenu.")
     return status, response, replymarkup, commandline;
   end
 
@@ -627,10 +616,10 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     if DeviceType == "scenes" then
       if Type == "Group" then
         response = dtgmenu_lang[language].text["SelectGroup"]
-        print_to_log("==< Show group options menu plus other devices in submenu.")
+        print_to_log(0,"==< Show group options menu plus other devices in submenu.")
       else
         response = dtgmenu_lang[language].text["SelectScene"]
-        print_to_log("==< Show scene options menu plus other devices in submenu.")
+        print_to_log(0,"==< Show scene options menu plus other devices in submenu.")
       end
     elseif Type == "Temp" or Type == "Temp + Humidity" then
         -- when temp device is selected them just return with sending anything.
@@ -638,7 +627,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       response = ""
       status=1
       replymarkup=""
-      print_to_log("==< Don't do anything as a temp device was selected.")
+      print_to_log(1,"==< Don't do anything as a temp device was selected.")
     elseif DeviceType == "devices" then
       -- Only show current status in the text when not shown on the action options
       if dtgmenu_submenus[submenu].showdevstatus == "y" then
@@ -647,10 +636,10 @@ function dtgmenu_module.handler(menu_cli,SendTo)
         switchstatus = dtgmenu_submenus[submenu].button[devicename].status
         response = dtgmenu_lang[language].text["SelectOption"] .. " " .. switchstatus
       end
-      print_to_log("==< Show device options menu plus other devices in submenu.")
+      print_to_log(0,"==< Show device options menu plus other devices in submenu.")
     else
       response = dtgmenu_lang[language].text["Select"]
-      print_to_log("==< Show options menu plus other devices in submenu.")
+      print_to_log(0,"==< Show options menu plus other devices in submenu.")
     end
 
     return status, response, replymarkup, commandline;
@@ -665,7 +654,11 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   elseif ChkInTable(string.lower(dtgmenu_lang[language].switch_options["On"]),action) then
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'On')
   elseif string.find(action, "%d") then
-    action = tostring(MaxDimLevel/100*tonumber(action))
+    -- calculate the proper leve lto set the dimmer
+    MaxDimLevel=32
+    rellev = MaxDimLevel/100*tonumber(action)  -- calculate the relative level
+    rellev = tonumber(string.format("%.0f", rellev)) -- remove decimals
+    action = tostring(rellev)
     response = "Set level " .. action
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level " .. action)
   else
@@ -674,7 +667,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   status=1
 
   replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename,SwitchType)
-  print_to_log("==<"..response)
+  print_to_log(0,"==<"..response)
   return status, response, replymarkup, commandline;
 end
 -----------------------------------------------
@@ -702,10 +695,10 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
   local MaxDimLevel=100
   local ridx=0
   -- Check for Devices
---~ 	print("==> start devinfo_from_name", idx,DeviceName)
+	print_to_log(1,"==> start devinfo_from_name", idx,DeviceName)
   result = Devlist["result"]
   for k,record in pairs(result) do
---~ 		print(k,DeviceName,record.Name,idx,record.idx)
+		print_to_log(1,k,DeviceName,record.Name,idx,record.idx)
     if type(record) == "table" then
       if string.lower(record.Name) == string.lower(DeviceName) or idx == record.idx then
         ridx = record.idx
@@ -724,17 +717,17 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
           status = tostring(record.Status)
         end
         found = 1
---~         print(" !!!! found device",record.Name,rDeviceName,record.idx,ridx)
+        print_to_log(1," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
         break
       end
     end
   end
---~   print(" !!!! found device",rDeviceName,ridx)
+  print_to_log(1," !!!! found device",rDeviceName,ridx)
   -- Check for Scenes
   if found == 0 then
     result = Scenelist["result"]
     for k,record in pairs(result) do
---~ 		print(k,record['Name'],DeviceName)
+		print_to_log(1,k,record['Name'],DeviceName)
       if type(record) == "table" then
         if string.lower(record.Name) == string.lower(DeviceName) or idx == record.idx then
           ridx = record.idx
@@ -743,7 +736,7 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
           Type=record.Type
           SwitchType=record.Type
           found = 1
---~           print(" !!!! found scene",record.Name,rDeviceName,record.idx,ridx)
+          print_to_log(1," !!!! found scene",record.Name,rDeviceName,record.idx,ridx)
           break
         end
       end
@@ -756,12 +749,12 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
     Type="command"
     SwitchType="command"
   end
---~  	print(" --< devinfo_from_name:",found,ridx,rDeviceName,DeviceType,Type,SwitchType,status)
+ 	print_to_log(1," --< devinfo_from_name:",found,ridx,rDeviceName,DeviceType,Type,SwitchType,status)
   return ridx,rDeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status
 end
 --
 function PopulateMenuTab(iLevel,iSubmenu)
-  print_to_log("####  Start populating menuarray")
+  print_to_log(1,"####  Start populating menuarray")
 
   dtgmenu_submenus = {}
 
@@ -772,16 +765,16 @@ function PopulateMenuTab(iLevel,iSubmenu)
     Sceneslist = device_list("scenes")
   end
   --
-  print_to_log("Submenu table including buttons defined in menu.cfg:",iLevel,iSubmenu)
+  print_to_log(1,"Submenu table including buttons defined in menu.cfg:",iLevel,iSubmenu)
   for submenu,get in pairs(static_dtgmenu_submenus) do
---~ 		print_to_log("=>",submenu, get.whitelist, get.showdevstatus,get.Menuwidth)
+		print_to_log(1,"=>",submenu, get.whitelist, get.showdevstatus,get.Menuwidth)
     if static_dtgmenu_submenus[submenu].buttons ~= nil then
       buttons = {}
       if iLevel ~= "mainmenu" and iSubmenu == string.lower(submenu) then
         for button,dev in pairs(static_dtgmenu_submenus[submenu].buttons) do
             idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button,Deviceslist,Sceneslist)
             buttons[button] = {whitelist = dev.whitelist,actions=dev.actions,prompt=dev.prompt,showactions=dev.showactions,Name=DeviceName,idx=idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=Type,MaxDimLevel=MaxDimLevel,status=status}
-            print_to_log(" static ->",submenu,button,DeviceName, idx,DeviceType,Type,SwitchType,MaxDimLevel,status)
+            print_to_log(1," static ->",submenu,button,DeviceName, idx,DeviceType,Type,SwitchType,MaxDimLevel,status)
         end
       end
       dtgmenu_submenus[submenu] = {whitelist=get.whitelist,buttons=buttons}
@@ -789,14 +782,14 @@ function PopulateMenuTab(iLevel,iSubmenu)
   end
   -- Add the room/plan menu's after the statis is populated
   MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
-  print_to_log("####  End populating menuarray")
+  print_to_log(1,"####  End populating menuarray")
   return
 end
 --
 -- Create a button per room.
 function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
   iSubmenu = tostring(iSubmenu)
-  print_to_log("Creating Room Menus:",iLevel,iSubmenu)
+  print_to_log(1,"Creating Room Menus:",iLevel,iSubmenu)
   room_number = 0
   -- retrieve all plan's from Domoticz
   Roomlist = device_list("plans")
@@ -821,7 +814,7 @@ function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
       Devsinplan = device_list("command&param=getplandevices&idx="..room_number)
       DIPresult = Devsinplan["result"]
       if DIPresult ~= nil then
-        print_to_log('For room '..room_name..' got some devices and/or scenes')
+        print_to_log(1,'For room '..room_name..' got some devices and/or scenes')
         dtgmenu_submenus[rbutton] = {whitelist="",showdevstatus="y",buttons={}}
         -- process all found entries in the plan record
         buttons = {}
@@ -834,12 +827,12 @@ function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
             local MaxDimLevel=100
             local idx=DIPrecord.devidx
             local name=DIPrecord.Name
-    --~ 					print_to_log(" - Plan record:",DIPrecord.Name,DIPrecord.devidx,DIPrecord.type)
+            print_to_log(1," - Plan record:",DIPrecord.Name,DIPrecord.devidx,DIPrecord.type)
             if DIPrecord.type == 1 then
-    --~ 						print("--> scene record")
+              print_to_log(1,"--> scene record")
               idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Deviceslist,Sceneslist)
             else
-    --~ 						print("--> device record")
+              print_to_log(1,"--> device record")
               idx,DeviceName, DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Deviceslist,Sceneslist)
             end
             -- Remove the name of the room from the device if it is present
@@ -851,7 +844,7 @@ function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
             -- Remove any spaces from the device name
             record_name = string.gsub(record_name,"%s+", "")
             buttons[record_name] = {whitelist = "",Name=DeviceName,idx=idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=Type,MaxDimLevel=MaxDimLevel,status=status}
-            print_to_log(" dynam ->",rbutton,DeviceName, idx,DeviceType,Type,SwitchType,MaxDimLevel,status)
+            print_to_log(1," dynam ->",rbutton,DeviceName, idx,DeviceType,Type,SwitchType,MaxDimLevel,status)
           end
         end
       end
