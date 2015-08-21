@@ -649,12 +649,13 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     print_to_log(0,"==< Show main menu")
     return status, response, replymarkup, commandline
   end
-
   -------------------------------------------------
   -- Process "start" or "menu" commands
   -------------------------------------------------
   -- Build main menu and return
   if cmdisaction == false and(lcommand == "menu" or lcommand == "start") then
+    -- ensure the menu is always rebuild for Menu or Start
+    LastCommand[SendTo]["replymarkup"]=""
     response=dtgmenu_lang[language].text["main"]
     replymarkup = makereplymenu(SendTo, "mainmenu")
     status=1
