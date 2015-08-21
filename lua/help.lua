@@ -30,7 +30,7 @@ function help_module.handler(parsed_cli)
   for line in Functions:lines() do
     print_to_log(line)
     DotPos=string.find(line, "%.")
-    HelpText = HelpText .. "-" .. string.sub(line,0,DotPos-1).."\n"
+    HelpText = HelpText .. "-" .. "/"..string.sub(line,0,DotPos-1).."\n"
   end
 	return status, HelpText;
 end
