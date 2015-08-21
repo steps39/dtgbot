@@ -608,7 +608,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   -------------------------------------------------
   -- Set DTGMENU On/Off
   if lcommand == "dtgmenu" then
-    Menuidx = idx_from_variable_name("DTGMENU")
+    Menuidx = idx_from_variable_name("TelegramBotMenu")
     if Menuidx == nil then
       Menuval = "Off"
     else
@@ -619,16 +619,16 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       print_to_log(0, " Set DTGMENU Off")
       response="DTGMENU is now disabled. send DTGMENU On to start the menus again."
       replymarkup='{"hide_keyboard":true}'
-      set_variable_value(Menuidx,"DTGMENU",2,"Off")
+      set_variable_value(Menuidx,"TelegramBotMenu",2,"Off")
     elseif Menuval == "Off" and lparam1 == "on" then
       print_to_log(0, " Set DTGMENU On")
       response="DTGMENU is now enabled. send DTGMENU Off to stop the menus."
       response=dtgmenu_lang[language].text["main"]
       replymarkup = makereplymenu(SendTo, "mainmenu")
       if Menuidx == nil then
-        create_variable("DTGMENU",2,"On")
+        create_variable("TelegramBotMenu",2,"On")
       else
-        set_variable_value(Menuidx,"DTGMENU",2,"On")
+        set_variable_value(Menuidx,"TelegramBotMenu",2,"On")
       end
     end
     status=1

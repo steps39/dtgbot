@@ -331,7 +331,7 @@ function HandleCommand(cmd, SendTo, MessageId)
   -- When LastCommand starts with menu then assume the rest is for menu.lua
   ---------------------------------------------------------------------------
   -- ensure the Array is initialised for this SendTo to keep track of the commands and other info
-  Menuidx = idx_from_variable_name("DTGMENU")
+  Menuidx = idx_from_variable_name("TelegramBotMenu")
   if Menuidx ~= nil then
     Menuval = get_variable_value(Menuidx)
     if Menuval == "On" then
