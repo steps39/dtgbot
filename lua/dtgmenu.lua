@@ -408,13 +408,15 @@ function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
             local MaxDimLevel=100
             local idx=DIPrecord.devidx
             local name=DIPrecord.Name
+            local DUMMY={"result"}
+            DUMMY["result"]={}
             print_to_log(1," - Plan record:",DIPrecord.Name,DIPrecord.devidx,DIPrecord.type)
             if DIPrecord.type == 1 then
               print_to_log(1,"--> scene record")
-              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Deviceslist,Sceneslist)
+              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",DUMMY,Sceneslist)
             else
               print_to_log(1,"--> device record")
-              idx,DeviceName, DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Deviceslist,Sceneslist)
+              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Deviceslist,DUMMY)
             end
             -- Remove the name of the room from the device if it is present
             button = string.gsub(DeviceName,room_name.."%s+","")
@@ -426,6 +428,10 @@ function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
             button = string.gsub(button,"%s+", "_")
             -- Get device/scene details
             idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,DeviceName,Deviceslist,Sceneslist)
+            -- Add * infront of button name when Scene or Group
+            if DeviceType == "scenes" then
+              button = "*"..button
+            end
             -- fill the button table records with all required fields
             buttons[button]={}
             buttons[button].whitelist=""               -- Not implemented for Dynamic menu: Whitelist number(s) for this device, blank is ALL
@@ -565,7 +571,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   end
   --~	split the commandline into parameters
   local dtgmenu_cli={}
-  for w in string.gmatch(menu_cli[2], "([%w-_]+)") do
+  for w in string.gmatch(menu_cli[2], "([%w-_*]+)") do
     table.insert(dtgmenu_cli, w)
   end
   --
