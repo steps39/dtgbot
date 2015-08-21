@@ -1,38 +1,43 @@
 -- =====================================================================================================================
--- Menu script which enables the option in TG BOT to use a reply keyboard to do the commands in stead of typing them.
--- The menu configuration is done in dtgbot.cfg.
+-- Menu script which enables the option in TG BOT to use a reply keyboard to perform actions on:
+--  - all defined devices per defined ROOM in Domotics.
+--  - all static actions defined in DTGMENU.CFG. Open the file for descript of the details.
+--
 -- programmer: Jos van der Zande
--- version: 0.1.150816
+-- version: 0.1.150821
 -- =====================================================================================================================
--- these are the different formats of reply_markup. look simple but needed a lot of testing before it worked :)
-
---show the custom keyboard and stay up after option selection first 3 on the first line and menu on the second
+-----------------------------------------------------------------------------------------------------------------------
+-- these are the different formats of reply_markup. looksimple but needed a lot of testing before it worked :)
+--
+-- >show the custom keyboard and stay up after option selection first 3 on the first line and menu on the second
 --	reply_markup={"keyboard":[["opt 1","opt 2","opt 3"],["menu"]]}
-
---show the custom keyboard and minimises after option selection
+-- >show the custom keyboard and minimises after option selection
 --	reply_markup={"keyboard":[["opt 1","opt 2","opt 3"],["menu"]],"one_time_keyboard":true}
-
---Remove the custom keyboard
+-- >Remove the custom keyboard
 --	reply_markup={"hide_keyboard":true}
 --	reply_markup={"hide_keyboard":true,"selective":false}
-
---force normal keyboard to ask for input
+-- >force normal keyboard to ask for input
 --	reply_markup={"force_reply":true}
 --	reply_markup={"force_reply":true,"selective":false}
-
---Resize the keyboard
+-- >Resize the keyboard
 --	reply_markup={"keyboard":[["menu"]],"resize_keyboard":true}
 --  reply_markup={"keyboard":[["opt 1","opt 2","opt 3"],["menu"]],"resize_keyboard":true}
 
+
+--------------------------------------
+-- Include config
+--------------------------------------
 local config = assert(loadfile(BotHomePath.."lua/dtgmenu.cfg"))();
+local http = require "socket.http";
+
+-- definition used by DTGBOT
 local dtgmenu_module = {};
 
-local http = require "socket.http";
---JSON = assert(loadfile "JSON.lua")() -- one-time load of the routines
-
---------------------------------------
+-------------------------------------------------------------------------------
 -- Start Functions to SORT the TABLE
---------------------------------------
+-- Copied from internet location: -- http://lua-users.org/wiki/SortedIteration
+-- These are used to sort the items on the menu alphabetically
+-------------------------------------------------------------------------------
 function __genOrderedIndex( t )
     local orderedIndex = {}
     for key in pairs(t) do
@@ -56,7 +61,6 @@ function orderedNext(t, state)
     -- table being iterated.
 
     key = nil
-    print_to_log(1,"orderedNext: state = "..tostring(state) )
     if state == nil then
         -- the first time, generate the index
         t.__orderedIndex = __genOrderedIndex( t )
@@ -84,14 +88,14 @@ function orderedPairs(t)
     -- in order
     return orderedNext, t, nil
 end
---------------------------------------
+-------------------------------------------------------------------------------
 -- END Functions to SORT the TABLE
---------------------------------------
+-------------------------------------------------------------------------------
 
 
------------------------------------------------
--- Start Function to set devicestatus.
------------------------------------------------
+-------------------------------------------------------------------------------
+-- Start Function to set the new devicestatus.
+-------------------------------------------------------------------------------
 function SwitchName(DeviceName, DeviceType, SwitchType,idx,state)
   local status
   if idx == nil then
@@ -121,54 +125,62 @@ function SwitchName(DeviceName, DeviceType, SwitchType,idx,state)
   return response, status
 end
 
------------------------------------------------
+-------------------------------------------------------------------------------
 --- START Build the reply_markup functions.
------------------------------------------------
-function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
-  -- mainmenu
-  -- submenu
-  -- devicemenu
-
--- Update Menu to the rreequired level
-  print_to_log(1,"Start makereplymenu:",SendTo, Level, submenu, devicename,SwitchTyp)
-  PopulateMenuTab(Level,submenu)
---
+--  this function will build the requested menu layout and calls the function to retrieve the devices/scenes  details.
+-------------------------------------------------------------------------------
+function makereplymenu(SendTo, Level, submenu, devicename)
+  -- These are the possible menu level's ..
+  -- mainmenu   -> will show all first level static and dynamic (rooms) options
+  -- submenu    -> will show the second level menu for the select option on the main menu
+  -- devicemenu -> will show the same menu as the previous but now add the possible action at the top of the menu
+  --
   if submenu == nil then
     submenu = ""
   end
   if devicename == nil then
     devicename = ""
   end
-  if SwitchType == nil then
-    SwitchType = ""
-  end
-  print_to_log(1,"  -> makereplymenu  Level:",Level,"submenu",submenu,"devicename",devicename,"SwitchType",SwitchType)
+  print_to_log(1,"Start makereplymenu:",SendTo, Level, submenu, devicename)
+
+  ------------------------------------------------------------------------------
+  -- First build the dtgmenu_submenus table with the required level information
+  ------------------------------------------------------------------------------
+  PopulateMenuTab(Level,submenu)
+
+  ------------------------------------------------------------------------------
+  -- start the build of the 3 levels of the keyboard menu
+  ------------------------------------------------------------------------------
+  print_to_log(1,"  -> makereplymenu  Level:",Level,"submenu",submenu,"devicename",devicename)
   local t=1
   local l1menu=""
   local l2menu=""
   local l3menu=""
---~   using orderedPairs to sort the entries.
+--~   Sort & Loop through the compiled options returned by PopulateMenuTab
   for i,get in orderedPairs(dtgmenu_submenus) do
-    -- ==== Build mainmenu
+    -- ==== Build mainmenu - level 1 which is the bottom part of the menu, showing the Rooms and static definitins
+    -- Avoid adding start and menu as these are handled separately.
     if i ~= "menu" and i ~= "start" then
       if get.whitelist == "" or ChkInTable(get.whitelist,SendTo) then
         l1menu=l1menu .. i .. "|"
       end
     end
   end
--- ==== Build Submenu
+-- ==== Build Submenu - showing the Devices from the selected room of static config
+--                      This will also add the device status when showdevstatus=true for the option.
   print_to_log(1,'submenu: '..submenu)
   if Level == "submenu" or Level == "devicemenu" then
     if dtgmenu_submenus[submenu] ~= nil
     and dtgmenu_submenus[submenu].buttons ~= nil then
+      -- loop through all devined "buttons in the Config
       for i,get in orderedPairs(dtgmenu_submenus[submenu].buttons) do
         print_to_log(1," Submenu item:",i,get.submenu)
-        -- Do not show the selected Device as Keyboard button as you just pressed it
-        -- Exception is when the option dtgmenu_submenus[submenu].NoDevMenu is defined, as that is just for status display
-        if i ~= "" or dtgmenu_submenus[submenu].NoDevMenu then
+        -- process all found devices in  dtgmenu_submenus buttons table
+        if i ~= "" then
           local switchstatus = ""
           print_to_log(1,"   - Submenu item:",i,dtgmenu_submenus[submenu].showdevstatus,get.DeviceType,get.idx,get.status)
           if get.whitelist == "" or ChkInTable(get.whitelist,SendTo) then
+            -- add the device status to the button when requested
             if dtgmenu_submenus[submenu].showdevstatus == "y" then
               switchstatus = get.status
               if ChkEmpty(switchstatus) then
@@ -180,8 +192,10 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
 --~ 							print_to_log(0,switchstatus)
               end
             end
+            -- add to the total menu string for later processing
             l2menu=l2menu .. i .. switchstatus .. "|"
             -- show the actions menu immediately for this devices since that is requested in the config
+            -- this can avoid having the press 2 button before getting to the actions menu
             if get.showactions then
               print_to_log(1,"  - Changing to Device action level due to showactions:",i)
               Level = "devicemenu"
@@ -191,10 +205,12 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
         end
 				print_to_log(1,l2menu)
         -- ==== Build DeviceActionmenu
+        -- do not build the actions menu when NoDevMenu == true. EG temp devices have no actions
         if dtgmenu_submenus[submenu].NoDevMenu ~= true
         and Level == "devicemenu" and i == devicename then
           -- set reply markup to the override when provide
           l3menu = get.actions
+          SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
           print_to_log(1," ---< ",SwitchType," using replymarkup:",l3menu)
           -- else use the default reply menu for the SwitchType
           if l3menu == nil or l3menu == "" then
@@ -209,21 +225,24 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
       end
     end
   end
-  -- Add main as last option
+  -------------------------------------------------------------------
+  -- Start building the proper layout for the 3 levels of menu items
+  -------------------------------------------------------------------
+  -- Always add "menu" as last option to level1 menu
   l1menu=l1menu .. "menu"
-
   ------------------------------
-  -- build total replymarkup
+  -- start build total replymarkup
   local replymarkup = '{"keyboard":['
   ------------------------------
   -- Add level 3 first if needed
+  ------------------------------
   if l3menu ~= "" then
     replymarkup = replymarkup .. buildmenu(l3menu,ActMenuwidth,"") .. ","
     l1menu = "menu"
   end
-  -- save the level3 menu actions to be able to search them later whne the message is send by TG
   ------------------------------
-  -- Add level 2 first if needed
+  -- Add level 2 next if needed
+  ------------------------------
   if l2menu ~= "" then
     local mwitdh=DevMenuwidth
     if dtgmenu_submenus[submenu].Menuwidth ~= nil then
@@ -234,19 +253,21 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
     replymarkup = replymarkup .. buildmenu(l2menu,mwitdh,"") .. ","
     l1menu = "menu"
   end
-  ------------------------------
-  -- Add level 1
+  -------------------------------
+  -- Add level 1 -- the main menu
+  --------------------------------
   replymarkup = replymarkup .. buildmenu(l1menu,SubMenuwidth,"") .. ']'
-  -- add the resize menu option when desired
+  -- add the resize menu option when desired. this sizes the keyboard menu to the size required for the options
   if AlwaysResizeMenu then
     replymarkup = replymarkup .. ',"resize_keyboard":true'
   end
-  -- Cloe the total statement
+  -- Close the total statement
   replymarkup = replymarkup .. '}'
 
   -- save the full replymarkup and only send it again when it changed to minimize traffic to the TG client
   if LastCommand[SendTo]["replymarkup"] == replymarkup then
     print_to_log(0,"  -< replymarkup: No update needed")
+    replymarkup=""
   else
     print_to_log(0,"  -< replymarkup:"..replymarkup)
     LastCommand[SendTo]["replymarkup"] = replymarkup
@@ -257,7 +278,7 @@ function makereplymenu(SendTo, Level, submenu, devicename,SwitchType)
   LastCommand[SendTo]["l3menu"] = l3menu  -- actions
   return replymarkup, devicename
 end
---
+-- convert the provided menu options into a proper format for the replymenu
 function buildmenu(menuitems,width,extrachar)
   local replymenu=""
   local t=0
@@ -285,11 +306,225 @@ end
 -----------------------------------------------
 
 -----------------------------------------------
+--- START population the table which runs at each menu update -> makereplymenu
+-----------------------------------------------
+--
+-- this function will rebuild the dtgmenu_submenus table each time it is called.
+-- It will first read through the static menu items defined in DTGMENU.CRG in table static_dtgmenu_submenus
+-- It will then call the MakeRoomMenus() function to add the dynamic options from Domoticz Room configuration
+function PopulateMenuTab(iLevel,iSubmenu)
+  print_to_log(1,"####  Start populating menuarray")
+
+  dtgmenu_submenus = {}
+
+  if iLevel ~= "mainmenu" then
+    -- get IDX device table only one time
+    Deviceslist = device_list("devices&used=true")
+    -- get IDX scenes table only one time
+    Sceneslist = device_list("scenes")
+  end
+  --
+  print_to_log(1,"Submenu table including buttons defined in menu.cfg:",iLevel,iSubmenu)
+  for submenu,get in pairs(static_dtgmenu_submenus) do
+		print_to_log(1,"=>",submenu, get.whitelist, get.showdevstatus,get.Menuwidth)
+    if static_dtgmenu_submenus[submenu].buttons ~= nil then
+      buttons = {}
+      if iLevel ~= "mainmenu" and iSubmenu == string.lower(submenu) then
+        for button,dev in pairs(static_dtgmenu_submenus[submenu].buttons) do
+            -- Get device/scene details
+            idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button,Deviceslist,Sceneslist)
+            -- fill the button table records with all required fields
+            buttons[button]={}
+            buttons[button].whitelist = dev.whitelist   -- specific for the static config: Whitelist number(s) for this device, blank is ALL
+            buttons[button].actions=dev.actions         -- specific for the static config: Hardcoded Actions for the device
+            buttons[button].prompt=dev.prompt           -- specific for the static config: Prompt TG cleint for the variable text
+            buttons[button].showactions=dev.showactions -- specific for the static config: Show Device action menu right away when its menu is selected
+            buttons[button].Name=DeviceName
+            buttons[button].idx=idx
+            buttons[button].DeviceType=DeviceType
+            buttons[button].SwitchType=SwitchType
+            buttons[button].Type=Type
+            buttons[button].MaxDimLevel=MaxDimLevel     -- Level required to calculate the percentage for devices that do not use 100 for 100%
+            buttons[button].status=status
+            print_to_log(1," static ->",submenu,button,DeviceName, idx,DeviceType,Type,SwitchType,MaxDimLevel,status)
+        end
+      end
+    -- Save the subment entry with optionally all its devices/sceens
+      dtgmenu_submenus[submenu] = {whitelist=get.whitelist,buttons=buttons}
+    end
+  end
+  -- Add the room/plan menu's after the statis is populated
+  MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
+  print_to_log(1,"####  End populating menuarray")
+  return
+end
+--
+-- Create a button per room.
+function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
+  iSubmenu = tostring(iSubmenu)
+  print_to_log(1,"Creating Room Menus:",iLevel,iSubmenu)
+  room_number = 0
+  -- get device table in case it's not provided through the parameter
+  if Deviceslist == nil then
+    Deviceslist = device_list("devices&used=true")
+  end
+  -- get scene table in case it's not provided through the parameterif Sceneslist == nil then
+  if Sceneslist == nil then
+    Sceneslist = device_list("scenes")
+  end
+  -- retrieve all available Rooms / plan's from Domoticz
+  Roomlist = device_list("plans")
+  planresult = Roomlist["result"]
+  ------------------------------------
+  -- process all found Room records
+  ------------------------------------
+  for p,precord in pairs(planresult) do
+    room_name = precord.Name
+    room_number = precord.idx
+    local rbutton = string.lower(room_name:gsub(" ", "_"))
+    --
+    -- only get all details per Room in case we are not building the Mainmenu.
+    -- Else
+    if iLevel ~= "mainmenu"
+    and iSubmenu == string.lower(rbutton) or "[scene] ".. iSubmenu == string.lower(rbutton) then
+      -----------------------------------------------------------
+      -- retrieve all devices/scenes for this plan from Domoticz
+      -----------------------------------------------------------
+      Devsinplan = device_list("command&param=getplandevices&idx="..room_number)
+      DIPresult = Devsinplan["result"]
+      if DIPresult ~= nil then
+        print_to_log(1,'For room '..room_name..' got some devices and/or scenes')
+        dtgmenu_submenus[rbutton] = {whitelist="",showdevstatus="y",buttons={}}
+        -----------------------------------------------------------
+        -- process all found entries in the plan record
+        -----------------------------------------------------------
+        buttons = {}
+        for d,DIPrecord in pairs(DIPresult) do
+          if type(DIPrecord) == "table" then
+            local DeviceType="devices"
+            local SwitchType
+            local Type
+            local status=""
+            local MaxDimLevel=100
+            local idx=DIPrecord.devidx
+            local name=DIPrecord.Name
+            print_to_log(1," - Plan record:",DIPrecord.Name,DIPrecord.devidx,DIPrecord.type)
+            if DIPrecord.type == 1 then
+              print_to_log(1,"--> scene record")
+              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Deviceslist,Sceneslist)
+            else
+              print_to_log(1,"--> device record")
+              idx,DeviceName, DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Deviceslist,Sceneslist)
+            end
+            -- Remove the name of the room from the device if it is present
+            button = string.gsub(DeviceName,room_name.."%s+","")
+            -- But reinstate it if lees than 3 letters are left
+            if #button < 3 then
+              button = DeviceName
+            end
+            -- Remove any spaces from the device name
+            button = string.gsub(button,"%s+", "_")
+            -- Get device/scene details
+            idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,DeviceName,Deviceslist,Sceneslist)
+            -- fill the button table records with all required fields
+            buttons[button]={}
+            buttons[button].whitelist=""               -- Not implemented for Dynamic menu: Whitelist number(s) for this device, blank is ALL
+            buttons[button].actions=""                 -- Not implemented for Dynamic menu: Hardcoded Actions for the device
+            buttons[button].prompt=false               -- Not implemented for Dynamic menu: Prompt TG cleint for the variable text
+            buttons[button].showactions=false          -- Not implemented for Dynamic menu: Show Device action menu right away when its menu is selected
+            buttons[button].Name=DeviceName            -- Original devicename needed to be able to perform the "Set new status" commands
+            buttons[button].idx=idx
+            buttons[button].DeviceType=DeviceType
+            buttons[button].SwitchType=SwitchType
+            buttons[button].Type=Type
+            buttons[button].MaxDimLevel=MaxDimLevel     -- Level required to calculate the percentage for devices that do not use 100 for 100%
+            buttons[button].status=status
+            print_to_log(1," Dynamic ->",rbutton,button,DeviceName, idx,DeviceType,Type,SwitchType,MaxDimLevel,status)
+          end
+        end
+      end
+    end
+    -- Save the Room entry with optionally all its devices/sceens
+    dtgmenu_submenus[rbutton] = {whitelist="",showdevstatus="y",buttons=buttons}
+  end
+end
+--
+-- support function to scan through the provided Devices and Scenes tables to retrieve the required information for it.
+function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
+  local k, record, Type,DeviceType,SwitchType
+  local found = 0
+  local rDeviceName=""
+  local status=""
+  local MaxDimLevel=100
+  local ridx=0
+  -- Check for Devices
+	print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
+  result = Devlist["result"]
+  for k,record in pairs(result) do
+		print_to_log(2,k,DeviceName,record.Name,idx,record.idx)
+    if type(record) == "table" then
+      if string.lower(record.Name) == string.lower(DeviceName) or idx == record.idx then
+        ridx = record.idx
+        rDeviceName = record.Name
+        DeviceType="devices"
+        Type=record.Type
+        if Type == "Temp" then
+          SwitchType="temp"
+          status = tostring(record.Temp)
+        elseif Type == "Temp + Humidity" then
+          SwitchType="temp"
+          status = tostring(record.Temp) .. "-" .. tostring(record.Humidity).."%"
+        else
+          SwitchType=record.SwitchType
+          MaxDimLevel=record.MaxDimLevel
+          status = tostring(record.Status)
+        end
+        found = 1
+        print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
+        break
+      end
+    end
+  end
+  print_to_log(2," !!!! found device",rDeviceName,ridx)
+  -- Check for Scenes
+  if found == 0 then
+    result = Scenelist["result"]
+    for k,record in pairs(result) do
+		print_to_log(2,k,record['Name'],DeviceName)
+      if type(record) == "table" then
+        if string.lower(record.Name) == string.lower(DeviceName) or idx == record.idx then
+          ridx = record.idx
+          rDeviceName = record.Name
+          DeviceType="scenes"
+          Type=record.Type
+          SwitchType=record.Type
+          found = 1
+          print_to_log(2," !!!! found scene",record.Name,rDeviceName,record.idx,ridx)
+          break
+        end
+      end
+    end
+  end
+  -- Check for Scenes
+  if found == 0 then
+    ridx = 9999
+    DeviceType="command"
+    Type="command"
+    SwitchType="command"
+  end
+ 	print_to_log(2," --< devinfo_from_name:",found,ridx,rDeviceName,DeviceType,Type,SwitchType,status)
+  return ridx,rDeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status
+end
+-----------------------------------------------
+--- END population the table
+-----------------------------------------------
+
+-----------------------------------------------
 --- Start Misc Function to support the process
 -----------------------------------------------
 -- SCAN through provided delimited string for the second parameter
 function ChkInTable(itab,idev)
-	print_to_log(1, " ChkInTable: ", itab)
+	print_to_log(2, " ChkInTable: ", itab)
   if itab ~= nil then
     for dev in string.gmatch(itab, "[^|,]+") do
       if dev == idev then
@@ -298,7 +533,7 @@ function ChkInTable(itab,idev)
       end
     end
   end
-	print_to_log(1, "- ChkInTable not found: "..idev)
+	print_to_log(2, "- ChkInTable not found: "..idev)
   return false
 end
 --
@@ -328,7 +563,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     LastCommand[SendTo]["replymarkup"] = ""
     LastCommand[SendTo]["prompt"] = false
   end
-  --~	added "-_"to allowed characters a command/word
+  --~	split the commandline into parameters
   local dtgmenu_cli={}
   for w in string.gmatch(menu_cli[2], "([%w-_]+)") do
     table.insert(dtgmenu_cli, w)
@@ -341,18 +576,15 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   local lcommand = string.lower(command)
   local lcommandline = string.lower(commandline)
   local param1
+  -- Retrieve the first parameter after the command in case provided.
   if menu_cli[3] ~= nil then
-    param1  = menu_cli[3]              -- the command came in through the standard process
+    param1  = menu_cli[3]              -- the command came in through the standard DTGBOT process
   else
     param1  = tostring(dtgmenu_cli[2]) -- the command came in via the DTGMENU exit routine
   end
   print_to_log(1," => commandline  :",commandline)
   print_to_log(1," => command      :",command)
   print_to_log(1," => param1       :",param1)
---~ 	print_to_log(1," => full commandline  :",menu_cli[2])
---~ 	print_to_log(1," => menu_cli[3]       :",tostring(menu_cli[3]))
---~ 	print_to_log(1," => dtgmenu_cli[1]    :",dtgmenu_cli[1])
---~ 	print_to_log(1," => dtgmenu_cli[2]    :",dtgmenu_cli[2])
   print_to_log(1,' => Lastmenu submenu  :',LastCommand[SendTo]["l1menu"])
   print_to_log(1,' => Lastmenu devs/cmds:',LastCommand[SendTo]["l2menu"])
   print_to_log(1,' => Lastmenu actions  :',LastCommand[SendTo]["l3menu"])
@@ -372,7 +604,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   print_to_log(1,' => cmdissubmenu:',cmdissubmenu)
 
   -------------------------------------------------
-  -- Process start or menu commands
+  -- Process "dtgmenu  (On/Off)" command
   -------------------------------------------------
   -- Set DTGMENU On/Off
   if lcommand == "dtgmenu" then
@@ -408,6 +640,9 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     return status, response, replymarkup, commandline
   end
 
+  -------------------------------------------------
+  -- Process "start" or "menu" commands
+  -------------------------------------------------
   -- Build main menu and return
   if cmdisaction == false and(lcommand == "menu" or lcommand == "start") then
     response=dtgmenu_lang[language].text["main"]
@@ -422,9 +657,9 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   end
 
   -------------------------------------------------
-  -- process prompt for "command" Type
+  -- process prompt input for "command" Type
   -------------------------------------------------
-  -- When returning from prompt then hand back to DTGBOT with previous command + param and reset keyboard to just MENU
+  -- When returning from a "prompt"action" then hand back to DTGBOT with previous command + param and reset keyboard to just MENU
   if LastCommand[SendTo]["prompt"] then
     -- make small keyboard
     replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
@@ -442,9 +677,9 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     return status, response, replymarkup, commandline
   end
 
-  -------------------------------------------------
+  -----------------------------------------------------
   -- process when command is not known in the last menu
-  -------------------------------------------------
+  -----------------------------------------------------
   -- hand back to DTGBOT reset keyboard to just MENU
   if cmdisaction == false
   and cmdisbutton == false
@@ -480,6 +715,10 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   if cmdissubmenu then
     submenu    = commandline
   end
+
+  ----------------------------------------------------------------------
+  -- Set needed variable when the command is a known device menu button
+  ----------------------------------------------------------------------
   if cmdisbutton then
     submenu    = LastCommand[SendTo]["submenu"]
     devicename = command  -- use command as that should only contain the values of the first param
@@ -497,6 +736,9 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     print_to_log(1,' => SwitchType :',SwitchType)
     print_to_log(1,' => MaxDimLevel :',MaxDimLevel)
   end
+  ----------------------------------------------------------------------
+  -- Set needed variables when the command is a known action menu button
+  ----------------------------------------------------------------------
   if cmdisaction then
     submenu    = LastCommand[SendTo]["submenu"]
     devicename = LastCommand[SendTo]["device"]
@@ -520,17 +762,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   local replymarkup = ""
 
   -------------------------------------------------
-  -- populate the room info each cycle to allow for updates in Domotics
-  --!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  --!!! change this to only populated with menu or start command for speed
---~ 	PopulateMenuTab()
---~ 	MakeRoomMenus()
-  --!!! change this to only populated with menu or start command for speed
-  --!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  -------------------------------------------------
-
-  -------------------------------------------------
-  -- process Type="command"
+  -- process Type="command" (none devices/scenes
   -------------------------------------------------
   if Type == "command" then
   --  when Button is pressed and Type "command" and no actions defined for the command then check for prompt and hand back without updating the keyboard
@@ -574,13 +806,12 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       LastCommand[SendTo]["l2menu"] = ""
       LastCommand[SendTo]["l3menu"] = ""
       print_to_log(0,"==<2 found regular lua command. -> hand back to dtgbot to run:"..LastCommand[SendTo]["device"].. " " .. commandline )
-  --~ 		replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
       return status, response, replymarkup, commandline
     end
   end
 
   -------------------------------------------------
-  -- process submenu buttonpressed
+  -- process submenu button pressed
   -------------------------------------------------
   -- ==== Show Submenu when no device is specified================
   if cmdissubmenu then
@@ -603,13 +834,14 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   end
 
 
-  -------------------------------------------------
-  -- process device button pressed
-  -------------------------------------------------
+  -------------------------------------------------------
+  -- process device button pressed on one of the submenus
+  -------------------------------------------------------
   status=1
   if cmdisbutton then
-    replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename,SwitchType)
-    -- show initial menu with only devices when shown first time
+    -- create reply menu and update table with device details
+    replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename)
+    -- Save the current device
     LastCommand[SendTo]["device"] = devicename
     local switchstatus=""
     local found=0
@@ -655,7 +887,6 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'On')
   elseif string.find(action, "%d") then
     -- calculate the proper leve lto set the dimmer
-    MaxDimLevel=32
     rellev = MaxDimLevel/100*tonumber(action)  -- calculate the relative level
     rellev = tonumber(string.format("%.0f", rellev)) -- remove decimals
     action = tostring(rellev)
@@ -666,7 +897,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   end
   status=1
 
-  replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename,SwitchType)
+  replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename)
   print_to_log(0,"==<"..response)
   return status, response, replymarkup, commandline;
 end
@@ -681,179 +912,5 @@ local dtgmenu_commands = {
 function dtgmenu_module.get_commands()
   return dtgmenu_commands;
 end
-
------------------------------------------------
---- START population the table which runs only at BOT startup time
------------------------------------------------
--- support func to scan through the provided Devices and Scenes tables to check for these types
--- else we assume it is a "command" that DTGBOT understand
-function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
-  local k, record, Type,DeviceType,SwitchType
-  local found = 0
-  local rDeviceName=""
-  local status=""
-  local MaxDimLevel=100
-  local ridx=0
-  -- Check for Devices
-	print_to_log(1,"==> start devinfo_from_name", idx,DeviceName)
-  result = Devlist["result"]
-  for k,record in pairs(result) do
-		print_to_log(1,k,DeviceName,record.Name,idx,record.idx)
-    if type(record) == "table" then
-      if string.lower(record.Name) == string.lower(DeviceName) or idx == record.idx then
-        ridx = record.idx
-        rDeviceName = record.Name
-        DeviceType="devices"
-        Type=record.Type
-        if Type == "Temp" then
-          SwitchType="temp"
-          status = tostring(record.Temp)
-        elseif Type == "Temp + Humidity" then
-          SwitchType="temp"
-          status = tostring(record.Temp) .. "-" .. tostring(record.Humidity).."%"
-        else
-          SwitchType=record.SwitchType
-          MaxDimLevel=record.MaxDimLevel
-          status = tostring(record.Status)
-        end
-        found = 1
-        print_to_log(1," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
-        break
-      end
-    end
-  end
-  print_to_log(1," !!!! found device",rDeviceName,ridx)
-  -- Check for Scenes
-  if found == 0 then
-    result = Scenelist["result"]
-    for k,record in pairs(result) do
-		print_to_log(1,k,record['Name'],DeviceName)
-      if type(record) == "table" then
-        if string.lower(record.Name) == string.lower(DeviceName) or idx == record.idx then
-          ridx = record.idx
-          rDeviceName = record.Name
-          DeviceType="scenes"
-          Type=record.Type
-          SwitchType=record.Type
-          found = 1
-          print_to_log(1," !!!! found scene",record.Name,rDeviceName,record.idx,ridx)
-          break
-        end
-      end
-    end
-  end
-  -- Check for Scenes
-  if found == 0 then
-    ridx = 9999
-    DeviceType="command"
-    Type="command"
-    SwitchType="command"
-  end
- 	print_to_log(1," --< devinfo_from_name:",found,ridx,rDeviceName,DeviceType,Type,SwitchType,status)
-  return ridx,rDeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status
-end
---
-function PopulateMenuTab(iLevel,iSubmenu)
-  print_to_log(1,"####  Start populating menuarray")
-
-  dtgmenu_submenus = {}
-
-  if iLevel ~= "mainmenu" then
-    -- get IDX device table
-    Deviceslist = device_list("devices&used=true")
-    -- get IDX scenes table
-    Sceneslist = device_list("scenes")
-  end
-  --
-  print_to_log(1,"Submenu table including buttons defined in menu.cfg:",iLevel,iSubmenu)
-  for submenu,get in pairs(static_dtgmenu_submenus) do
-		print_to_log(1,"=>",submenu, get.whitelist, get.showdevstatus,get.Menuwidth)
-    if static_dtgmenu_submenus[submenu].buttons ~= nil then
-      buttons = {}
-      if iLevel ~= "mainmenu" and iSubmenu == string.lower(submenu) then
-        for button,dev in pairs(static_dtgmenu_submenus[submenu].buttons) do
-            idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button,Deviceslist,Sceneslist)
-            buttons[button] = {whitelist = dev.whitelist,actions=dev.actions,prompt=dev.prompt,showactions=dev.showactions,Name=DeviceName,idx=idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=Type,MaxDimLevel=MaxDimLevel,status=status}
-            print_to_log(1," static ->",submenu,button,DeviceName, idx,DeviceType,Type,SwitchType,MaxDimLevel,status)
-        end
-      end
-      dtgmenu_submenus[submenu] = {whitelist=get.whitelist,buttons=buttons}
-    end
-  end
-  -- Add the room/plan menu's after the statis is populated
-  MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
-  print_to_log(1,"####  End populating menuarray")
-  return
-end
---
--- Create a button per room.
-function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
-  iSubmenu = tostring(iSubmenu)
-  print_to_log(1,"Creating Room Menus:",iLevel,iSubmenu)
-  room_number = 0
-  -- retrieve all plan's from Domoticz
-  Roomlist = device_list("plans")
-  planresult = Roomlist["result"]
-  -- get IDX device table
-  if Deviceslist == nil then
-    Deviceslist = device_list("devices&used=true")
-  end
-  -- get IDX scenes table
-  if Sceneslist == nil then
-    Sceneslist = device_list("scenes")
-  end
-  -- process plan records
-  for p,precord in pairs(planresult) do
-    room_name = precord.Name
-    room_number = precord.idx
-    local rbutton = string.lower(room_name:gsub(" ", "_"))
-
-    if iLevel ~= "mainmenu"
-    and iSubmenu == string.lower(rbutton) or "[scene] ".. iSubmenu == string.lower(rbutton) then
-      -- retrieve all devices for this plan from Domoticz
-      Devsinplan = device_list("command&param=getplandevices&idx="..room_number)
-      DIPresult = Devsinplan["result"]
-      if DIPresult ~= nil then
-        print_to_log(1,'For room '..room_name..' got some devices and/or scenes')
-        dtgmenu_submenus[rbutton] = {whitelist="",showdevstatus="y",buttons={}}
-        -- process all found entries in the plan record
-        buttons = {}
-        for d,DIPrecord in pairs(DIPresult) do
-          if type(DIPrecord) == "table" then
-            local DeviceType="devices"
-            local SwitchType
-            local Type
-            local status=""
-            local MaxDimLevel=100
-            local idx=DIPrecord.devidx
-            local name=DIPrecord.Name
-            print_to_log(1," - Plan record:",DIPrecord.Name,DIPrecord.devidx,DIPrecord.type)
-            if DIPrecord.type == 1 then
-              print_to_log(1,"--> scene record")
-              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Deviceslist,Sceneslist)
-            else
-              print_to_log(1,"--> device record")
-              idx,DeviceName, DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Deviceslist,Sceneslist)
-            end
-            -- Remove the name of the room from the device if it is present
-            record_name = string.gsub(DeviceName,room_name,"")
-            -- But reinstate it if lees than 3 letters are left
-            if #record_name < 3 then
-              record_name = DeviceName
-            end
-            -- Remove any spaces from the device name
-            record_name = string.gsub(record_name,"%s+", "")
-            buttons[record_name] = {whitelist = "",Name=DeviceName,idx=idx,DeviceType=DeviceType,SwitchType=SwitchType,Type=Type,MaxDimLevel=MaxDimLevel,status=status}
-            print_to_log(1," dynam ->",rbutton,DeviceName, idx,DeviceType,Type,SwitchType,MaxDimLevel,status)
-          end
-        end
-      end
-    end
-    dtgmenu_submenus[rbutton] = {whitelist="",showdevstatus="y",buttons=buttons}
-  end
-end
-
---~ MakeRoomMenus()
---~ PopulateMenuTab()
 
 return dtgmenu_module;
