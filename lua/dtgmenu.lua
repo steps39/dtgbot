@@ -605,6 +605,10 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   local cmdisaction  = ChkInTable(LastCommand[SendTo]["l3menu"],commandline)
   local cmdisbutton  = ChkInTable(LastCommand[SendTo]["l2menu"],commandline)
   local cmdissubmenu = ChkInTable(LastCommand[SendTo]["l1menu"],commandline)
+  -- When the command is not a button or submenu and the last Action options contained a "?" and the current command is numeric we assume this is a manual set percentage
+  if not (cmdisaction or cmdisbutton or cmdisbutton) and ChkInTable(LastCommand[SendTo]["l3menu"],"?") and string.find(command, "%d") then
+    cmdisaction = true
+  end
   print_to_log(1,' => cmdisaction :',cmdisaction)
   print_to_log(1,' => cmdisbutton :',cmdisbutton)
   print_to_log(1,' => cmdissubmenu:',cmdissubmenu)
@@ -786,7 +790,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
         replymarkup='{"force_reply":true}'
         LastCommand[SendTo]["replymarkup"] = replymarkup
         status = 1
-        response="param needed"
+        response=dtgmenu_lang[language].text["Specifyvalue"]
         print_to_log(0,"==<1 found regular lua command that need Param ")
 
       -- no prompt defined so simply return to dtgbot with status 0 so it will be performed and reset the keyboard to just MENU
@@ -903,6 +907,13 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     action = tostring(rellev)
     response = "Set level " .. action
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level " .. action)
+  elseif commandline == "?" then
+    replymarkup='{"force_reply":true}'
+    LastCommand[SendTo]["replymarkup"] = replymarkup
+    response=dtgmenu_lang[language].text["Specifyvalue"]
+    print_to_log(0,"==<"..response)
+    status=1
+    return status, response, replymarkup, commandline;
   else
     response = dtgmenu_lang[language].text["UnknownChoice"] .. action
   end
