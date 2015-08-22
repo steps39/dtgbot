@@ -23,6 +23,8 @@
 --	reply_markup={"keyboard":[["menu"]],"resize_keyboard":true}
 --  reply_markup={"keyboard":[["opt 1","opt 2","opt 3"],["menu"]],"resize_keyboard":true}
 
+-- JSON stuuf:
+--~ http://192.168.0.30:8080/json.htm?type=command&param=getlanguage
 
 --------------------------------------
 -- Include config
@@ -220,7 +222,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
               l3menu = "Aan,Uit"
             end
           end
-          print_to_log(1,"   -< " .. SwitchType .. " using replymarkup:",l3menu)
+          print_to_log(1,"   -< ".. tostring(SwitchType).." using replymarkup:",l3menu)
         end
       end
     end
@@ -480,6 +482,12 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
         elseif Type == "Temp + Humidity" then
           SwitchType="temp"
           status = tostring(record.Temp) .. "-" .. tostring(record.Humidity).."%"
+        elseif Type == "Wind" then
+          SwitchType="temp"
+          status = tostring(record.Speed)
+        elseif Type == "Rain" then
+          SwitchType="temp"
+          status = tostring(record.Rain)
         else
           SwitchType=record.SwitchType
           MaxDimLevel=record.MaxDimLevel
@@ -867,7 +875,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
         response = dtgmenu_lang[language].text["SelectScene"]
         print_to_log(0,"==< Show scene options menu plus other devices in submenu.")
       end
-    elseif Type == "Temp" or Type == "Temp + Humidity" then
+    elseif Type == "Temp" or Type == "Temp + Humidity" or Type == "Wind" or Type == "Rain" then
         -- when temp device is selected them just return with sending anything.
       LastCommand[SendTo]["device"] = ""
       response = ""
