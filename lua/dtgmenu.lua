@@ -420,13 +420,13 @@ function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
               print_to_log(1,"--> device record")
               idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Deviceslist,DUMMY)
             end
-            -- Remove the name of the room from the device if it is present
-            button = string.gsub(DeviceName,room_name.."%s+","")
+            -- Remove the name of the room from the device if it is present and any susequent Space or Hyphen or undersciore
+            button = string.gsub(DeviceName,room_name.."[%s-_]*","")
             -- But reinstate it if lees than 3 letters are left
             if #button < 3 then
               button = DeviceName
             end
-            -- Remove any spaces from the device name
+            -- Remove any spaces from the device name and replace them by underscore.
             button = string.gsub(button,"%s+", "_")
             -- Get device/scene details
             idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,DeviceName,Deviceslist,Sceneslist)

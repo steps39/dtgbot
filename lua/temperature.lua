@@ -25,8 +25,8 @@ function get_temperature(DeviceName)
       Humidity = record["Humidity"]
     else
       if DeviceType == "Temp + Humidity" then
-        Temperature = record["Temp"]
-        Humidity = record["Humidity"]
+  Temperature = record["Temp"]
+  Humidity = record["Humidity"]
       else
         if DeviceType == "Temp + Humidity + Baro" then
           Temperature = record["Temp"]
@@ -51,14 +51,14 @@ function temperature(DeviceName)
     if Temperature == -999 and Pressure == -999 then
       print(DeviceName .. ' relative humidity is ' .. Humidity .. '%')
       response = DeviceName.. ' ' .. Humidity .. '%'
-    else  
+    else
       if Pressure ~= -999 then
         print(DeviceName .. ' temperature is ' .. Temperature .. '°C, relative humidity is ' .. Humidity .. '% and pressure is '.. Pressure..'hPa')
         response = DeviceName.. ' ' .. Temperature .. '°C & ' .. Humidity .. '% & '.. Pressure .. 'hPa'
       else
         if Humidity ~= -999 then
-          print(DeviceName .. ' temperature is ' .. Temperature .. '°C and relative humidity is ' .. Humidity .. '%')
-          response = DeviceName.. ' ' .. Temperature .. '°C & ' .. Humidity .. '%'
+  print(DeviceName .. ' temperature is ' .. Temperature .. '°C and relative humidity is ' .. Humidity .. '%')
+  response = DeviceName.. ' ' .. Temperature .. '°C & ' .. Humidity .. '%'
         else
           print(DeviceName .. ' temperature is ' .. Temperature .. '°C')
           response = DeviceName.. ' ' .. Temperature .. '°C'
@@ -92,10 +92,10 @@ function temperature_module.handler(parsed_cli)
     DeviceNames = get_names_from_variable(DevicesWithTemperatures)
     -- Loop round each of the devices with temperature
     if DeviceNames ~= nil then
-      response = ''
-      for i,DeviceName in ipairs(DeviceNames) do
-        status, r = temperature(DeviceName)
-        response = response .. r .. '\n'
+    response = ''
+    for i,DeviceName in ipairs(DeviceNames) do
+      status, r = temperature(DeviceName)
+      response = response .. r .. '\n'
       end
     else
       response = 'No device names found in '..DevicesWithTemperatures
