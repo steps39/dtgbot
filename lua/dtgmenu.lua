@@ -329,7 +329,7 @@ function PopulateMenuTab(iLevel,iSubmenu)
 		print_to_log(1,"=>",submenu, get.whitelist, get.showdevstatus,get.Menuwidth)
     if static_dtgmenu_submenus[submenu].buttons ~= nil then
       buttons = {}
-      if iLevel ~= "mainmenu" and iSubmenu == string.lower(submenu) then
+      if iLevel ~= "mainmenu" and iSubmenu == submenu then
         for button,dev in pairs(static_dtgmenu_submenus[submenu].buttons) do
             -- Get device/scene details
             idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button,Deviceslist,Sceneslist)
@@ -381,12 +381,12 @@ function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
   for p,precord in pairs(planresult) do
     room_name = precord.Name
     room_number = precord.idx
-    local rbutton = string.lower(room_name:gsub(" ", "_"))
+    local rbutton = room_name:gsub(" ", "_")
     --
     -- only get all details per Room in case we are not building the Mainmenu.
     -- Else
     if iLevel ~= "mainmenu"
-    and iSubmenu == string.lower(rbutton) or "[scene] ".. iSubmenu == string.lower(rbutton) then
+    and iSubmenu == rbutton or "[scene] ".. iSubmenu == rbutton then
       -----------------------------------------------------------
       -- retrieve all devices/scenes for this plan from Domoticz
       -----------------------------------------------------------
@@ -581,7 +581,6 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   local command = tostring(dtgmenu_cli[1])
   local lcommand = string.lower(command)
   local lcommandline = string.lower(commandline)
-  local param1
   -- Retrieve the first parameter after the command in case provided.
   if menu_cli[3] ~= nil then
     param1  = menu_cli[3]              -- the command came in through the standard DTGBOT process
