@@ -205,7 +205,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
             end
           end
         end
-				print_to_log(1,l2menu)
+        print_to_log(1,l2menu)
         -- ==== Build DeviceActionmenu
         -- do not build the actions menu when NoDevMenu == true. EG temp devices have no actions
         if dtgmenu_submenus[submenu].NoDevMenu ~= true
@@ -284,7 +284,7 @@ end
 function buildmenu(menuitems,width,extrachar)
   local replymenu=""
   local t=0
-	print_to_log(1," process buildmenu:",menuitems," w:",width)
+  print_to_log(1," process buildmenu:",menuitems," w:",width)
   for dev in string.gmatch(menuitems, "[^|,]+") do
     if t == width then
       replymenu = replymenu .. '],'
@@ -328,7 +328,7 @@ function PopulateMenuTab(iLevel,iSubmenu)
   --
   print_to_log(1,"Submenu table including buttons defined in menu.cfg:",iLevel,iSubmenu)
   for submenu,get in pairs(static_dtgmenu_submenus) do
-		print_to_log(1,"=>",submenu, get.whitelist, get.showdevstatus,get.Menuwidth)
+    print_to_log(1,"=>",submenu, get.whitelist, get.showdevstatus,get.Menuwidth)
     if static_dtgmenu_submenus[submenu].buttons ~= nil then
       buttons = {}
       if iLevel ~= "mainmenu" and iSubmenu == submenu then
@@ -466,10 +466,10 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
   local MaxDimLevel=100
   local ridx=0
   -- Check for Devices
-	print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
+  print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
   result = Devlist["result"]
   for k,record in pairs(result) do
-		print_to_log(2,k,DeviceName,record.Name,idx,record.idx)
+    print_to_log(2,k,DeviceName,record.Name,idx,record.idx)
     if type(record) == "table" then
       if string.lower(record.Name) == string.lower(DeviceName) or idx == record.idx then
         ridx = record.idx
@@ -503,7 +503,7 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
   if found == 0 then
     result = Scenelist["result"]
     for k,record in pairs(result) do
-		print_to_log(2,k,record['Name'],DeviceName)
+    print_to_log(2,k,record['Name'],DeviceName)
       if type(record) == "table" then
         if string.lower(record.Name) == string.lower(DeviceName) or idx == record.idx then
           ridx = record.idx
@@ -525,7 +525,7 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
     Type="command"
     SwitchType="command"
   end
- 	print_to_log(2," --< devinfo_from_name:",found,ridx,rDeviceName,DeviceType,Type,SwitchType,status)
+  print_to_log(2," --< devinfo_from_name:",found,ridx,rDeviceName,DeviceType,Type,SwitchType,status)
   return ridx,rDeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status
 end
 -----------------------------------------------
@@ -537,7 +537,7 @@ end
 -----------------------------------------------
 -- SCAN through provided delimited string for the second parameter
 function ChkInTable(itab,idev)
-	print_to_log(2, " ChkInTable: ", itab)
+  print_to_log(2, " ChkInTable: ", itab)
   if itab ~= nil then
     for dev in string.gmatch(itab, "[^|,]+") do
       if dev == idev then
@@ -546,7 +546,7 @@ function ChkInTable(itab,idev)
       end
     end
   end
-	print_to_log(2, "- ChkInTable not found: "..idev)
+  print_to_log(2, "- ChkInTable not found: "..idev)
   return false
 end
 --
@@ -859,7 +859,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   -- process device button pressed on one of the submenus
   -------------------------------------------------------
   status=1
-  if cmdisbutton then
+   if cmdisbutton then
     -- create reply menu and update table with device details
     replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename)
     -- Save the current device
