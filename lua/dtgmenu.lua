@@ -198,7 +198,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
             l2menu=l2menu .. i .. switchstatus .. "|"
             -- show the actions menu immediately for this devices since that is requested in the config
             -- this can avoid having the press 2 button before getting to the actions menu
-            if get.showactions then
+            if get.showactions and devicename == "" then
               print_to_log(1,"  - Changing to Device action level due to showactions:",i)
               Level = "devicemenu"
               devicename = i
@@ -337,10 +337,10 @@ function PopulateMenuTab(iLevel,iSubmenu)
             idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button,Deviceslist,Sceneslist)
             -- fill the button table records with all required fields
             buttons[button]={}
-            buttons[button].whitelist = dev.whitelist   -- specific for the static config: Whitelist number(s) for this device, blank is ALL
-            buttons[button].actions=dev.actions         -- specific for the static config: Hardcoded Actions for the device
-            buttons[button].prompt=dev.prompt           -- specific for the static config: Prompt TG cleint for the variable text
-            buttons[button].showactions=dev.showactions -- specific for the static config: Show Device action menu right away when its menu is selected
+            buttons[button].whitelist = dev.whitelist       -- specific for the static config: Whitelist number(s) for this device, blank is ALL
+            buttons[button].actions=dev.actions             -- specific for the static config: Hardcoded Actions for the device
+            buttons[button].prompt=dev.prompt               -- specific for the static config: Prompt TG cleint for the variable text
+            buttons[button].showactions=dev.showactions     -- specific for the static config: Show Device action menu right away when its menu is selected
             buttons[button].Name=DeviceName
             buttons[button].idx=idx
             buttons[button].DeviceType=DeviceType
@@ -352,7 +352,7 @@ function PopulateMenuTab(iLevel,iSubmenu)
         end
       end
     -- Save the subment entry with optionally all its devices/sceens
-      dtgmenu_submenus[submenu] = {whitelist=get.whitelist,buttons=buttons}
+      dtgmenu_submenus[submenu] = {whitelist=get.whitelist,showdevstatus=get.showdevstatus,Menuwidth=get.Menuwidth,buttons=buttons}
     end
   end
   -- Add the room/plan menu's after the statis is populated
@@ -476,15 +476,19 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
         rDeviceName = record.Name
         DeviceType="devices"
         Type=record.Type
-        if dtgmenu_type_status[Type].Status ~= nil then
-          status = tostring(record[dtgmenu_type_status[Type].Status])
-          status = status .. tostring(dtgmenu_type_status[Type].StatusSuffix)
-          if dtgmenu_type_status[Type].Status2 ~= nil then
-            status = status .. " - " .. tostring(record[dtgmenu_type_status[Type].Status2])
-            status = status .. tostring(dtgmenu_type_status[Type].Status2Suffix)
-            if dtgmenu_type_status[Type].Status3 ~= nil then
-              status = status .. " - " .. tostring(record[dtgmenu_type_status[Type].Status3])
-              status = status .. tostring(dtgmenu_type_status[Type].Status3Suffix)
+        -- as default simply use the status field
+        -- use the dtgmenu_type_status to retrieve the status from the "other devices" field as defined in the table.
+        if dtgmenu_type_status[Type] ~= nil then
+          if dtgmenu_type_status[Type].Status ~= nil then
+            status = tostring(record[dtgmenu_type_status[Type].Status])
+            status = status .. tostring(dtgmenu_type_status[Type].StatusSuffix)
+            if dtgmenu_type_status[Type].Status2 ~= nil then
+              status = status .. " - " .. tostring(record[dtgmenu_type_status[Type].Status2])
+              status = status .. tostring(dtgmenu_type_status[Type].Status2Suffix)
+              if dtgmenu_type_status[Type].Status3 ~= nil then
+                status = status .. " - " .. tostring(record[dtgmenu_type_status[Type].Status3])
+                status = status .. tostring(dtgmenu_type_status[Type].Status3Suffix)
+              end
             end
           end
         else
@@ -732,6 +736,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   local SwitchType = ""
   local idx        = ""
   local Type       = ""
+  local dstatus     = ""
   local MaxDimLevel= 0
   if cmdissubmenu then
     submenu    = commandline
@@ -748,14 +753,16 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     idx        = dtgmenu_submenus[submenu].buttons[devicename].idx
     DeviceType = dtgmenu_submenus[submenu].buttons[devicename].DeviceType
     SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
-    MaxDimLevel = dtgmenu_submenus[submenu].buttons[devicename].MaxDimLevel
+    MaxDimLevel= dtgmenu_submenus[submenu].buttons[devicename].MaxDimLevel
+    dstatus    = dtgmenu_submenus[submenu].buttons[devicename].status
     print_to_log(1,' => devicename :',devicename)
     print_to_log(1,' => realdevicename :',realdevicename)
     print_to_log(1,' => idx:',idx)
     print_to_log(1,' => Type :',Type)
     print_to_log(1,' => DeviceType :',DeviceType)
     print_to_log(1,' => SwitchType :',SwitchType)
-    print_to_log(1,' => MaxDimLevel :',MaxDimLevel)
+    print_to_log(1,' => MaxDimLevel:',MaxDimLevel)
+    print_to_log(1,' => dstatus    :',dstatus)
   end
   ----------------------------------------------------------------------
   -- Set needed variables when the command is a known action menu button
@@ -859,7 +866,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   -- process device button pressed on one of the submenus
   -------------------------------------------------------
   status=1
-   if cmdisbutton then
+  if cmdisbutton then
     -- create reply menu and update table with device details
     replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename)
     -- Save the current device
@@ -875,7 +882,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
         print_to_log(0,"==< Show scene options menu plus other devices in submenu.")
       end
 --~     elseif Type == "Temp" or Type == "Temp + Humidity" or Type == "Wind" or Type == "Rain" then
-    elseif dtgmenu_type_status[Type].DisplayActions ~= nil and dtgmenu_type_status[Type].DisplayActions == false then
+    elseif dtgmenu_type_status[Type] ~= nil and dtgmenu_type_status[Type].DisplayActions == false then
         -- when temp device is selected them just return with sending anything.
       LastCommand[SendTo]["device"] = ""
       response = ""
@@ -887,7 +894,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       if dtgmenu_submenus[submenu].showdevstatus == "y" then
         response = dtgmenu_lang[language].text["SelectOptionwo"]
       else
-        switchstatus = dtgmenu_submenus[submenu].button[devicename].status
+        switchstatus = dstatus
         response = dtgmenu_lang[language].text["SelectOption"] .. " " .. switchstatus
       end
       print_to_log(0,"==< Show device options menu plus other devices in submenu.")
