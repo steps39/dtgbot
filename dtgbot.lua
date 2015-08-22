@@ -12,9 +12,8 @@
 -- shared between the two bots.
 -- -------------------------------------------------------
 
-
 -- set default loglevel which will be retrieve later from the domoticz user variable TelegramBotLoglevel
-dtgbotLogLevel=0
+dtgbotLogLevel=1
 
 -- loglevel 0 - Always shown
 -- loglevel 1 - only shown when TelegramBotLoglevel >= 1

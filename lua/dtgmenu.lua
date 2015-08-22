@@ -477,17 +477,17 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
         DeviceType="devices"
         Type=record.Type
         -- as default simply use the status field
-        -- use the dtgmenu_type_status to retrieve the status from the "other devices" field as defined in the table.
-        if dtgmenu_type_status[Type] ~= nil then
-          if dtgmenu_type_status[Type].Status ~= nil then
-            status = tostring(record[dtgmenu_type_status[Type].Status])
-            status = status .. tostring(dtgmenu_type_status[Type].StatusSuffix)
-            if dtgmenu_type_status[Type].Status2 ~= nil then
-              status = status .. " - " .. tostring(record[dtgmenu_type_status[Type].Status2])
-              status = status .. tostring(dtgmenu_type_status[Type].Status2Suffix)
-              if dtgmenu_type_status[Type].Status3 ~= nil then
-                status = status .. " - " .. tostring(record[dtgmenu_type_status[Type].Status3])
-                status = status .. tostring(dtgmenu_type_status[Type].Status3Suffix)
+        -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
+        if dtgbot_type_status[Type] ~= nil then
+          if dtgbot_type_status[Type].Status ~= nil then
+            status = tostring(record[dtgbot_type_status[Type].Status])
+            status = status .. tostring(dtgbot_type_status[Type].StatusSuffix)
+            if dtgbot_type_status[Type].Status2 ~= nil then
+              status = status .. " - " .. tostring(record[dtgbot_type_status[Type].Status2])
+              status = status .. tostring(dtgbot_type_status[Type].Status2Suffix)
+              if dtgbot_type_status[Type].Status3 ~= nil then
+                status = status .. " - " .. tostring(record[dtgbot_type_status[Type].Status3])
+                status = status .. tostring(dtgbot_type_status[Type].Status3Suffix)
               end
             end
           end
@@ -882,7 +882,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
         print_to_log(0,"==< Show scene options menu plus other devices in submenu.")
       end
 --~     elseif Type == "Temp" or Type == "Temp + Humidity" or Type == "Wind" or Type == "Rain" then
-    elseif dtgmenu_type_status[Type] ~= nil and dtgmenu_type_status[Type].DisplayActions == false then
+    elseif dtgbot_type_status[Type] ~= nil and dtgbot_type_status[Type].DisplayActions == false then
         -- when temp device is selected them just return with sending anything.
       LastCommand[SendTo]["device"] = ""
       response = ""
