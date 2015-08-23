@@ -480,22 +480,12 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
         -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
         if dtgbot_type_status[Type] ~= nil then
           if dtgbot_type_status[Type].Status ~= nil then
-            status = ''--@
-            for i, v in pairs(dtgbot_type_status[Type].Status) do--@
-              if status ~= '' then--@
-                status = status .. ' - '--@
-              end--@
-              status = tostring(record[i])..tostring(v)--@
---@            status = status .. tostring(dtgbot_type_status[Type].StatusSuffix)
---@            status = tostring(record[dtgbot_type_status[Type].Status])
---@            status = status .. tostring(dtgbot_type_status[Type].StatusSuffix)
---@            if dtgbot_type_status[Type].Status2 ~= nil then
---@              status = status .. " - " .. tostring(record[dtgbot_type_status[Type].Status2])
---@              status = status .. tostring(dtgbot_type_status[Type].Status2Suffix)
---@              if dtgbot_type_status[Type].Status3 ~= nil then
---@                status = status .. " - " .. tostring(record[dtgbot_type_status[Type].Status3])
---@                status = status .. tostring(dtgbot_type_status[Type].Status3Suffix)
---@              end
+            status = ''
+            for i, v in pairs(dtgbot_type_status[Type].Status) do
+              if status ~= '' then
+                status = status .. ' - '
+              end
+              status = status .. tostring(record[i])..tostring(v)
             end
           end
         else
