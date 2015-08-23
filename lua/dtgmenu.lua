@@ -428,8 +428,6 @@ function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
             end
             -- Remove any spaces from the device name and replace them by underscore.
             button = string.gsub(button,"%s+", "_")
-            -- Get device/scene details
-            idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,DeviceName,Deviceslist,Sceneslist)
             -- Add * infront of button name when Scene or Group
             if DeviceType == "scenes" then
               button = "*"..button
