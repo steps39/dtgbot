@@ -481,11 +481,15 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
         if dtgbot_type_status[Type] ~= nil then
           if dtgbot_type_status[Type].Status ~= nil then
             status = ''
-            for i, v in pairs(dtgbot_type_status[Type].Status) do
+            CurrentStatus = dtgbot_type_status[Type].Status
+            for i=1, #CurrentStatus do
               if status ~= '' then
                 status = status .. ' - '
               end
-              status = status .. tostring(record[i])..tostring(v)
+              cindex, csuffix = next(CurrentStatus[i])
+              print(cindex)
+              print(csuffix)
+              status = status .. tostring(record[cindex])..tostring(csuffix)
             end
           end
         else
