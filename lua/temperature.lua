@@ -71,6 +71,7 @@ end
 
 function temperature_module.handler(parsed_cli)
   local t, response, status, decoded_response
+  response = ''
   if string.lower(parsed_cli[2]) == 'temperature' then
     DeviceName = form_device_name(parsed_cli)
     if DeviceName == nil then
