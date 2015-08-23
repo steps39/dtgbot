@@ -13,13 +13,13 @@
 -- -------------------------------------------------------
 
 -- set default loglevel which will be retrieve later from the domoticz user variable TelegramBotLoglevel
-dtgbotLogLevel=1
+dtgbotLogLevel=2
 
 -- loglevel 0 - Always shown
 -- loglevel 1 - only shown when TelegramBotLoglevel >= 1
 
 function print_to_log(loglevel, logmessage, ...)
- -- when only one parameter is provided => set the loglevel to 0 and assume the parameter is the messagetext
+  -- when only one parameter is provided => set the loglevel to 0 and assume the parameter is the messagetext
   if tonumber(loglevel) == nil or logmessage == nil then
     logmessage = loglevel
     loglevel=0
@@ -179,10 +179,10 @@ function form_device_name(parsed_cli)
   return DeviceName
 end
 
+-- returns list of all user variables - called early by dtgbot
+-- in case Domoticz is not running will retry
+-- allowing Domoticz time to start
 function variable_list()
-  -- returns list of all user variables - called early by dtgbot
-  -- in case Domoticz is not running will retry
-  -- allows Domoticz to start
   local t, jresponse, status, decoded_response
   t = server_url.."/json.htm?type=command&param=getuservariables"
   jresponse = nil
@@ -190,7 +190,7 @@ function variable_list()
   -- Domoticz seems to take a while to respond to getuservariables after start-up
   -- So just keep trying after 1 second sleep
   while (jresponse == nil) do
-   print_to_log(1,"JSON request <"..t..">");
+    print_to_log(1,"JSON request <"..t..">");
     jresponse, status = http.request(t)
     if (jresponse == nil) then
       socket.sleep(1)
@@ -206,30 +206,33 @@ function variable_list()
   return decoded_response
 end
 
-function idx_from_variable_name(DeviceName)
-  -- returns idx of a user variable from name
+-- returns idx of a user variable from name
+function variable_list_names_idxs()
   local idx, k, record, decoded_response
   decoded_response = variable_list()
   result = decoded_response["result"]
-  for k,record in pairs(result) do
+  variables = {}
+  for i = 1, #result do
+    record = result[i]
     if type(record) == "table" then
-      if string.lower(record['Name']) == string.lower(DeviceName) then
-        print_to_log(0,record['idx'])
-        idx = record['idx']
-      end
+      variables[record['Name']] = record['idx']
     end
   end
-  return idx
+  return variables
 end
 
+function idx_from_variable_name(DeviceName)
+  return variablelist[DeviceName]
+end
+
+-- returns the value of the variable from the idx
 function get_variable_value(idx)
-  -- returns the value of the variable from the idx
   local t, jresponse, decoded_response
   if idx == nill then
-      return ""
-    end
-    t = server_url.."/json.htm?type=command&param=getuservariable&idx="..tostring(idx)
- print_to_log(1,"JSON request <"..t..">");
+    return ""
+  end
+  t = server_url.."/json.htm?type=command&param=getuservariable&idx="..tostring(idx)
+  print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   decoded_response = JSON:decode(jresponse)
   print_to_log(0,'Decoded '..decoded_response["result"][1]["Value"])
@@ -240,7 +243,7 @@ function set_variable_value(idx,name,type,value)
   -- store the value of a user variable
   local t, jresponse, decoded_response
   t = server_url.."/json.htm?type=command&param=updateuservariable&idx="..idx.."&vname="..name.."&vtype="..type.."&vvalue="..tostring(value)
- print_to_log(1,"JSON request <"..t..">");
+  print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   return
 end
@@ -249,39 +252,63 @@ function create_variable(name,type,value)
   -- creates user variable
   local t, jresponse, decoded_response
   t = server_url.."/json.htm?type=command&param=saveuservariable&vname="..name.."&vtype="..type.."&vvalue="..tostring(value)
- print_to_log(1,"JSON request <"..t..">");
+  print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   return
 end
 
+-- returns a device table of Domoticz items based on type i.e. devices or scenes
 function device_list(DeviceType)
-  -- returns a list of Domoticz items based on type i.e. devices or scenes
   local t, jresponse, status, decoded_response
   t = server_url.."/json.htm?type="..DeviceType.."&order=name"
- print_to_log(1,"JSON request <"..t..">");
+  print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   decoded_response = JSON:decode(jresponse)
   return decoded_response
 end
 
-function idx_from_name(DeviceName,DeviceType)
+-- returns a list of Domoticz items based on type i.e. devices or scenes
+function device_list_names_idxs(DeviceType)
   --returns a devcie idx based on its name
   local idx, k, record, decoded_response
   decoded_response = device_list(DeviceType)
-  result = decoded_response["result"]
-  for k,record in pairs(result) do
+  result = decoded_response['result']
+  devices = {}
+  for i = 1, #result do
+    record = result[i]
     if type(record) == "table" then
-      if string.lower(record['Name']) == string.lower(DeviceName) then
-        print_to_log(0,record['idx'])
-        idx = record['idx']
-      end
+      devices[string.lower(record['Name'])] = record['idx']
+      devices[record['idx']] = record['Name']
     end
   end
-  return idx
+  return devices
+end
+
+function idx_from_name(DeviceName,DeviceType)
+  --returns a devcie idx based on its name
+  if DeviceType == "devices" then
+    return devicelist[string.lower(DeviceName)]
+  else
+    return scenelist[string.lower(DeviceName)]
+  end
+end
+
+-- initialise device, scene and variable list
+variablelist = variable_list_names_idxs()
+devicelist = device_list_names_idxs("devices")
+scenelist = device_list_names_idxs("scenes")
+
+function retrieve_status(idx,DeviceType)
+  local t, jresponse, status, decoded_response
+  t = server_url.."/json.htm?type="..DeviceType.."&rid="..tostring(idx)
+  print_to_log(1,"JSON request <"..t..">");
+  jresponse, status = http.request(t)
+  decoded_response = JSON:decode(jresponse)
+  return decoded_response
 end
 
 -- support function to scan through the provided Devices and Scenes tables to retrieve the required information for it.
-function ddevinfo_from_name(idx,DeviceName,Devlist,Scenelist)
+function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
   local k, record, Type,DeviceType,SwitchType
   local found = 0
   local rDeviceName=""
@@ -289,45 +316,46 @@ function ddevinfo_from_name(idx,DeviceName,Devlist,Scenelist)
   local MaxDimLevel=100
   local ridx=0
   -- Check for Devices
+  -- Have the device name
+  if DeviceName ~= "" then 
+    idx = idx_from_name(DeviceName,'devices')
+  end
   print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
-  result = Devlist["result"]
-  for k,record in pairs(result) do
-    print_to_log(2,k,DeviceName,record.Name,idx,record.idx)
-    if type(record) == "table" then
-      if string.lower(record.Name) == string.lower(DeviceName) or idx == record.idx then
-        ridx = record.idx
-        rDeviceName = record.Name
-        DeviceType="devices"
-        Type=record.Type
-        -- as default simply use the status field
-        -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
-        if dtgbot_type_status[Type] ~= nil then
-          if dtgbot_type_status[Type].Status ~= nil then
-            status = ''
-            CurrentStatus = dtgbot_type_status[Type].Status
-            for i=1, #CurrentStatus do
-              if status ~= '' then
-                status = status .. ' - '
-              end
-              cindex, csuffix = next(CurrentStatus[i])
-              print(cindex)
-              print(csuffix)
-              status = status .. tostring(record[cindex])..tostring(csuffix)
-            end
+  record = retrieve_status(idx,"devices")['result'][1]
+--@  result = Devlist["result"]
+--@  for k,record in pairs(result) do
+    print_to_log(2,'spacer',DeviceName,record.Name,idx,record.idx)
+  if type(record) == "table" then
+--@      if string.lower(record.Name) == string.lower(DeviceName) or idx == record.idx then
+    ridx = record.idx
+    rDeviceName = record.Name
+    DeviceType="devices"
+    Type=record.Type
+    -- as default simply use the status field
+    -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
+    if dtgbot_type_status[Type] ~= nil then
+      if dtgbot_type_status[Type].Status ~= nil then
+        status = ''
+        CurrentStatus = dtgbot_type_status[Type].Status
+        for i=1, #CurrentStatus do
+          if status ~= '' then
+            status = status .. ' - '
           end
-        else
-          SwitchType=record.SwitchType
-          MaxDimLevel=record.MaxDimLevel
-          status = tostring(record.Status)
+          cindex, csuffix = next(CurrentStatus[i])
+          status = status .. tostring(record[cindex])..tostring(csuffix)
         end
-        found = 1 
-        print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
-        break
       end
+    else
+      SwitchType=record.SwitchType
+      MaxDimLevel=record.MaxDimLevel
+      status = tostring(record.Status)
     end
+    found = 1 
+    print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
+--    break
   end
   print_to_log(2," !!!! found device",rDeviceName,ridx)
-  -- Check for Scenes
+-- Check for Scenes
   if found == 0 then
     result = Scenelist["result"]
     for k,record in pairs(result) do
@@ -346,7 +374,7 @@ function ddevinfo_from_name(idx,DeviceName,Devlist,Scenelist)
       end
     end
   end
-  -- Check for Scenes
+-- Check for Scenes
   if found == 0 then
     ridx = 9999
     DeviceType="command"
@@ -522,7 +550,7 @@ function url_encode(str)
     str = string.gsub (str, "\n", "\r\n")
     str = string.gsub (str, "([^%w %-%_%.%~])",
       function (c) return string.format ("%%%02X", string.byte(c)) end)
-      str = string.gsub (str, " ", "+")
+    str = string.gsub (str, " ", "+")
   end
   return str
 end
