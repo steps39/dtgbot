@@ -307,7 +307,7 @@ function retrieve_status(idx,DeviceType)
   return decoded_response
 end
 
--- support function to scan through the provided Devices and Scenes tables to retrieve the required information for it.
+-- support function to scan through the Devices and Scenes idx tables and retrieve the required information for it
 function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
   local k, record, Type,DeviceType,SwitchType
   local found = 0
@@ -322,11 +322,8 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
   end
   print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
   record = retrieve_status(idx,"devices")['result'][1]
---@  result = Devlist["result"]
---@  for k,record in pairs(result) do
-    print_to_log(2,'spacer',DeviceName,record.Name,idx,record.idx)
+  print_to_log(2,'spacer',DeviceName,record.Name,idx,record.idx)
   if type(record) == "table" then
---@      if string.lower(record.Name) == string.lower(DeviceName) or idx == record.idx then
     ridx = record.idx
     rDeviceName = record.Name
     DeviceType="devices"
@@ -357,21 +354,19 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
   print_to_log(2," !!!! found device",rDeviceName,ridx)
 -- Check for Scenes
   if found == 0 then
-    result = Scenelist["result"]
-    for k,record in pairs(result) do
-      print_to_log(2,k,record['Name'],DeviceName)
-      if type(record) == "table" then
-        if string.lower(record.Name) == string.lower(DeviceName) or idx == record.idx then
-          ridx = record.idx
-          rDeviceName = record.Name
-          DeviceType="scenes"
-          Type=record.Type
-          SwitchType=record.Type
-          found = 1
-          print_to_log(2," !!!! found scene",record.Name,rDeviceName,record.idx,ridx)
-          break
-        end
-      end
+    if DeviceName ~= "" then 
+      idx = idx_from_name(DeviceName,'scenes')
+    end
+    record = retrieve_status(idx,"scenes")['result'][1]
+    print_to_log(2,'scenes ',DeviceName,record.Name,idx,record.idx)
+    if type(record) == "table" then
+      ridx = record.idx
+      rDeviceName = record.Name
+      DeviceType="scenes"
+      Type=record.Type
+      SwitchType=record.Type
+      found = 1
+      print_to_log(2," !!!! found scene",record.Name,rDeviceName,record.idx,ridx)
     end
   end
 -- Check for Scenes
