@@ -41,54 +41,54 @@ local dtgmenu_module = {};
 -- These are used to sort the items on the menu alphabetically
 -------------------------------------------------------------------------------
 function __genOrderedIndex( t )
-    local orderedIndex = {}
-    for key in pairs(t) do
-        table.insert( orderedIndex, key )
-    end
-    table.sort( orderedIndex )
-    return orderedIndex
+  local orderedIndex = {}
+  for key in pairs(t) do
+    table.insert( orderedIndex, key )
+  end
+  table.sort( orderedIndex )
+  return orderedIndex
 end
 
 function table.map_length(t)
-    local c = 0
-    for k,v in pairs(t) do
-         c = c+1
-    end
-    return c
+  local c = 0
+  for k,v in pairs(t) do
+    c = c+1
+  end
+  return c
 end
 
 function orderedNext(t, state)
-    -- Equivalent of the next function, but returns the keys in the alphabetic
-    -- order. We use a temporary ordered key table that is stored in the
-    -- table being iterated.
+  -- Equivalent of the next function, but returns the keys in the alphabetic
+  -- order. We use a temporary ordered key table that is stored in the
+  -- table being iterated.
 
-    key = nil
-    if state == nil then
-        -- the first time, generate the index
-        t.__orderedIndex = __genOrderedIndex( t )
-        key = t.__orderedIndex[1]
-    else
-        -- fetch the next value
-        for i = 1,table.map_length(t.__orderedIndex) do
-            if t.__orderedIndex[i] == state then
-                key = t.__orderedIndex[i+1]
-            end
-        end
+  key = nil
+  if state == nil then
+    -- the first time, generate the index
+    t.__orderedIndex = __genOrderedIndex( t )
+    key = t.__orderedIndex[1]
+  else
+    -- fetch the next value
+    for i = 1,table.map_length(t.__orderedIndex) do
+      if t.__orderedIndex[i] == state then
+        key = t.__orderedIndex[i+1]
+      end
     end
+  end
 
-    if key then
-        return key, t[key]
-    end
+  if key then
+    return key, t[key]
+  end
 
-    -- no more value to return, cleanup
-    t.__orderedIndex = nil
-    return
+  -- no more value to return, cleanup
+  t.__orderedIndex = nil
+  return
 end
 
 function orderedPairs(t)
-    -- Equivalent of the pairs() function on tables. Allows to iterate
-    -- in order
-    return orderedNext, t, nil
+  -- Equivalent of the pairs() function on tables. Allows to iterate
+  -- in order
+  return orderedNext, t, nil
 end
 -------------------------------------------------------------------------------
 -- END Functions to SORT the TABLE
@@ -101,27 +101,27 @@ end
 function SwitchName(DeviceName, DeviceType, SwitchType,idx,state)
   local status
   if idx == nil then
-       response = 'Device '..DeviceName..'  not found.'
+    response = 'Device '..DeviceName..'  not found.'
   else
     local subgroup = "light"
     if DeviceType == "scenes" then
       subgroup = "scene"
     end
     if string.lower(state) == "on" then
-          state = "On";
+      state = "On";
       t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd="..state;
-        elseif string.lower(state) == "off" then
-          state = "Off";
+    elseif string.lower(state) == "off" then
+      state = "Off";
       t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd="..state;
     elseif string.lower(string.sub(state,1,9)) == "set level" then
       t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd=Set%20Level&level="..string.sub(state,11)
-        else
-          return "state must be on, off or Set Level!";
-        end
-        print_to_log(1,"JSON request <"..t..">");
-        jresponse, status = http.request(t)
-        print_to_log(1,"JSON feedback: ", jresponse)
-        response = dtgmenu_lang[language].text["Switched"] .. ' ' ..DeviceName..' => '..state
+    else
+      return "state must be on, off or Set Level!";
+    end
+    print_to_log(1,"JSON request <"..t..">");
+    jresponse, status = http.request(t)
+    print_to_log(1,"JSON feedback: ", jresponse)
+    response = dtgmenu_lang[language].text["Switched"] .. ' ' ..DeviceName..' => '..state
   end
   print_to_log(0,"   -< SwitchName:",DeviceName,idx, status,response)
   return response, status
@@ -333,25 +333,25 @@ function PopulateMenuTab(iLevel,iSubmenu)
       buttons = {}
       if iLevel ~= "mainmenu" and iSubmenu == submenu then
         for button,dev in pairs(static_dtgmenu_submenus[submenu].buttons) do
-            -- Get device/scene details
-            idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button,Deviceslist,Sceneslist)
-            -- fill the button table records with all required fields
-            buttons[button]={}
-            buttons[button].whitelist = dev.whitelist       -- specific for the static config: Whitelist number(s) for this device, blank is ALL
-            buttons[button].actions=dev.actions             -- specific for the static config: Hardcoded Actions for the device
-            buttons[button].prompt=dev.prompt               -- specific for the static config: Prompt TG cleint for the variable text
-            buttons[button].showactions=dev.showactions     -- specific for the static config: Show Device action menu right away when its menu is selected
-            buttons[button].Name=DeviceName
-            buttons[button].idx=idx
-            buttons[button].DeviceType=DeviceType
-            buttons[button].SwitchType=SwitchType
-            buttons[button].Type=Type
-            buttons[button].MaxDimLevel=MaxDimLevel     -- Level required to calculate the percentage for devices that do not use 100 for 100%
-            buttons[button].status=status
-            print_to_log(1," static ->",submenu,button,DeviceName, idx,DeviceType,Type,SwitchType,MaxDimLevel,status)
+          -- Get device/scene details
+          idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button,Deviceslist,Sceneslist)
+          -- fill the button table records with all required fields
+          buttons[button]={}
+          buttons[button].whitelist = dev.whitelist       -- specific for the static config: Whitelist number(s) for this device, blank is ALL
+          buttons[button].actions=dev.actions             -- specific for the static config: Hardcoded Actions for the device
+          buttons[button].prompt=dev.prompt               -- specific for the static config: Prompt TG cleint for the variable text
+          buttons[button].showactions=dev.showactions     -- specific for the static config: Show Device action menu right away when its menu is selected
+          buttons[button].Name=DeviceName
+          buttons[button].idx=idx
+          buttons[button].DeviceType=DeviceType
+          buttons[button].SwitchType=SwitchType
+          buttons[button].Type=Type
+          buttons[button].MaxDimLevel=MaxDimLevel     -- Level required to calculate the percentage for devices that do not use 100 for 100%
+          buttons[button].status=status
+          print_to_log(1," static ->",submenu,button,DeviceName, idx,DeviceType,Type,SwitchType,MaxDimLevel,status)
         end
       end
-    -- Save the subment entry with optionally all its devices/sceens
+      -- Save the subment entry with optionally all its devices/sceens
       dtgmenu_submenus[submenu] = {whitelist=get.whitelist,showdevstatus=get.showdevstatus,Menuwidth=get.Menuwidth,buttons=buttons}
     end
   end
@@ -480,15 +480,22 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
         -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
         if dtgbot_type_status[Type] ~= nil then
           if dtgbot_type_status[Type].Status ~= nil then
-            status = tostring(record[dtgbot_type_status[Type].Status])
-            status = status .. tostring(dtgbot_type_status[Type].StatusSuffix)
-            if dtgbot_type_status[Type].Status2 ~= nil then
-              status = status .. " - " .. tostring(record[dtgbot_type_status[Type].Status2])
-              status = status .. tostring(dtgbot_type_status[Type].Status2Suffix)
-              if dtgbot_type_status[Type].Status3 ~= nil then
-                status = status .. " - " .. tostring(record[dtgbot_type_status[Type].Status3])
-                status = status .. tostring(dtgbot_type_status[Type].Status3Suffix)
-              end
+            status = ''--@
+            for i, v in pairs(dtgbot_type_status[Type].Status) do--@
+              if status ~= '' then--@
+                status = status .. ' - '--@
+              end--@
+              status = tostring(record[i])..tostring(v)--@
+--@            status = status .. tostring(dtgbot_type_status[Type].StatusSuffix)
+--@            status = tostring(record[dtgbot_type_status[Type].Status])
+--@            status = status .. tostring(dtgbot_type_status[Type].StatusSuffix)
+--@            if dtgbot_type_status[Type].Status2 ~= nil then
+--@              status = status .. " - " .. tostring(record[dtgbot_type_status[Type].Status2])
+--@              status = status .. tostring(dtgbot_type_status[Type].Status2Suffix)
+--@              if dtgbot_type_status[Type].Status3 ~= nil then
+--@                status = status .. " - " .. tostring(record[dtgbot_type_status[Type].Status3])
+--@                status = status .. tostring(dtgbot_type_status[Type].Status3Suffix)
+--@              end
             end
           end
         else
@@ -507,7 +514,7 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
   if found == 0 then
     result = Scenelist["result"]
     for k,record in pairs(result) do
-    print_to_log(2,k,record['Name'],DeviceName)
+      print_to_log(2,k,record['Name'],DeviceName)
       if type(record) == "table" then
         if string.lower(record.Name) == string.lower(DeviceName) or idx == record.idx then
           ridx = record.idx
@@ -793,7 +800,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   -- process Type="command" (none devices/scenes
   -------------------------------------------------
   if Type == "command" then
-  --  when Button is pressed and Type "command" and no actions defined for the command then check for prompt and hand back without updating the keyboard
+    --  when Button is pressed and Type "command" and no actions defined for the command then check for prompt and hand back without updating the keyboard
     if cmdisbutton
     and ChkEmpty(dtgmenu_submenus[submenu].buttons[command].actions) then
       -- prompt for parameter when requested in the config
@@ -806,7 +813,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
         response=dtgmenu_lang[language].text["Specifyvalue"]
         print_to_log(0,"==<1 found regular lua command that need Param ")
 
-      -- no prompt defined so simply return to dtgbot with status 0 so it will be performed and reset the keyboard to just MENU
+        -- no prompt defined so simply return to dtgbot with status 0 so it will be performed and reset the keyboard to just MENU
       else
         replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
         status = 0
@@ -823,7 +830,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     --  when Action is pressed and Type "command"  then hand back to DTGBOT with previous command + param and reset keyboard to just MENU
     if devicename ~= ""
     and cmdisaction then
-    --  if command is one of the actions of a command DeviceType hand it now back to DTGBOT
+      --  if command is one of the actions of a command DeviceType hand it now back to DTGBOT
       replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
       response = ""
       -- add previous command ot the current command
@@ -883,7 +890,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       end
 --~     elseif Type == "Temp" or Type == "Temp + Humidity" or Type == "Wind" or Type == "Rain" then
     elseif dtgbot_type_status[Type] ~= nil and dtgbot_type_status[Type].DisplayActions == false then
-        -- when temp device is selected them just return with sending anything.
+      -- when temp device is selected them just return with sending anything.
       LastCommand[SendTo]["device"] = ""
       response = ""
       status=1
@@ -943,7 +950,7 @@ end
 
 local dtgmenu_commands = {
   ["dtgmenu"] = {handler=dtgmenu_module.handler, description="DTGMENU (On/Off) to start or stop the menu functionality."},
-  }
+}
 
 function dtgmenu_module.get_commands()
   return dtgmenu_commands;
