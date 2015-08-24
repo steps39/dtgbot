@@ -274,6 +274,7 @@ function device_list_names_idxs(DeviceType)
   decoded_response = device_list(DeviceType)
   result = decoded_response['result']
   devices = {}
+  devicesproperties = {}
   for i = 1, #result do
     record = result[i]
     if type(record) == "table" then
@@ -282,10 +283,13 @@ function device_list_names_idxs(DeviceType)
       else  
         devices[string.lower(record['Name'])] = record['idx']
         devices[record['idx']] = record['Name']
+        if DeviceType == 'scenes' then
+          devicesproperties[record['idx']] = {Type=record['Type'], SwitchType = record['Type']}
+        end
       end
     end
   end
-  return devices
+  return devices, devicesproperties
 end
 
 function idx_from_name(DeviceName,DeviceType)
@@ -302,7 +306,7 @@ end
 -- initialise room, device, scene and variable list from Domoticz
 Variablelist = variable_list_names_idxs()
 Devicelist = device_list_names_idxs("devices")
-Scenelist = device_list_names_idxs("scenes")
+Scenelist, Sceneproperties = device_list_names_idxs("scenes")
 Roomlist = device_list_names_idxs("plans")
 
 function retrieve_status(idx,DeviceType)
@@ -315,69 +319,68 @@ function retrieve_status(idx,DeviceType)
 end
 
 -- support function to scan through the Devices and Scenes idx tables and retrieve the required information for it
-function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
+function devinfo_from_name(idx,DeviceName,DeviceScene)
   local k, record, Type,DeviceType,SwitchType
   local found = 0
   local rDeviceName=""
   local status=""
   local MaxDimLevel=100
   local ridx=0
-  -- Check for Devices
-  -- Have the device name
-  if DeviceName ~= "" then 
-    idx = idx_from_name(DeviceName,'devices')
-  end
-  print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
-  if idx ~= nil then
-    record = retrieve_status(idx,"devices")['result'][1]
-    print_to_log(2,'device ',DeviceName,record.Name,idx,record.idx)
-    if type(record) == "table" then
-      ridx = record.idx
-      rDeviceName = record.Name
-      DeviceType="devices"
-      Type=record.Type
-      -- as default simply use the status field
-      -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
-      if dtgbot_type_status[Type] ~= nil then
-        if dtgbot_type_status[Type].Status ~= nil then
-          status = ''
-          CurrentStatus = dtgbot_type_status[Type].Status
-          for i=1, #CurrentStatus do
-            if status ~= '' then
-              status = status .. ' - '
-            end
-            cindex, csuffix = next(CurrentStatus[i])
-            status = status .. tostring(record[cindex])..tostring(csuffix)
-          end
-        end
-      else
-        SwitchType=record.SwitchType
-        MaxDimLevel=record.MaxDimLevel
-        status = tostring(record.Status)
-      end
-
-      found = 1 
-      print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
-    end
-  end
-  print_to_log(2," !!!! found device",rDeviceName,ridx)
--- Check for Scenes
-  if found == 0 then
+  if DeviceScene~="scenes" then
+    -- Check for Devices
+    -- Have the device name
     if DeviceName ~= "" then 
-      idx = idx_from_name(DeviceName,'scenes')
+      idx = idx_from_name(DeviceName,'devices')
     end
+    print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
     if idx ~= nil then
-      record = retrieve_status(idx,"scenes")['result'][1]
-      print_to_log(2,'scenes ',DeviceName,record.Name,idx,record.idx)
+      record = retrieve_status(idx,"devices")['result'][1]
+      print_to_log(2,'device ',DeviceName,record.Name,idx,record.idx)
       if type(record) == "table" then
         ridx = record.idx
         rDeviceName = record.Name
-        DeviceType="scenes"
+        DeviceType="devices"
         Type=record.Type
-        SwitchType=record.Type
-        found = 1
-        print_to_log(2," !!!! found scene",record.Name,rDeviceName,record.idx,ridx)
+        -- as default simply use the status field
+        -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
+        if dtgbot_type_status[Type] ~= nil then
+          if dtgbot_type_status[Type].Status ~= nil then
+            status = ''
+            CurrentStatus = dtgbot_type_status[Type].Status
+            for i=1, #CurrentStatus do
+              if status ~= '' then
+                status = status .. ' - '
+              end
+              cindex, csuffix = next(CurrentStatus[i])
+              status = status .. tostring(record[cindex])..tostring(csuffix)
+            end
+          end
+        else
+          SwitchType=record.SwitchType
+          MaxDimLevel=record.MaxDimLevel
+          status = tostring(record.Status)
+        end
+        found = 1 
+        print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
       end
+    end
+    print_to_log(2," !!!! found device",rDeviceName,ridx)
+  end
+-- Check for Scenes
+  if found == 0 then
+    if DeviceName ~= "" then
+      idx = idx_from_name(DeviceName,'scenes')
+    else
+      DeviceName = idx_from_name(idx,'scenes')
+    end
+    if idx ~= nil then
+      DeviceName = Scenelist[idx]
+      DeviceType="scenes"
+      ridx = idx
+      rDeviceName = DeviceName
+      SwitchType = Sceneproperties[tostring(idx)]['SwitchType']
+      Type = Sceneproperties[tostring(idx)]['Type']
+      found = 1
     end
   end
 -- Check for Scenes

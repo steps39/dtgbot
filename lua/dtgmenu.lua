@@ -345,9 +345,11 @@ function PopulateMenuTab(iLevel,iSubmenu)
     if static_dtgmenu_submenus[submenu].buttons ~= nil then
       buttons = {}
       if iLevel ~= "mainmenu" and iSubmenu == submenu then
+print('general one')
         for button,dev in pairs(static_dtgmenu_submenus[submenu].buttons) do
           -- Get device/scene details
-          idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button)
+print('button '..button)
+          idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button,"anything")
           -- fill the button table records with all required fields
           buttons[button]={}
           buttons[button].whitelist = dev.whitelist       -- specific for the static config: Whitelist number(s) for this device, blank is ALL
@@ -417,10 +419,10 @@ function MakeRoomMenus(iLevel,iSubmenu)
             print_to_log(1," - Plan record:",DIPrecord.Name,DIPrecord.devidx,DIPrecord.type)
             if DIPrecord.type == 1 then
               print_to_log(1,"--> scene record")
-              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",DUMMY,Scenelist)
+              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"","scenes")
             else
               print_to_log(1,"--> device record")
-              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Devicelist,DUMMY)
+              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"","devices")
             end
             -- Remove the name of the room from the device if it is present and any susequent Space or Hyphen or undersciore
             button = string.gsub(DeviceName,room_name.."[%s-_]*","")
