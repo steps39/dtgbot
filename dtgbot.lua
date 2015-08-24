@@ -169,33 +169,39 @@ function list_device_attr(dev, mode)
 end
 
 -- initialise room, device, scene and variable list from Domoticz
-Variablelist = variable_list_names_idxs()
-Devicelist = device_list_names_idxs("devices")
-Scenelist, Sceneproperties = device_list_names_idxs("scenes")
-Roomlist = device_list_names_idxs("plans")
+function dtgbot_initialise()
+  Variablelist = variable_list_names_idxs()
+  Devicelist = device_list_names_idxs("devices")
+  Scenelist, Sceneproperties = device_list_names_idxs("scenes")
+  Roomlist = device_list_names_idxs("plans")
 
 -- get the required loglevel
-dtgbotLogLevelidx = idx_from_variable_name("TelegramBotLoglevel")
-if dtgbotLogLevelidx ~= nil then
-  dtgbotLogLevel = tonumber(get_variable_value(dtgbotLogLevelidx))
-  if dtgbotLogLevel == nil then
-    dtgbotLogLevel=0
+  dtgbotLogLevelidx = idx_from_variable_name("TelegramBotLoglevel")
+  if dtgbotLogLevelidx ~= nil then
+    dtgbotLogLevel = tonumber(get_variable_value(dtgbotLogLevelidx))
+    if dtgbotLogLevel == nil then
+      dtgbotLogLevel=0
+    end
   end
+
+
+  print_to_log(0,' dtgbotLogLevel set to: '..tostring(dtgbotLogLevel))
+
+  print_to_log(0,"Loading command modules...")
+  for i, m in ipairs(command_modules) do
+    print_to_log(0,"Loading module <"..m..">");
+    t = assert(loadfile(BotLuaScriptPath..m..".lua"))();
+    cl = t:get_commands();
+    for c, r in pairs(cl) do
+      print_to_log(0,"found command <"..c..">");
+      commands[c] = r;
+      print_to_log(0,commands[c].handler);
+    end
+  end
+  return
 end
 
-print_to_log(0,' dtgbotLogLevel set to: '..tostring(dtgbotLogLevel))
-
-print_to_log(0,"Loading command modules...")
-for i, m in ipairs(command_modules) do
-  print_to_log(0,"Loading module <"..m..">");
-  t = assert(loadfile(BotLuaScriptPath..m..".lua"))();
-  cl = t:get_commands();
-  for c, r in pairs(cl) do
-    print_to_log(0,"found command <"..c..">");
-    commands[c] = r;
-    print_to_log(0,commands[c].handler);
-  end
-end
+dtgbot_initialise()
 
 function timedifference(s)
   year = string.sub(s, 1, 4)
