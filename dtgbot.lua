@@ -490,50 +490,50 @@ function HandleCommand(cmd, SendTo, MessageId)
     end
   end
 
-  --? if(parsed_command[2]~=nil) then
-  command_dispatch = commands[string.lower(parsed_command[2])];
+  if(parsed_command[2]~=nil) then
+    command_dispatch = commands[string.lower(parsed_command[2])];
 --~ change to allow for replymarkup.
-  local savereplymarkup = replymarkup
+    local savereplymarkup = replymarkup
 --~ 	print("debug1." ,replymarkup)
-  if command_dispatch then
+    if command_dispatch then
 --?      status, text = command_dispatch.handler(parsed_command);
---~ change to allow for replymarkup.
-    status, text, replymarkup = command_dispatch.handler(parsed_command,SendTo);
-    found=1
-  else
-    text = ""
-    local f = io.popen("ls " .. BotBashScriptPath)
+--~      change to allow for replymarkup.
+      status, text, replymarkup = command_dispatch.handler(parsed_command,SendTo);
+      found=1
+    else
+      text = ""
+      local f = io.popen("ls " .. BotBashScriptPath)
 --?      cmda = string.lower(parsed_command[2])
 --~ change to avoid nil error
-    cmda = string.lower(tostring(parsed_command[2]))
-    len_parsed_command = #parsed_command
-    stuff = ""
-    for i = 3, len_parsed_command do
-      stuff = stuff..parsed_command[i]
-    end
-    for line in f:lines() do
-      print_to_log(0,"checking line ".. line)
-      if(line:match(cmda)) then
-        print_to_log(0,line)
-        os.execute(BotBashScriptPath  .. line .. ' ' .. SendTo .. ' ' .. stuff)
-        found=1
+      cmda = string.lower(tostring(parsed_command[2]))
+      len_parsed_command = #parsed_command
+      stuff = ""
+      for i = 3, len_parsed_command do
+        stuff = stuff..parsed_command[i]
+      end
+      for line in f:lines() do
+        print_to_log(0,"checking line ".. line)
+        if(line:match(cmda)) then
+          print_to_log(0,line)
+          os.execute(BotBashScriptPath  .. line .. ' ' .. SendTo .. ' ' .. stuff)
+          found=1
+        end
       end
     end
-  end
 --~ replymarkup
-  if replymarkup == nil or replymarkup == "" then
-    -- restore the menu supplied replymarkup in case the shelled LUA didn't provide one
-    replymarkup = savereplymarkup
-  end
+    if replymarkup == nil or replymarkup == "" then
+      -- restore the menu supplied replymarkup in case the shelled LUA didn't provide one
+      replymarkup = savereplymarkup
+    end
 --~ 	print("debug2." ,replymarkup)
-  if found==0 then
+    if found==0 then
 --?      text = "command <"..parsed_command[2].."> not found";
 --~ change to avoid nil error
-    text = "command <"..tostring(parsed_command[2]).."> not found";
+      text = "command <"..tostring(parsed_command[2]).."> not found";
+    end
+  else
+    text ='No command found'
   end
---?else
---?  text ='No command found'
---?end
   if text ~= "" then
     while string.len(text)>0 do
 --?      send_msg(SendTo,string.sub(text,1,4000),MessageId)
