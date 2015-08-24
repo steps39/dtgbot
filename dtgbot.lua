@@ -222,7 +222,7 @@ function variable_list_names_idxs()
 end
 
 function idx_from_variable_name(DeviceName)
-  return variablelist[DeviceName]
+  return Variablelist[DeviceName]
 end
 
 -- returns the value of the variable from the idx
@@ -260,7 +260,7 @@ end
 -- returns a device table of Domoticz items based on type i.e. devices or scenes
 function device_list(DeviceType)
   local t, jresponse, status, decoded_response
-  t = server_url.."/json.htm?type="..DeviceType.."&order=name"
+  t = server_url.."/json.htm?type="..DeviceType.."&order=name&used=true"
   print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   decoded_response = JSON:decode(jresponse)
@@ -277,8 +277,12 @@ function device_list_names_idxs(DeviceType)
   for i = 1, #result do
     record = result[i]
     if type(record) == "table" then
-      devices[string.lower(record['Name'])] = record['idx']
-      devices[record['idx']] = record['Name']
+      if DeviceType == "plans" then
+        devices[record['Name']] = record['idx']
+      else  
+        devices[string.lower(record['Name'])] = record['idx']
+        devices[record['idx']] = record['Name']
+      end
     end
   end
   return devices
@@ -287,16 +291,19 @@ end
 function idx_from_name(DeviceName,DeviceType)
   --returns a devcie idx based on its name
   if DeviceType == "devices" then
-    return devicelist[string.lower(DeviceName)]
+    return Devicelist[string.lower(DeviceName)]
+  elseif DeviceType == "scenes" then
+    return Scenelist[string.lower(DeviceName)]
   else
-    return scenelist[string.lower(DeviceName)]
+    return Roomlist[DeviceName]
   end
 end
 
--- initialise device, scene and variable list
-variablelist = variable_list_names_idxs()
-devicelist = device_list_names_idxs("devices")
-scenelist = device_list_names_idxs("scenes")
+-- initialise room, device, scene and variable list from Domoticz
+Variablelist = variable_list_names_idxs()
+Devicelist = device_list_names_idxs("devices")
+Scenelist = device_list_names_idxs("scenes")
+Roomlist = device_list_names_idxs("plans")
 
 function retrieve_status(idx,DeviceType)
   local t, jresponse, status, decoded_response
@@ -321,35 +328,37 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
     idx = idx_from_name(DeviceName,'devices')
   end
   print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
-  record = retrieve_status(idx,"devices")['result'][1]
-  print_to_log(2,'spacer',DeviceName,record.Name,idx,record.idx)
-  if type(record) == "table" then
-    ridx = record.idx
-    rDeviceName = record.Name
-    DeviceType="devices"
-    Type=record.Type
-    -- as default simply use the status field
-    -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
-    if dtgbot_type_status[Type] ~= nil then
-      if dtgbot_type_status[Type].Status ~= nil then
-        status = ''
-        CurrentStatus = dtgbot_type_status[Type].Status
-        for i=1, #CurrentStatus do
-          if status ~= '' then
-            status = status .. ' - '
+  if idx ~= nil then
+    record = retrieve_status(idx,"devices")['result'][1]
+    print_to_log(2,'device ',DeviceName,record.Name,idx,record.idx)
+    if type(record) == "table" then
+      ridx = record.idx
+      rDeviceName = record.Name
+      DeviceType="devices"
+      Type=record.Type
+      -- as default simply use the status field
+      -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
+      if dtgbot_type_status[Type] ~= nil then
+        if dtgbot_type_status[Type].Status ~= nil then
+          status = ''
+          CurrentStatus = dtgbot_type_status[Type].Status
+          for i=1, #CurrentStatus do
+            if status ~= '' then
+              status = status .. ' - '
+            end
+            cindex, csuffix = next(CurrentStatus[i])
+            status = status .. tostring(record[cindex])..tostring(csuffix)
           end
-          cindex, csuffix = next(CurrentStatus[i])
-          status = status .. tostring(record[cindex])..tostring(csuffix)
         end
+      else
+        SwitchType=record.SwitchType
+        MaxDimLevel=record.MaxDimLevel
+        status = tostring(record.Status)
       end
-    else
-      SwitchType=record.SwitchType
-      MaxDimLevel=record.MaxDimLevel
-      status = tostring(record.Status)
+
+      found = 1 
+      print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
     end
-    found = 1 
-    print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
---    break
   end
   print_to_log(2," !!!! found device",rDeviceName,ridx)
 -- Check for Scenes
@@ -357,16 +366,18 @@ function devinfo_from_name(idx,DeviceName,Devlist,Scenelist)
     if DeviceName ~= "" then 
       idx = idx_from_name(DeviceName,'scenes')
     end
-    record = retrieve_status(idx,"scenes")['result'][1]
-    print_to_log(2,'scenes ',DeviceName,record.Name,idx,record.idx)
-    if type(record) == "table" then
-      ridx = record.idx
-      rDeviceName = record.Name
-      DeviceType="scenes"
-      Type=record.Type
-      SwitchType=record.Type
-      found = 1
-      print_to_log(2," !!!! found scene",record.Name,rDeviceName,record.idx,ridx)
+    if idx ~= nil then
+      record = retrieve_status(idx,"scenes")['result'][1]
+      print_to_log(2,'scenes ',DeviceName,record.Name,idx,record.idx)
+      if type(record) == "table" then
+        ridx = record.idx
+        rDeviceName = record.Name
+        DeviceType="scenes"
+        Type=record.Type
+        SwitchType=record.Type
+        found = 1
+        print_to_log(2," !!!! found scene",record.Name,rDeviceName,record.idx,ridx)
+      end
     end
   end
 -- Check for Scenes
@@ -395,7 +406,6 @@ if dtgbotLogLevelidx ~= nil then
 end
 
 print_to_log(0,' dtgbotLogLevel set to: '..tostring(dtgbotLogLevel))
-
 
 print_to_log(0,"Loading command modules...")
 for i, m in ipairs(command_modules) do

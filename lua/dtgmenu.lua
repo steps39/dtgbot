@@ -97,7 +97,7 @@ end
 
 
 -------------------------------------------------------------------------------
--- Start Function to set the new devicestatus.
+-- Start Function to set the new devicestatus. needs changing moving to on
 -------------------------------------------------------------------------------
 function SwitchName(DeviceName, DeviceType, SwitchType,idx,state)
   local status
@@ -320,13 +320,6 @@ function PopulateMenuTab(iLevel,iSubmenu)
 
   dtgmenu_submenus = {}
 
-  if iLevel ~= "mainmenu" then
-    -- get IDX device table only one time
-    Deviceslist = device_list("devices&used=true")
-    -- get IDX scenes table only one time
-    Sceneslist = device_list("scenes")
-  end
-  --
   print_to_log(1,"Submenu table including buttons defined in menu.cfg:",iLevel,iSubmenu)
   for submenu,get in pairs(static_dtgmenu_submenus) do
     print_to_log(1,"=>",submenu, get.whitelist, get.showdevstatus,get.Menuwidth)
@@ -335,7 +328,7 @@ function PopulateMenuTab(iLevel,iSubmenu)
       if iLevel ~= "mainmenu" and iSubmenu == submenu then
         for button,dev in pairs(static_dtgmenu_submenus[submenu].buttons) do
           -- Get device/scene details
-          idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button,Deviceslist,Sceneslist)
+          idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button)
           -- fill the button table records with all required fields
           buttons[button]={}
           buttons[button].whitelist = dev.whitelist       -- specific for the static config: Whitelist number(s) for this device, blank is ALL
@@ -357,33 +350,22 @@ function PopulateMenuTab(iLevel,iSubmenu)
     end
   end
   -- Add the room/plan menu's after the statis is populated
-  MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
+  MakeRoomMenus(iLevel,iSubmenu)
   print_to_log(1,"####  End populating menuarray")
   return
 end
 --
 -- Create a button per room.
-function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
+function MakeRoomMenus(iLevel,iSubmenu)
   iSubmenu = tostring(iSubmenu)
   print_to_log(1,"Creating Room Menus:",iLevel,iSubmenu)
   room_number = 0
-  -- get device table in case it's not provided through the parameter
-  if Deviceslist == nil then
-    Deviceslist = device_list("devices&used=true")
-  end
-  -- get scene table in case it's not provided through the parameterif Sceneslist == nil then
-  if Sceneslist == nil then
-    Sceneslist = device_list("scenes")
-  end
-  -- retrieve all available Rooms / plan's from Domoticz
-  Roomlist = device_list("plans")
-  planresult = Roomlist["result"]
   ------------------------------------
-  -- process all found Room records
+  -- process all Rooms
   ------------------------------------
-  for p,precord in pairs(planresult) do
-    room_name = precord.Name
-    room_number = precord.idx
+   for rname, rnumber in pairs(Roomlist) do
+    room_name = rname
+    room_number = rnumber
     local rbutton = room_name:gsub(" ", "_")
     --
     -- only get all details per Room in case we are not building the Mainmenu.
@@ -416,10 +398,10 @@ function MakeRoomMenus(iLevel,iSubmenu,Deviceslist,Sceneslist)
             print_to_log(1," - Plan record:",DIPrecord.Name,DIPrecord.devidx,DIPrecord.type)
             if DIPrecord.type == 1 then
               print_to_log(1,"--> scene record")
-              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",DUMMY,Sceneslist)
+              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",DUMMY,Scenelist)
             else
               print_to_log(1,"--> device record")
-              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Deviceslist,DUMMY)
+              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"",Devicelist,DUMMY)
             end
             -- Remove the name of the room from the device if it is present and any susequent Space or Hyphen or undersciore
             button = string.gsub(DeviceName,room_name.."[%s-_]*","")
