@@ -5,7 +5,7 @@
 --  - all static actions defined in DTGMENU.CFG. Open the file for descript of the details.
 --
 -- programmer: Jos van der Zande
--- version: 0.1.150821
+-- version: 0.1.150824
 -- =====================================================================================================================
 -----------------------------------------------------------------------------------------------------------------------
 -- these are the different formats of reply_markup. looksimple but needed a lot of testing before it worked :)
@@ -98,6 +98,13 @@ end
 
 -------------------------------------------------------------------------------
 -- Start Function to set the new devicestatus. needs changing moving to on
+-- Jos: Maybe we should create a general lua library because this does more than On/Off
+--      It does now also dimmer and Thermostat settings.
+--      I would like to see all generic functions in a separate include file with an brief description at the top of the
+--      include file. This way there is no need to search for the available standard functions in different modules.
+--      I haven't included the Thermonstat update in here as this is currrently a "Lighting 2" only function.
+--      We could revamp this into supporting more Type's or just create a separate Function for that.
+--      The Thermostat update is currently done in the Actions section of the logic
 -------------------------------------------------------------------------------
 function SwitchName(DeviceName, DeviceType, SwitchType,idx,state)
   local status
@@ -211,19 +218,31 @@ function makereplymenu(SendTo, Level, submenu, devicename)
         -- do not build the actions menu when NoDevMenu == true. EG temp devices have no actions
         if dtgmenu_submenus[submenu].NoDevMenu ~= true
         and Level == "devicemenu" and i == devicename then
-          -- set reply markup to the override when provide
-          l3menu = get.actions
+          -- do not build the actions menu when DisplayActions == false on Device level. EG temp devices have no actions
           SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
-          print_to_log(1," ---< ",SwitchType," using replymarkup:",l3menu)
-          -- else use the default reply menu for the SwitchType
-          if l3menu == nil or l3menu == "" then
-            l3menu = dtgmenu_lang[language].devices_options[SwitchType]
-            if l3menu == nil then
-              print_to_log(1,"  !!! No default dtgmenu_lang[language].devices_options for SwitchType:",SwitchType)
-              l3menu = "Aan,Uit"
+          Type = dtgmenu_submenus[submenu].buttons[devicename].Type
+          if (dtgbot_type_status[Type] == nil or dtgbot_type_status[Type].DisplayActions ~= false) then
+            print(" ###1 ",Type,dtgbot_type_status[Type])
+            if (dtgbot_type_status[Type] ~= nil ) then
+              print(" ###2 ",dtgbot_type_status[Type].DisplayActions)
             end
+            -- set reply markup to the override when provide
+            l3menu = get.actions
+            print_to_log(1," ---< ",Type,SwitchType," using replymarkup:",l3menu)
+            -- else use the default reply menu for the SwitchType
+            if l3menu == nil or l3menu == "" then
+              l3menu = dtgmenu_lang[language].devices_options[SwitchType]
+              if l3menu == nil then
+                -- use the type in case of devices like a Thermostat
+                l3menu = dtgmenu_lang[language].devices_options[Type]
+                if l3menu == nil then
+                  print_to_log(1,"  !!! No default dtgmenu_lang[language].devices_options for SwitchType:",SwitchType,Type)
+                  l3menu = "Aan,Uit"
+                end
+              end
+            end
+            print_to_log(1,"   -< ".. tostring(SwitchType).." using replymarkup:",l3menu)
           end
-          print_to_log(1,"   -< ".. tostring(SwitchType).." using replymarkup:",l3menu)
         end
       end
     end
@@ -789,11 +808,9 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       end
 --~     elseif Type == "Temp" or Type == "Temp + Humidity" or Type == "Wind" or Type == "Rain" then
     elseif dtgbot_type_status[Type] ~= nil and dtgbot_type_status[Type].DisplayActions == false then
-      -- when temp device is selected them just return with sending anything.
-      LastCommand[SendTo]["device"] = ""
-      response = ""
+      -- when temp device is selected them just return with resetting keyboard and ask to select device.
       status=1
-      replymarkup=""
+      response=dtgmenu_lang[language].text["Select"]
       print_to_log(1,"==< Don't do anything as a temp device was selected.")
     elseif DeviceType == "devices" then
       -- Only show current status in the text when not shown on the action options
@@ -816,7 +833,30 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   -------------------------------------------------
   -- process action button pressed
   -------------------------------------------------
-  if ChkInTable(string.lower(dtgmenu_lang[language].switch_options["Off"]),action) then
+  -- Specials
+  -------------------------------------------------
+  if Type == "Thermostat" then
+    -- prompt for themperature
+    if commandline == "?" then
+      replymarkup='{"force_reply":true}'
+      LastCommand[SendTo]["replymarkup"] = replymarkup
+      response=dtgmenu_lang[language].text["Specifyvalue"]
+      print_to_log(0,"==< "..response)
+      status=1
+      return status, response, replymarkup, commandline;
+    else
+      -- set thermostate temperature
+      local t,jresponse
+      t = server_url.."/json.htm?type=command&param=udevice&idx="..idx.."&nvalue=0&svalue="..commandline
+      print_to_log(1,"JSON request <"..t..">");
+      jresponse, status = http.request(t)
+      print_to_log(1,"JSON feedback: ", jresponse)
+      response="Set "..realdevicename.." to "..commandline.."°C"
+    end
+  -------------------------------------------------
+  -- regular On/Off/Set Level
+  -------------------------------------------------
+  elseif ChkInTable(string.lower(dtgmenu_lang[language].switch_options["Off"]),action) then
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'Off')
   elseif ChkInTable(string.lower(dtgmenu_lang[language].switch_options["On"]),action) then
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'On')
@@ -834,13 +874,16 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     print_to_log(0,"==<"..response)
     status=1
     return status, response, replymarkup, commandline;
+  -------------------------------------------------
+  -- Unknown Action
+  -------------------------------------------------
   else
     response = dtgmenu_lang[language].text["UnknownChoice"] .. action
   end
   status=1
 
   replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename)
-  print_to_log(0,"==<"..response)
+  print_to_log(0,"==< "..response)
   return status, response, replymarkup, commandline;
 end
 -----------------------------------------------
