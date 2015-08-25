@@ -281,7 +281,8 @@ function makereplymenu(SendTo, Level, submenu, devicename)
   replymarkup = replymarkup .. buildmenu(l1menu,SubMenuwidth,"") .. ']'
   -- add the resize menu option when desired. this sizes the keyboard menu to the size required for the options
   if AlwaysResizeMenu then
-    replymarkup = replymarkup .. ',"resize_keyboard":true'
+--~     replymarkup = replymarkup .. ',"resize_keyboard":true'
+    replymarkup = replymarkup .. ',"selective":true,"resize_keyboard":true'
   end
   -- Close the total statement
   replymarkup = replymarkup .. '}'
@@ -344,11 +345,9 @@ function PopulateMenuTab(iLevel,iSubmenu)
     print_to_log(1,"=>",submenu, get.whitelist, get.showdevstatus,get.Menuwidth)
     if static_dtgmenu_submenus[submenu].buttons ~= nil then
       buttons = {}
-      if iLevel ~= "mainmenu" and iSubmenu == submenu then
-print('general one')
+--Group change      if iLevel ~= "mainmenu" and iSubmenu == submenu then
         for button,dev in pairs(static_dtgmenu_submenus[submenu].buttons) do
           -- Get device/scene details
-print('button '..button)
           idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button,"anything")
           -- fill the button table records with all required fields
           buttons[button]={}
@@ -368,7 +367,7 @@ print('button '..button)
       end
       -- Save the subment entry with optionally all its devices/sceens
       dtgmenu_submenus[submenu] = {whitelist=get.whitelist,showdevstatus=get.showdevstatus,Menuwidth=get.Menuwidth,buttons=buttons}
-    end
+--Group change     end
   end
   -- Add the room/plan menu's after the statis is populated
   MakeRoomMenus(iLevel,iSubmenu)
@@ -391,8 +390,8 @@ function MakeRoomMenus(iLevel,iSubmenu)
     --
     -- only get all details per Room in case we are not building the Mainmenu.
     -- Else
-    if iLevel ~= "mainmenu"
-    and iSubmenu == rbutton or "[scene] ".. iSubmenu == rbutton then
+--Group change    if iLevel ~= "mainmenu"
+--Group change    and iSubmenu == rbutton or "[scene] ".. iSubmenu == rbutton then
       -----------------------------------------------------------
       -- retrieve all devices/scenes for this plan from Domoticz
       -----------------------------------------------------------
@@ -453,7 +452,7 @@ function MakeRoomMenus(iLevel,iSubmenu)
           end
         end
       end
-    end
+--Group change    end
     -- Save the Room entry with optionally all its devices/sceens
     dtgmenu_submenus[rbutton] = {whitelist="",showdevstatus="y",buttons=buttons}
   end

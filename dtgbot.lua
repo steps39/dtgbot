@@ -216,7 +216,7 @@ function timedifference(s)
   return difference
 end
 
-function HandleCommand(cmd, SendTo, MessageId)
+function HandleCommand(cmd, SendTo, Group, MessageId)
   print_to_log(0,"Handle command function started with " .. cmd .. " and " .. SendTo)
   --- parse the command
   if command_prefix == "" then
@@ -249,7 +249,11 @@ function HandleCommand(cmd, SendTo, MessageId)
         -- stop the process when status is not 0
         if text ~= "" then
           while string.len(text)>0 do
+            if Group ~= "" then
+              send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
+            else
             send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
+            end
             text = string.sub(text,4000,-1)
           end
         end
@@ -323,13 +327,21 @@ function HandleCommand(cmd, SendTo, MessageId)
 --?      send_msg(SendTo,string.sub(text,1,4000),MessageId)
 
 --~         added replymarkup to allow for custom keyboard
+            if Group ~= "" then
+              send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
+            else
       send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
+            end
       text = string.sub(text,4000,-1)
     end
   elseif replymarkup ~= "" then
 --~     added replymarkup to allow for custom keyboard reset also in case there is no text to send.
 --~     This could happen after running a bash file.
+    if Group ~= "" then
+      send_msg(Group,"done",MessageId,replymarkup)
+    else
     send_msg(SendTo,"done",MessageId,replymarkup)
+  end
   end
   return found
 end
@@ -419,11 +431,12 @@ function on_msg_receive (msg)
 --    end
 --    msg_from = msg.from.id
 --  Changed from from.id to chat.id to allow group chats to work as expected.
-    msg_from = msg.chat.id
+    grp_from = msg.chat.id
+    msg_from = msg.from.id
     msg_id =msg.message_id
 --Check to see if id is whitelisted, if not record in log and exit
     if id_check(msg_from) then
-      if HandleCommand(ReceivedText, tostring(msg_from),msg_id) == 1 then
+      if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id) == 1 then
         print_to_log "Succesfully handled incoming request"
       else
         print_to_log "Invalid command received"
