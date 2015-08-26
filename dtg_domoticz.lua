@@ -227,3 +227,18 @@ function file_exists(name)
   local f=io.open(name,"r")
   if f~=nil then io.close(f) return true else return false end
 end
+
+function domoticz_language()
+  local t, jresponse, status, decoded_response
+  t = server_url.."/json.htm?type=command&param=getlanguage"
+  jresponse = nil
+  print_to_log(1,"JSON request <"..t..">");
+  jresponse, status = http.request(t)
+  decoded_response = JSON:decode(jresponse)
+  language = decoded_response['Language']
+  if language ~= nil then
+    return language
+  else
+    return 'en'
+  end
+end

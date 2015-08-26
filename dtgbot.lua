@@ -95,6 +95,9 @@ socket = require "socket";
 https = require "ssl.https";
 JSON = require "JSON";
 
+-- Get language from Domoticz
+language = domoticz_language()
+
 -- Load the configuration file this file contains the list of commands
 -- used to define the external files with the command function to load.
 local config = assert(loadfile(BotHomePath.."dtgbot.cfg"))();
@@ -252,7 +255,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
             if Group ~= "" then
               send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
             else
-            send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
+              send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
             end
             text = string.sub(text,4000,-1)
           end
@@ -324,14 +327,12 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
   end
   if text ~= "" then
     while string.len(text)>0 do
---?      send_msg(SendTo,string.sub(text,1,4000),MessageId)
-
 --~         added replymarkup to allow for custom keyboard
-            if Group ~= "" then
-              send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
-            else
-      send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
-            end
+      if Group ~= "" then
+        send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
+      else
+        send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
+      end
       text = string.sub(text,4000,-1)
     end
   elseif replymarkup ~= "" then
@@ -340,8 +341,8 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
     if Group ~= "" then
       send_msg(Group,"done",MessageId,replymarkup)
     else
-    send_msg(SendTo,"done",MessageId,replymarkup)
-  end
+      send_msg(SendTo,"done",MessageId,replymarkup)
+    end
   end
   return found
 end
@@ -359,10 +360,10 @@ end
 --~ added replymarkup to allow for custom keyboard
 function send_msg(SendTo, Message, MessageId, replymarkup)
   if replymarkup == nil or replymarkup == "" then
-    print_to_log(0,telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+    print_to_log(0,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
     response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
   else
-    print_to_log(0,telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
+    print_to_log(0,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
     response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
   end
 --  response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&text=hjk')
@@ -544,7 +545,7 @@ while file_exists(dtgbot_pid) do
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
       end
     else
-      print_to_log(0,status)
+      print_to_log(2,status)
     end
   end
 end
