@@ -197,9 +197,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
           if get.whitelist == "" or ChkInTable(get.whitelist,SendTo) then
             -- add the device status to the button when requested
             if dtgmenu_submenus[submenu].showdevstatus == "y" then
-              print(" ====>",get.idx,get.Name,get.DeviceType)
               didx,dDeviceName,dDeviceType,dType,dSwitchType,dMaxDimLevel,switchstatus = devinfo_from_name(get.idx,get.Name,get.DeviceType)
-              print(" ====>",didx,dDeviceName,dDeviceType,dType,dSwitchType,dMaxDimLevel,switchstatus)
               if ChkEmpty(switchstatus) then
                 switchstatus = ""
               else
@@ -229,9 +227,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
           SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
           Type = dtgmenu_submenus[submenu].buttons[devicename].Type
           if (dtgbot_type_status[Type] == nil or dtgbot_type_status[Type].DisplayActions ~= false) then
-            print(" ###1 ",Type,dtgbot_type_status[Type])
             if (dtgbot_type_status[Type] ~= nil ) then
-              print(" ###2 ",dtgbot_type_status[Type].DisplayActions)
             end
             -- set reply markup to the override when provide
             l3menu = get.actions
@@ -534,7 +530,6 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   local param1 = ""
   -- Retrieve the first parameter after the command in case provided.
   if menu_cli[3] ~= nil then
-    print("===> 1")
     param1  = tostring(menu_cli[3])    -- the command came in through the standard DTGBOT process
   elseif dtgmenu_cli[2] ~= nil then
     param1  = tostring(dtgmenu_cli[2]) -- the command came in via the DTGMENU exit routine
