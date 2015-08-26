@@ -95,9 +95,6 @@ socket = require "socket";
 https = require "ssl.https";
 JSON = require "JSON";
 
--- Get language from Domoticz
-language = domoticz_language()
-
 -- Load the configuration file this file contains the list of commands
 -- used to define the external files with the command function to load.
 local config = assert(loadfile(BotHomePath.."dtgbot.cfg"))();
@@ -177,6 +174,9 @@ function dtgbot_initialise()
   Devicelist = device_list_names_idxs("devices")
   Scenelist, Sceneproperties = device_list_names_idxs("scenes")
   Roomlist = device_list_names_idxs("plans")
+
+-- Get language from Domoticz
+language = domoticz_language()
 
 -- get the required loglevel
   dtgbotLogLevelidx = idx_from_variable_name("TelegramBotLoglevel")
@@ -547,9 +547,10 @@ while file_exists(dtgbot_pid) do
         print_to_log(0,'update_id ',tt.update_id)
         print_to_log(0,msg.text)
         TelegramBotOffset = tt.update_id + 1
-        on_msg_receive(msg)
         print_to_log(0,'TelegramBotOffset '..TelegramBotOffset)
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
+        -- Offset updated before processing in case of crash allows clean restart
+        on_msg_receive(msg)
       end
     else
       print_to_log(2,status)
