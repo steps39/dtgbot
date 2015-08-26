@@ -36,8 +36,9 @@ function help_module.handler(parsed_cli)
 end
 
 local help_commands = {
-			["help"] = {handler=help_module.handler, description="help - list all help information"}
-		      }
+			["help"] = {handler=help_module.handler, description="help - list all help information"},
+			["start"] = {handler=help_module.handler, description="start - list all help information"}
+        }
 
 function help_module.get_commands()
 	return help_commands;
