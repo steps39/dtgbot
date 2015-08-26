@@ -572,23 +572,31 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       LastCommand[SendTo]["replymarkup"]=""
     elseif Menuval == "Off" and lparam1 == "on" then
       print_to_log(0, " Set DTGMENU On")
-      response="DTGMENU is now enabled. send DTGMENU Off to stop the menus."
-      response=dtgmenu_lang[language].text["main"]
-      replymarkup = makereplymenu(SendTo, "mainmenu")
       if Menuidx == nil then
         create_variable("TelegramBotMenu",2,"On")
       else
         set_variable_value(Menuidx,"TelegramBotMenu",2,"On")
       end
+      -- initialise the tables when switched on
+      dtgbot_initialise()
+      -- initialise user table
+      LastCommand[SendTo] = {}
+      LastCommand[SendTo]["submenu"] = ""
+      LastCommand[SendTo]["device"] = ""
+      LastCommand[SendTo]["l1menu"] = ""
+      LastCommand[SendTo]["l2menu"] = ""
+      LastCommand[SendTo]["l3menu"] = ""
+      LastCommand[SendTo]["replymarkup"] = ""
+      LastCommand[SendTo]["prompt"] = false
+      -- buld main menu
+      replymarkup = makereplymenu(SendTo, "mainmenu")
+      response="DTGMENU is now enabled. send DTGMENU Off to stop the menus."
     elseif Menuval == "On" then
       -- reset menu to main menu in case dtgmenu command is send
+      response=dtgmenu_lang[language].text["main"]
       replymarkup = makereplymenu(SendTo, "mainmenu")
     end
-    status=1
-    LastCommand[SendTo]["submenu"] = ""
-    LastCommand[SendTo]["device"] = ""
-    LastCommand[SendTo]["l2menu"] = ""
-    LastCommand[SendTo]["l3menu"] = ""
+      status=1
     print_to_log(0,"==< Show main menu")
     return status, response, replymarkup, commandline
   end
@@ -903,6 +911,8 @@ function dtgmenu_module.get_commands()
 end
 
 -- define the menu table and initialize the table first time
+Menuidx=0
+Menuval="Off"
 dtgmenu_submenus = {}
 --~ PopulateMenuTab(1,"")  -- now done in refresh
 
