@@ -11,9 +11,9 @@ function SwitchID(DeviceName, idx, DeviceType, state, SendTo)
         	return "state must be on or off!";
         end
         t = server_url.."/json.htm?type=command&param=switch"..DeviceType.."&idx="..idx.."&switchcmd="..state;
-        print_to_log ("JSON request <"..t..">");
+        print_to_log (1,"JSON request <"..t..">");
         jresponse, status = http.request(t)
-        print_to_log("raw jason", jresponse)
+        print_to_log(1,"raw jason", jresponse)
         response = 'Switched '..DeviceName..' '..command
 	return response
 end

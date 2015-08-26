@@ -1,7 +1,7 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.2 150816
+-- Version 0.2 150826
 -- Automation bot framework for telegram to control Domoticz
--- domoticz2telegram.lua does not require any customisation (see below)
+-- dtgbot.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
 -- all communication is via authenticated https
 -- Extra functions can be added by replicating list.lua,
@@ -186,7 +186,6 @@ language = domoticz_language()
     end
   end
 
-
   print_to_log(0,' dtgbotLogLevel set to: '..tostring(dtgbotLogLevel))
 
   print_to_log(0,"Loading command modules...")
@@ -197,7 +196,7 @@ language = domoticz_language()
     for c, r in pairs(cl) do
       print_to_log(0,"found command <"..c..">");
       commands[c] = r;
-      print_to_log(0,commands[c].handler);
+      print_to_log(2,commands[c].handler);
     end
   end
 
@@ -407,7 +406,6 @@ function id_check(SendTo)
   else
     SendTo = tostring(SendTo)
     --Check id against whitelist
-    print_to_log(0,'No on WhiteList: '..#WhiteList)
     for i = 1, #WhiteList do
       print_to_log(0,'WhiteList: '..WhiteList[i])
       if SendTo == WhiteList[i] then
@@ -415,6 +413,7 @@ function id_check(SendTo)
       end
     end
     -- Checked WhiteList no match
+    print_to_log(0,'Not on WhiteList: '..SendTo)
     return false
   end
 end
