@@ -904,7 +904,7 @@ end
 
 -- define the menu table and initialize the table first time
 dtgmenu_submenus = {}
-PopulateMenuTab(1,"")
+--~ PopulateMenuTab(1,"")  -- now done in refresh
 
 
 return dtgmenu_module;

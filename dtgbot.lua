@@ -201,6 +201,18 @@ function dtgbot_initialise()
       print_to_log(0,commands[c].handler);
     end
   end
+
+  -- Initialise and populate dtgmenu tables in case the menu is switched on
+  Menuidx = idx_from_variable_name("TelegramBotMenu")
+  if Menuidx ~= nil then
+    Menuval = get_variable_value(Menuidx)
+    if Menuval == "On" then
+      -- initialise
+      -- define the menu table and initialize the table first time
+      PopulateMenuTab(1,"")
+    end
+  end
+
   return
 end
 
@@ -236,36 +248,31 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
   -- Change for menu.lua option
   -- When LastCommand starts with menu then assume the rest is for menu.lua
   ---------------------------------------------------------------------------
-  -- ensure the Array is initialised for this SendTo to keep track of the commands and other info
-  Menuidx = idx_from_variable_name("TelegramBotMenu")
-  if Menuidx ~= nil then
-    Menuval = get_variable_value(Menuidx)
-    if Menuval == "On" then
-      print_to_log(0,"dtgbot: Start DTGMENU ...", cmd)
-      local menu_cli = {}
-      table.insert(menu_cli, "")  -- make it compatible
-      table.insert(menu_cli, cmd)
-      -- send whole cmd line instead of first word
-      command_dispatch = commands["dtgmenu"];
-      status, text, replymarkup, cmd = command_dispatch.handler(menu_cli,SendTo);
-      if status ~= 0 then
-        -- stop the process when status is not 0
-        if text ~= "" then
-          while string.len(text)>0 do
-            if Group ~= "" then
-              send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
-            else
-              send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
-            end
-            text = string.sub(text,4000,-1)
+  if Menuval == "On" then
+    print_to_log(0,"dtgbot: Start DTGMENU ...", cmd)
+    local menu_cli = {}
+    table.insert(menu_cli, "")  -- make it compatible
+    table.insert(menu_cli, cmd)
+    -- send whole cmd line instead of first word
+    command_dispatch = commands["dtgmenu"];
+    status, text, replymarkup, cmd = command_dispatch.handler(menu_cli,SendTo);
+    if status ~= 0 then
+      -- stop the process when status is not 0
+      if text ~= "" then
+        while string.len(text)>0 do
+          if Group ~= "" then
+            send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
+          else
+            send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
           end
+          text = string.sub(text,4000,-1)
         end
-        print_to_log(0,"dtgbot: dtgmenu ended and text send ...return:"..status)
-        -- no need to process anything further
-        return 1
       end
-      print_to_log(0,"dtgbot:continue regular processing. cmd =>",cmd)
+      print_to_log(0,"dtgbot: dtgmenu ended and text send ...return:"..status)
+      -- no need to process anything further
+      return 1
     end
+    print_to_log(0,"dtgbot:continue regular processing. cmd =>",cmd)
   end
   ---------------------------------------------------------------------------
   -- End change for menu.lua option
