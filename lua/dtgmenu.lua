@@ -628,7 +628,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     status = 0
     response = ""
     -- add previous command ot the current command
-    commandline = LastCommand[SendTo]["device"] .. " " .. commandline
+--    commandline = LastCommand[SendTo]["device"] .. " " .. commandline
     LastCommand[SendTo]["submenu"] = ""
     LastCommand[SendTo]["device"] = ""
     LastCommand[SendTo]["l1menu"] = ""
@@ -650,7 +650,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
     status = 0 -- this triggers dtgbot to reset the parsed_command[2}=response and parsed_command[3}=command
     response = ""
-    commandline = LastCommand[SendTo]["device"] .. " " .. commandline
+--    commandline = LastCommand[SendTo]["device"] .. " " .. commandline
     LastCommand[SendTo]["submenu"] = ""
     LastCommand[SendTo]["device"] = ""
     LastCommand[SendTo]["l1menu"] = ""
@@ -764,7 +764,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
       response = ""
       -- add previous command ot the current command
-      commandline = LastCommand[SendTo]["device"] .. " " .. commandline
+--      commandline = LastCommand[SendTo]["device"] .. " " .. commandline
       LastCommand[SendTo]["submenu"] = ""
       LastCommand[SendTo]["device"] = ""
       LastCommand[SendTo]["l1menu"] = ""
