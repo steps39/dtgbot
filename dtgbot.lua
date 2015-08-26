@@ -232,47 +232,9 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
   cmd = cmd:gsub("/","")
   local found=0
 
-  ---------------------------------------------------------------------------
-  -- Change for menu.lua option
-  -- When LastCommand starts with menu then assume the rest is for menu.lua
-  ---------------------------------------------------------------------------
-  -- ensure the Array is initialised for this SendTo to keep track of the commands and other info
-  Menuidx = idx_from_variable_name("TelegramBotMenu")
-  if Menuidx ~= nil then
-    Menuval = get_variable_value(Menuidx)
-    if Menuval == "On" then
-      print_to_log(0,"dtgbot: Start DTGMENU ...", cmd)
-      local menu_cli = {}
-      table.insert(menu_cli, "")  -- make it compatible
-      table.insert(menu_cli, cmd)
-      -- send whole cmd line instead of first word
-      command_dispatch = commands["dtgmenu"];
-      status, text, replymarkup, cmd = command_dispatch.handler(menu_cli,SendTo);
-      if status ~= 0 then
-        -- stop the process when status is not 0
-        if text ~= "" then
-          while string.len(text)>0 do
-            if Group ~= "" then
-              send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
-            else
-              send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
-            end
-            text = string.sub(text,4000,-1)
-          end
-        end
-        print_to_log(0,"dtgbot: dtgmenu ended and text send ...return:"..status)
-        -- no need to process anything further
-        return 1
-      end
-      print_to_log(0,"dtgbot:continue regular processing. cmd =>",cmd)
-    end
-  end
-  ---------------------------------------------------------------------------
-  -- End change for menu.lua option
-  ---------------------------------------------------------------------------
-
   --~	added "-_"to allowed characters a command/word
-  for w in string.gmatch(cmd, "([%w-_]+)") do
+  --@ added menu_prefix to allow dtgmenu commands
+  for w in string.gmatch(cmd, "([%w-_"..menu_prefix.."]+)") do
     table.insert(parsed_command, w)
   end
   if command_prefix ~= "" then
@@ -281,8 +243,16 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
     end
   end
 
+--@ Put the full unprocessed command in parameter 1 to pass to menu mainly
+parsed_command[1] =cmd
+
   if(parsed_command[2]~=nil) then
-    command_dispatch = commands[string.lower(parsed_command[2])];
+--@ Change to handle menu commands different
+    potential_command = string.lower(parsed_command[2])
+    if string.sub(potential_command,1,1) == menu_prefix then
+      potential_command = "dtgmenu"
+    end
+    command_dispatch = commands[potential_command];
 --~ change to allow for replymarkup.
     local savereplymarkup = replymarkup
 --~ 	print("debug1." ,replymarkup)
