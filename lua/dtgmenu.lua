@@ -632,14 +632,14 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     status = 0
     response = ""
     -- add previous command ot the current command
---    commandline = LastCommand[SendTo]["device"] .. " " .. commandline
+    commandline = LastCommand[SendTo]["device"] .. " " .. commandline
     LastCommand[SendTo]["submenu"] = ""
     LastCommand[SendTo]["device"] = ""
     LastCommand[SendTo]["l1menu"] = ""
     LastCommand[SendTo]["l2menu"] = ""
     LastCommand[SendTo]["l3menu"] = ""
     LastCommand[SendTo]["prompt"] = false
-    print_to_log(0,"==<1 promt and found regular lua command and param was given. -> hand back to dtgbot to run",commandline)
+    print_to_log(0,"==<1a promt and found regular lua command and param was given. -> hand back to dtgbot to run",commandline)
     return status, response, replymarkup, commandline
   end
 
@@ -661,7 +661,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     LastCommand[SendTo]["l2menu"] = ""
     LastCommand[SendTo]["l3menu"] = ""
     LastCommand[SendTo]["prompt"] = false
-    print_to_log(0,"==<1 found regular lua command and param was given. -> hand back to dtgbot to run",commandline )
+    print_to_log(0,"==<1b found regular lua command and param was given. -> hand back to dtgbot to run",commandline )
     return status, response, replymarkup, commandline
   end
 
@@ -751,7 +751,6 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       else
         replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
         status = 0
-        LastCommand[SendTo]["submenu"] = ""
         LastCommand[SendTo]["device"] = ""
         LastCommand[SendTo]["l1menu"] = ""
         LastCommand[SendTo]["l2menu"] = ""
