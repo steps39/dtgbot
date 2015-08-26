@@ -531,10 +531,12 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   local command = tostring(dtgmenu_cli[1])
   local lcommand = string.lower(command)
   local lcommandline = string.lower(commandline)
+  local param1 = ""
   -- Retrieve the first parameter after the command in case provided.
   if menu_cli[3] ~= nil then
-    param1  = menu_cli[3]              -- the command came in through the standard DTGBOT process
-  else
+    print("===> 1")
+    param1  = tostring(menu_cli[3])    -- the command came in through the standard DTGBOT process
+  elseif dtgmenu_cli[2] ~= nil then
     param1  = tostring(dtgmenu_cli[2]) -- the command came in via the DTGMENU exit routine
   end
   print_to_log(1," => commandline  :",commandline)
@@ -574,14 +576,14 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       Menuval = get_variable_value(Menuidx)
     end
     response="DTGMENU is currently "..Menuval
-    if Menuval == "On" and lparam1 == "off" then
+    if Menuval == "On" and (lparam1 == "off" or lparam1 == "") then
       print_to_log(0, " Set DTGMENU Off")
-      response="DTGMENU is now disabled. send DTGMENU On to start the menus again."
+      response="DTGMENU is now disabled. send DTGMENU to start the menus again."
       replymarkup='{"hide_keyboard":true}'
       set_variable_value(Menuidx,"TelegramBotMenu",2,"Off")
       LastCommand[SendTo]["replymarkup"]=""
       Menuval = "Off"
-    elseif Menuval == "Off" and lparam1 == "on" then
+    elseif Menuval == "Off" and (lparam1 == "on" or lparam1 == "") then
       print_to_log(0, " Set DTGMENU On")
       if Menuidx == nil then
         create_variable("TelegramBotMenu",2,"On")
@@ -601,7 +603,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       LastCommand[SendTo]["prompt"] = false
       -- buld main menu
       replymarkup = makereplymenu(SendTo, "mainmenu")
-      response="DTGMENU is now enabled. send DTGMENU Off to stop the menus."
+      response="DTGMENU is now enabled. send DTGMENU again to stop the menus."
     elseif Menuval == "On" then
       -- reset menu to main menu in case dtgmenu command is send
       response=dtgmenu_lang[menu_language].text["main"]
@@ -914,7 +916,7 @@ end
 -----------------------------------------------
 
 local dtgmenu_commands = {
-  ["dtgmenu"] = {handler=dtgmenu_module.handler, description="DTGMENU (On/Off) to start or stop the menu functionality."},
+  ["dtgmenu"] = {handler=dtgmenu_module.handler, description="DTGMENU (will toggle On/Off) to start/stop the menu functionality."},
 }
 
 function dtgmenu_module.get_commands()
