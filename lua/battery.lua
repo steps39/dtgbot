@@ -43,31 +43,31 @@ function battery_module.handler(parsed_cli)
 		status, response = battery(DeviceName)
 	else
 		-- Get list of all user variables
-        	t = server_url.."/json.htm?type=command&param=getuservariables"
+		t = server_url.."/json.htm?type=command&param=getuservariables"
 --        	t = server_url.."/json.htm?type=devices"
         	print_to_log ("JSON request <"..t..">");  
-        	jresponse, status = http.request(t)
-	        decoded_response = JSON:decode(jresponse)
-        	result = decoded_response["result"]
-          idx = 0
-        	for k,record in pairs(result) do
-                	if type(record) == "table" then
-                        	if record['Name'] == 'DevicesWithBatteries' then
+		jresponse, status = http.request(t)
+		decoded_response = JSON:decode(jresponse)
+		result = decoded_response["result"]
+		idx = 0
+		for k,record in pairs(result) do
+			if type(record) == "table" then
+				if record['Name'] == 'DevicesWithBatteries' then
                                 	print_to_log(record['idx'])
-                                	idx = record['idx']
-                        	end
-                	end
-        	end
-          if idx == 0 then
+					idx = record['idx']
+				end
+			end
+		end
+		if idx == 0 then
             print_to_log('User Variable DevicesWithBatteries not set in Domoticz')
-            return 1, 'User Variable DevicesWithBatteries not set in Domoticz'
-          end
+			return 1, 'User Variable DevicesWithBatteries not set in Domoticz'
+		end
 		-- Get user variable DevicesWithBatteries
-        	t = server_url.."/json.htm?type=command&param=getuservariable&idx="..idx
+		t = server_url.."/json.htm?type=command&param=getuservariable&idx="..idx
         	print_to_log ("JSON request <"..t..">");  
-        	jresponse, status = http.request(t)
-        	decoded_response = JSON:decode(jresponse)
-        	result = decoded_response["result"]
+		jresponse, status = http.request(t)
+		decoded_response = JSON:decode(jresponse)
+		result = decoded_response["result"]
 		record = result[1]
 		DevicesWithBatteries = record["Value"]
    		DeviceNames = {}
