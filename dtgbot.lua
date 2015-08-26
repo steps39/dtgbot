@@ -50,8 +50,7 @@ function checkpath(envpath)
 end
 
 -- set default loglevel which will be retrieve later from the domoticz user variable TelegramBotLoglevel
-dtgbotLogLevel=2
-
+dtgbotLogLevel=0
 -- loglevel 0 - Always shown
 -- loglevel 1 - only shown when TelegramBotLoglevel >= 1
 
@@ -123,9 +122,9 @@ function vardump(value, depth, key)
   if type(value) == 'table' then
     mTable = getmetatable(value)
     if mTable == nil then
-      print_to_log(0,spaces ..linePrefix.."(table) ")
+      print_to_log(1,spaces ..linePrefix.."(table) ")
     else
-      print_to_log(0,spaces .."(metatable) ")
+      print_to_log(1,spaces .."(metatable) ")
       value = mTable
     end
     for tableKey, tableValue in pairs(value) do
@@ -136,9 +135,9 @@ function vardump(value, depth, key)
   type(value)	== 'userdata' or
   value		== nil
   then
-    print_to_log(0,spaces..tostring(value))
+    print_to_log(1,spaces..tostring(value))
   else
-    print_to_log(0,spaces..linePrefix.."("..type(value)..") "..tostring(value))
+    print_to_log(1,spaces..linePrefix.."("..type(value)..") "..tostring(value))
   end
 end
 
@@ -367,14 +366,14 @@ end
 --~ added replymarkup to allow for custom keyboard
 function send_msg(SendTo, Message, MessageId, replymarkup)
   if replymarkup == nil or replymarkup == "" then
-    print_to_log(0,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+    print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
     response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
   else
-    print_to_log(0,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
+    print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
     response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
   end
 --  response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&text=hjk')
-  print_to_log(0,status)
+  print_to_log(0,'Message sent',status)
   return
 end
 
@@ -445,9 +444,9 @@ function on_msg_receive (msg)
 --Check to see if id is whitelisted, if not record in log and exit
     if id_check(msg_from) then
       if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id) == 1 then
-        print_to_log "Succesfully handled incoming request"
+        print_to_log(0,"Succesfully handled incoming request")
       else
-        print_to_log "Invalid command received"
+        print_to_log(0,"Invalid command received")
         print_to_log(0,msg_from)
         send_msg(msg_from,'⚡️ INVALID COMMAND ⚡️',msg_id)
         --      os.execute("sleep 5")
@@ -488,7 +487,7 @@ function get_names_from_variable(DividedString)
   Names = {}
   for Name in string.gmatch(DividedString, "[^|]+") do
     Names[#Names + 1] = Name
-    print_to_log(0,'Name :'..Name)
+    print_to_log(1,'Name :'..Name)
   end
   if Names == {} then
     Names = nil
@@ -522,38 +521,38 @@ end
 print_to_log(0,'Getting '..TBOName..' the previous Telegram bot message offset from Domoticz')
 TBOidx = idx_from_variable_name(TBOName)
 if TBOidx == nil then
-  print_to_log(0,TBOName..' user variable does not exist in Domoticz')
+  print_to_log(0,TBOName..' user variable does not exist in Domoticz so can not continue')
   os.exit()
 else
-  print_to_log(0,'TBOidx '..TBOidx)
+  print_to_log(1,'TBOidx '..TBOidx)
 end
 TelegramBotOffset=get_variable_value(TBOidx)
-print_to_log(0,'TBO '..TelegramBotOffset)
-print_to_log(0,telegram_url)
+print_to_log(1,'TBO '..TelegramBotOffset)
+print_to_log(1,telegram_url)
 --while TelegramBotOffset do
 while file_exists(dtgbot_pid) do
   response, status = https.request(telegram_url..'getUpdates?timeout=60&offset='..TelegramBotOffset)
   if status == 200 then
     if response ~= nil then
       io.write('.')
-      print_to_log(0,response)
+      print_to_log(1,response)
       decoded_response = JSON:decode(response)
       result_table = decoded_response['result']
       tc = #result_table
       for i = 1, tc do
-        print_to_log(0,'Message: '..i)
+        print_to_log(1,'Message: '..i)
         tt = table.remove(result_table,1)
         msg = tt['message']
-        print_to_log(0,'update_id ',tt.update_id)
-        print_to_log(0,msg.text)
+        print_to_log(1,'update_id ',tt.update_id)
+        print_to_log(1,msg.text)
         TelegramBotOffset = tt.update_id + 1
-        print_to_log(0,'TelegramBotOffset '..TelegramBotOffset)
+        print_to_log(1,'TelegramBotOffset '..TelegramBotOffset)
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
         -- Offset updated before processing in case of crash allows clean restart
         on_msg_receive(msg)
       end
     else
-      print_to_log(2,status)
+      print_to_log(2,'Updates retrieved',status)
     end
   end
 end
