@@ -24,7 +24,7 @@
 --	reply_markup={"keyboard":[["menu"]],"resize_keyboard":true}
 --  reply_markup={"keyboard":[["opt 1","opt 2","opt 3"],["menu"]],"resize_keyboard":true}
 
--- JSON stuuf:
+-- JSON stuff:
 --~ http://192.168.0.30:8080/json.htm?type=command&param=getlanguage
 
 --------------------------------------
@@ -156,7 +156,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
   ------------------------------------------------------------------------------
   -- First build the dtgmenu_submenus table with the required level information
   ------------------------------------------------------------------------------
-  PopulateMenuTab(Level,submenu)
+--~ moved to refresh:   PopulateMenuTab(Level,submenu)
 
   ------------------------------------------------------------------------------
   -- start the build of the 3 levels of the keyboard menu
@@ -189,10 +189,13 @@ function makereplymenu(SendTo, Level, submenu, devicename)
         if i ~= "" then
           local switchstatus = ""
           print_to_log(1,"   - Submenu item:",i,dtgmenu_submenus[submenu].showdevstatus,get.DeviceType,get.idx,get.status)
+          local didx,dDeviceName,dDeviceType,dType,dSwitchType,dMaxDimLevel
           if get.whitelist == "" or ChkInTable(get.whitelist,SendTo) then
             -- add the device status to the button when requested
             if dtgmenu_submenus[submenu].showdevstatus == "y" then
-              switchstatus = get.status
+              print(" ====>",get.idx,get.Name,get.DeviceType)
+              didx,dDeviceName,dDeviceType,dType,dSwitchType,dMaxDimLevel,switchstatus = devinfo_from_name(get.idx,get.Name,get.DeviceType)
+              print(" ====>",didx,dDeviceName,dDeviceType,dType,dSwitchType,dMaxDimLevel,switchstatus)
               if ChkEmpty(switchstatus) then
                 switchstatus = ""
               else
@@ -337,7 +340,7 @@ end
 -- It will then call the MakeRoomMenus() function to add the dynamic options from Domoticz Room configuration
 function PopulateMenuTab(iLevel,iSubmenu)
   print_to_log(1,"####  Start populating menuarray")
-
+  -- reset menu table and rebuild
   dtgmenu_submenus = {}
 
   print_to_log(1,"Submenu table including buttons defined in menu.cfg:",iLevel,iSubmenu)
@@ -898,5 +901,10 @@ local dtgmenu_commands = {
 function dtgmenu_module.get_commands()
   return dtgmenu_commands;
 end
+
+-- define the menu table and initialize the table first time
+dtgmenu_submenus = {}
+PopulateMenuTab(1,"")
+
 
 return dtgmenu_module;
