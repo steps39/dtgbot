@@ -115,7 +115,7 @@ function device_list_names_idxs(DeviceType)
     if type(record) == "table" then
       if DeviceType == "plans" then
         devices[record['Name']] = record['idx']
-      else  
+      else
         devices[string.lower(record['Name'])] = record['idx']
         devices[record['idx']] = record['Name']
         if DeviceType == 'scenes' then
@@ -158,7 +158,7 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
   if DeviceScene~="scenes" then
     -- Check for Devices
     -- Have the device name
-    if DeviceName ~= "" then 
+    if DeviceName ~= "" then
       idx = idx_from_name(DeviceName,'devices')
     end
     print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
@@ -189,7 +189,7 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
           MaxDimLevel=record.MaxDimLevel
           status = tostring(record.Status)
         end
-        found = 1 
+        found = 1
         print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
       end
     end
