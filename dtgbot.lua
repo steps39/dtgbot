@@ -201,6 +201,18 @@ function dtgbot_initialise()
       print_to_log(0,commands[c].handler);
     end
   end
+
+  -- Initialise and populate dtgmenu tables in case the menu is switched on
+  Menuidx = idx_from_variable_name("TelegramBotMenu")
+  if Menuidx ~= nil then
+    Menuval = get_variable_value(Menuidx)
+    if Menuval == "On" then
+      -- initialise
+      -- define the menu table and initialize the table first time
+      PopulateMenuTab(1,"")
+    end
+  end
+
   return
 end
 

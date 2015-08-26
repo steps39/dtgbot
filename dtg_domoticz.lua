@@ -235,7 +235,7 @@ function domoticz_language()
   print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   decoded_response = JSON:decode(jresponse)
-  language = decoded_response['Language']
+  local language = decoded_response['language']
   if language ~= nil then
     return language
   else
