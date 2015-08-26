@@ -357,6 +357,12 @@ function PopulateMenuTab(iLevel,iSubmenu)
           -- Get device/scene details
           idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(9999,button,"anything")
           -- fill the button table records with all required fields
+          -- Remove any spaces from the device name and replace them by underscore.
+          button = string.gsub(button,"%s+", "_")
+          -- Add * infront of button name when Scene or Group
+          if DeviceType == "scenes" then
+            button = "*"..button
+          end
           buttons[button]={}
           buttons[button].whitelist = dev.whitelist       -- specific for the static config: Whitelist number(s) for this device, blank is ALL
           buttons[button].actions=dev.actions             -- specific for the static config: Hardcoded Actions for the device
@@ -574,6 +580,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       replymarkup='{"hide_keyboard":true}'
       set_variable_value(Menuidx,"TelegramBotMenu",2,"Off")
       LastCommand[SendTo]["replymarkup"]=""
+      Menuval = "Off"
     elseif Menuval == "Off" and lparam1 == "on" then
       print_to_log(0, " Set DTGMENU On")
       if Menuidx == nil then
@@ -751,6 +758,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       else
         replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
         status = 0
+        LastCommand[SendTo]["submenu"] = ""
         LastCommand[SendTo]["device"] = ""
         LastCommand[SendTo]["l1menu"] = ""
         LastCommand[SendTo]["l2menu"] = ""
@@ -767,7 +775,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       replymarkup='{"keyboard":[["menu"]],"resize_keyboard":true}'
       response = ""
       -- add previous command ot the current command
---      commandline = LastCommand[SendTo]["device"] .. " " .. commandline
+      commandline = LastCommand[SendTo]["device"] .. " " .. commandline
       LastCommand[SendTo]["submenu"] = ""
       LastCommand[SendTo]["device"] = ""
       LastCommand[SendTo]["l1menu"] = ""
