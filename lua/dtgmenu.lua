@@ -24,9 +24,6 @@
 --	reply_markup={"keyboard":[["menu"]],"resize_keyboard":true}
 --  reply_markup={"keyboard":[["opt 1","opt 2","opt 3"],["menu"]],"resize_keyboard":true}
 
--- JSON stuff:
---~ http://192.168.0.30:8080/json.htm?type=command&param=getlanguage
-
 --------------------------------------
 -- Include config
 --------------------------------------
@@ -35,6 +32,13 @@ local http = require "socket.http";
 
 -- definition used by DTGBOT
 local dtgmenu_module = {};
+local menu_language = language
+
+-- If Domoticz language is not used then revert to English
+if dtgmenu_lang[menu_language] == nil then
+  print_to_log(0, "Domoticz language is not available for dtgmenus")
+  menu_language = "en"
+end
 
 -------------------------------------------------------------------------------
 -- Start Functions to SORT the TABLE
@@ -129,7 +133,7 @@ function SwitchName(DeviceName, DeviceType, SwitchType,idx,state)
     print_to_log(1,"JSON request <"..t..">");
     jresponse, status = http.request(t)
     print_to_log(1,"JSON feedback: ", jresponse)
-    response = dtgmenu_lang[language].text["Switched"] .. ' ' ..DeviceName..' => '..state
+    response = dtgmenu_lang[menu_language].text["Switched"] .. ' ' ..DeviceName..' => '..state
   end
   print_to_log(0,"   -< SwitchName:",DeviceName,idx, status,response)
   return response, status
@@ -234,12 +238,12 @@ function makereplymenu(SendTo, Level, submenu, devicename)
             print_to_log(1," ---< ",Type,SwitchType," using replymarkup:",l3menu)
             -- else use the default reply menu for the SwitchType
             if l3menu == nil or l3menu == "" then
-              l3menu = dtgmenu_lang[language].devices_options[SwitchType]
+              l3menu = dtgmenu_lang[menu_language].devices_options[SwitchType]
               if l3menu == nil then
                 -- use the type in case of devices like a Thermostat
-                l3menu = dtgmenu_lang[language].devices_options[Type]
+                l3menu = dtgmenu_lang[menu_language].devices_options[Type]
                 if l3menu == nil then
-                  print_to_log(1,"  !!! No default dtgmenu_lang[language].devices_options for SwitchType:",SwitchType,Type)
+                  print_to_log(1,"  !!! No default dtgmenu_lang[menu_language].devices_options for SwitchType:",SwitchType,Type)
                   l3menu = "Aan,Uit"
                 end
               end
@@ -593,7 +597,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       response="DTGMENU is now enabled. send DTGMENU Off to stop the menus."
     elseif Menuval == "On" then
       -- reset menu to main menu in case dtgmenu command is send
-      response=dtgmenu_lang[language].text["main"]
+      response=dtgmenu_lang[menu_language].text["main"]
       replymarkup = makereplymenu(SendTo, "mainmenu")
     end
       status=1
@@ -607,7 +611,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   if cmdisaction == false and(lcommand == "menu" or lcommand == "start") then
     -- ensure the menu is always rebuild for Menu or Start
     LastCommand[SendTo]["replymarkup"]=""
-    response=dtgmenu_lang[language].text["main"]
+    response=dtgmenu_lang[menu_language].text["main"]
     replymarkup = makereplymenu(SendTo, "mainmenu")
     status=1
     LastCommand[SendTo]["submenu"] = ""
@@ -740,7 +744,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
         replymarkup='{"force_reply":true}'
         LastCommand[SendTo]["replymarkup"] = replymarkup
         status = 1
-        response=dtgmenu_lang[language].text["Specifyvalue"]
+        response=dtgmenu_lang[menu_language].text["Specifyvalue"]
         print_to_log(0,"==<1 found regular lua command that need Param ")
 
         -- no prompt defined so simply return to dtgbot with status 0 so it will be performed and reset the keyboard to just MENU
@@ -789,9 +793,9 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     if rdevicename ~= "" then
       LastCommand[SendTo]["device"] = rdevicename
       print_to_log(1," -- Changed to devicelevel due to showactions defined for device "..rdevicename )
-      response=dtgmenu_lang[language].text["SelectOptionwo"] .. " " .. rdevicename
+      response=dtgmenu_lang[menu_language].text["SelectOptionwo"] .. " " .. rdevicename
     else
-      response= submenu .. ":" .. dtgmenu_lang[language].text["Select"]
+      response= submenu .. ":" .. dtgmenu_lang[menu_language].text["Select"]
     end
     status=1
     print_to_log(0,"==< show options in submenu.")
@@ -812,29 +816,29 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     local found=0
     if DeviceType == "scenes" then
       if Type == "Group" then
-        response = dtgmenu_lang[language].text["SelectGroup"]
+        response = dtgmenu_lang[menu_language].text["SelectGroup"]
         print_to_log(0,"==< Show group options menu plus other devices in submenu.")
       else
-        response = dtgmenu_lang[language].text["SelectScene"]
+        response = dtgmenu_lang[menu_language].text["SelectScene"]
         print_to_log(0,"==< Show scene options menu plus other devices in submenu.")
       end
 --~     elseif Type == "Temp" or Type == "Temp + Humidity" or Type == "Wind" or Type == "Rain" then
     elseif dtgbot_type_status[Type] ~= nil and dtgbot_type_status[Type].DisplayActions == false then
       -- when temp device is selected them just return with resetting keyboard and ask to select device.
       status=1
-      response=dtgmenu_lang[language].text["Select"]
+      response=dtgmenu_lang[menu_language].text["Select"]
       print_to_log(1,"==< Don't do anything as a temp device was selected.")
     elseif DeviceType == "devices" then
       -- Only show current status in the text when not shown on the action options
       if dtgmenu_submenus[submenu].showdevstatus == "y" then
-        response = dtgmenu_lang[language].text["SelectOptionwo"]
+        response = dtgmenu_lang[menu_language].text["SelectOptionwo"]
       else
         switchstatus = dstatus
-        response = dtgmenu_lang[language].text["SelectOption"] .. " " .. switchstatus
+        response = dtgmenu_lang[menu_language].text["SelectOption"] .. " " .. switchstatus
       end
       print_to_log(0,"==< Show device options menu plus other devices in submenu.")
     else
-      response = dtgmenu_lang[language].text["Select"]
+      response = dtgmenu_lang[menu_language].text["Select"]
       print_to_log(0,"==< Show options menu plus other devices in submenu.")
     end
 
@@ -852,7 +856,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     if commandline == "?" then
       replymarkup='{"force_reply":true}'
       LastCommand[SendTo]["replymarkup"] = replymarkup
-      response=dtgmenu_lang[language].text["Specifyvalue"]
+      response=dtgmenu_lang[menu_language].text["Specifyvalue"]
       print_to_log(0,"==< "..response)
       status=1
       return status, response, replymarkup, commandline;
@@ -868,9 +872,9 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   -------------------------------------------------
   -- regular On/Off/Set Level
   -------------------------------------------------
-  elseif ChkInTable(string.lower(dtgmenu_lang[language].switch_options["Off"]),action) then
+  elseif ChkInTable(string.lower(dtgmenu_lang[menu_language].switch_options["Off"]),action) then
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'Off')
-  elseif ChkInTable(string.lower(dtgmenu_lang[language].switch_options["On"]),action) then
+  elseif ChkInTable(string.lower(dtgmenu_lang[menu_language].switch_options["On"]),action) then
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'On')
   elseif string.find(action, "%d") then
     -- calculate the proper leve lto set the dimmer
@@ -882,7 +886,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   elseif commandline == "?" then
     replymarkup='{"force_reply":true}'
     LastCommand[SendTo]["replymarkup"] = replymarkup
-    response=dtgmenu_lang[language].text["Specifyvalue"]
+    response=dtgmenu_lang[menu_language].text["Specifyvalue"]
     print_to_log(0,"==<"..response)
     status=1
     return status, response, replymarkup, commandline;
@@ -890,7 +894,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   -- Unknown Action
   -------------------------------------------------
   else
-    response = dtgmenu_lang[language].text["UnknownChoice"] .. action
+    response = dtgmenu_lang[menu_language].text["UnknownChoice"] .. action
   end
   status=1
 
