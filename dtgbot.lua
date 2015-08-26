@@ -239,7 +239,10 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
     parsed_command = {}
   end
   -- strip the beginning / from any command
-  cmd = cmd:gsub("/","")
+  --cmd = cmd:gsub("/","") - takes out all slashes
+--  if cmd:sub(1,1) == "/" then -- should just take out one
+--    cmd = cmd:sub(2)
+--  end
   local found=0
 
   ---------------------------------------------------------------------------
