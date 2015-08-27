@@ -23,19 +23,19 @@ function list_module.handler(parsed_cli)
 	jresponse, status = http.request(server_url.."/json.htm?type=devices")
 	decoded_response = JSON:decode(jresponse)
 	for k,record in pairs(decoded_response) do
-		print(k, type(record))
+		print_to_log(k, type(record))
 		if type(record) == "table" then
 			for k1, v1 in pairs(record) do
 				if string.find(string.lower(v1.Type), match_type) then
 					response = response..list_device_attr(v1, mode).."\n";
 				end
---				print(k1, v1)
+--				print_to_log(k1, v1)
 			end
 		else
-			print(record)
+			print_to_log(record)
 		end
 	end
-  print(response)
+  print_to_log(response)
 	return status, response;
 end
 

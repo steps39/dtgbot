@@ -9,7 +9,7 @@ function get_battery_level(DeviceName)
   end
 -- Determine battery level
   t = server_url.."/json.htm?type=devices&rid=" .. idx
-  print ("JSON request <"..t..">");
+  print_to_log ("JSON request <"..t..">");
   jresponse, status = http.request(t)
   decoded_response = JSON:decode(jresponse)
   result = decoded_response["result"]
@@ -24,10 +24,10 @@ function battery(DeviceName)
 	local response = ""
     DeviceName, BattLevel, LastUpdate = get_battery_level(DeviceName)
     if BattLevel == -999 then
-      print(DeviceName..' does not exist')
+      print_to_log(DeviceName..' does not exist')
       return 1, DeviceName..' does not exist'
     end
-   	print(DeviceName .. ' batterylevel is ' .. BattLevel .. "%")
+   	print_to_log(DeviceName .. ' batterylevel is ' .. BattLevel .. "%")
    	response = DeviceName..' battery level was '..BattLevel..'% when last seen '..LastUpdate
 	return status, response;
 end
@@ -37,41 +37,41 @@ function battery_module.handler(parsed_cli)
 	if string.lower(parsed_cli[2]) == 'battery' then
 	 	DeviceName = form_device_name(parsed_cli)
     if DeviceName == nil then
-      print('No Battery Device Name given')
+      print_to_log('No Battery Device Name given')
       return 1,'No Battery Device Name given'
     end
 		status, response = battery(DeviceName)
 	else
 		-- Get list of all user variables
-        	t = server_url.."/json.htm?type=command&param=getuservariables"
+		t = server_url.."/json.htm?type=command&param=getuservariables"
 --        	t = server_url.."/json.htm?type=devices"
-        	print ("JSON request <"..t..">");  
-        	jresponse, status = http.request(t)
-	        decoded_response = JSON:decode(jresponse)
-        	result = decoded_response["result"]
-          idx = 0
-        	for k,record in pairs(result) do
-                	if type(record) == "table" then
-                        	if record['Name'] == 'DevicesWithBatteries' then
-                                	print(record['idx'])
-                                	idx = record['idx']
-                        	end
-                	end
-        	end
-          if idx == 0 then
-            print('User Variable DevicesWithBatteries not set in Domoticz')
-            return 1, 'User Variable DevicesWithBatteries not set in Domoticz'
-          end
+        	print_to_log ("JSON request <"..t..">");  
+		jresponse, status = http.request(t)
+		decoded_response = JSON:decode(jresponse)
+		result = decoded_response["result"]
+		idx = 0
+		for k,record in pairs(result) do
+			if type(record) == "table" then
+				if record['Name'] == 'DevicesWithBatteries' then
+                                	print_to_log(record['idx'])
+					idx = record['idx']
+				end
+			end
+		end
+		if idx == 0 then
+            print_to_log('User Variable DevicesWithBatteries not set in Domoticz')
+			return 1, 'User Variable DevicesWithBatteries not set in Domoticz'
+		end
 		-- Get user variable DevicesWithBatteries
-        	t = server_url.."/json.htm?type=command&param=getuservariable&idx="..idx
-        	print ("JSON request <"..t..">");  
-        	jresponse, status = http.request(t)
-        	decoded_response = JSON:decode(jresponse)
-        	result = decoded_response["result"]
+		t = server_url.."/json.htm?type=command&param=getuservariable&idx="..idx
+        	print_to_log ("JSON request <"..t..">");  
+		jresponse, status = http.request(t)
+		decoded_response = JSON:decode(jresponse)
+		result = decoded_response["result"]
 		record = result[1]
 		DevicesWithBatteries = record["Value"]
    		DeviceNames = {}
-   		print(DevicesWithBatteries)
+   		print_to_log(DevicesWithBatteries)
    		for DeviceName in string.gmatch(DevicesWithBatteries, "[^|]+") do
       			DeviceNames[#DeviceNames + 1] = DeviceName
    		end

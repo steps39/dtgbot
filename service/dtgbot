@@ -55,6 +55,18 @@ case "$1" in
         start-stop-daemon --stop --retry 2 --pidfile $PIDFILE \
             --name $NAME || true
         rm -f $PIDFILE
+        echo "Waiting for dtgbot to finish may take up to 60 seconds."
+        for RETRY in 1 2 3 4 5 6 7 8 9 10
+        do
+                chk=`sudo ps x | grep "dtgbot.lua" | grep -cv grep`
+                echo "chk=$chk"
+                if  [ $chk -gt 0 ] ; then
+                        sleep 5
+                else
+                        echo "Telegrambot finished"
+                        break
+                fi
+        done        
         echo "Done."
 
     ;;
@@ -63,8 +75,18 @@ case "$1" in
         start-stop-daemon --stop --retry 2 --pidfile $PIDFILE \
             --name $NAME || true
         rm -f $PIDFILE
-        echo -n "giving Lua script 60 seconds to stop.... "
-        sleep 60
+        echo "Waiting for dtgbot to finish may take up to 60 seconds."
+        for RETRY in 1 2 3 4 5 6 7 8 9 10
+        do
+                chk=`sudo ps x | grep "dtgbot.lua" | grep -cv grep`
+                echo "chk=$chk"
+                if  [ $chk -gt 0 ] ; then
+                        sleep 5
+                else
+                        echo "Telegrambot finished"
+                        break
+                fi
+        done        
         . /etc/profile.d/DomoticzData.sh && start-stop-daemon --start --background --make-pidfile $PIDFILE --pidfile $PIDFILE \
             --startas $DAEMON --name $NAME || true
         echo "Done."
