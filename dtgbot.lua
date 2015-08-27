@@ -175,7 +175,7 @@ function dtgbot_initialise()
   Roomlist = device_list_names_idxs("plans")
 
 -- Get language from Domoticz
-language = domoticz_language()
+  language = domoticz_language()
 
 -- get the required loglevel
   dtgbotLogLevelidx = idx_from_variable_name("TelegramBotLoglevel")
@@ -209,6 +209,18 @@ language = domoticz_language()
       -- define the menu table and initialize the table first time
       PopulateMenuTab(1,"")
     end
+  end
+
+-- Retrieve id white list
+  WLidx = idx_from_variable_name(WLName)
+  if WLidx == nil then
+    print_to_log(0,WLName..' user variable does not exist in Domoticz')
+    print_to_log(0,'So will allow any id to use the bot')
+  else
+    print_to_log(0,'WLidx '..WLidx)
+    WLString = get_variable_value(WLidx)
+    print_to_log(0,'WLString: '..WLString)
+    WhiteList = get_names_from_variable(WLString)
   end
 
   return
@@ -483,18 +495,6 @@ end
 
 function on_binlog_replay_end ()
   started = 1
-end
-
-function get_names_from_variable(DividedString)
-  Names = {}
-  for Name in string.gmatch(DividedString, "[^|]+") do
-    Names[#Names + 1] = Name
-    print_to_log(1,'Name :'..Name)
-  end
-  if Names == {} then
-    Names = nil
-  end
-  return Names
 end
 
 -- get the require loglevel

@@ -434,8 +434,8 @@ function MakeRoomMenus(iLevel,iSubmenu)
             end
             -- Remove the name of the room from the device if it is present and any susequent Space or Hyphen or undersciore
             button = string.gsub(DeviceName,room_name.."[%s-_]*","")
-            -- But reinstate it if lees than 3 letters are left
-            if #button < 3 then
+            -- But reinstate it if lees than 2 letters are left
+            if #button < 2 then
               button = DeviceName
             end
             -- Remove any spaces from the device name and replace them by underscore.

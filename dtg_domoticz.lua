@@ -92,6 +92,18 @@ function create_variable(name,type,value)
   return
 end
 
+function get_names_from_variable(DividedString)
+  Names = {}
+  for Name in string.gmatch(DividedString, "[^|]+") do
+    Names[#Names + 1] = Name
+    print_to_log(1,'Name :'..Name)
+  end
+  if Names == {} then
+    Names = nil
+  end
+  return Names
+end
+
 -- returns a device table of Domoticz items based on type i.e. devices or scenes
 function device_list(DeviceType)
   local t, jresponse, status, decoded_response
