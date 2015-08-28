@@ -1,8 +1,8 @@
 -- A set of support functions currently aimed at dtgbot,
 -- but probably more general
 
-function form_device_name(parsed_cli)
 -- joins together parameters after the command name to form the full "device name"
+function form_device_name(parsed_cli)
   command = parsed_cli[2]
   DeviceName = parsed_cli[3]
   len_parsed_cli = #parsed_cli
@@ -56,6 +56,9 @@ function variable_list_names_idxs()
   return variables
 end
 
+
+-- returns device name from idx and idx from device name if stored in device table
+-- wrapper for device table
 function idx_from_variable_name(DeviceName)
   return Variablelist[DeviceName]
 end
@@ -74,10 +77,11 @@ function get_variable_value(idx)
   return decoded_response["result"][1]["Value"]
 end
 
-function set_variable_value(idx,name,type,value)
+-- sets the value of the variable based on idx requires name and devicetype 
+function set_variable_value(idx,name,devicetype,value)
   -- store the value of a user variable
   local t, jresponse, decoded_response
-  t = server_url.."/json.htm?type=command&param=updateuservariable&idx="..idx.."&vname="..name.."&vtype="..type.."&vvalue="..tostring(value)
+  t = server_url.."/json.htm?type=command&param=updateuservariable&idx="..idx.."&vname="..name.."&vtype="..devicetype.."&vvalue="..tostring(value)
   print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   return
@@ -92,6 +96,7 @@ function create_variable(name,type,value)
   return
 end
 
+-- returns multiple names from string separated by |
 function get_names_from_variable(DividedString)
   Names = {}
   for Name in string.gmatch(DividedString, "[^|]+") do
@@ -116,31 +121,35 @@ end
 
 -- returns a list of Domoticz items based on type i.e. devices or scenes
 function device_list_names_idxs(DeviceType)
-  --returns a devcie idx based on its name
   local idx, k, record, decoded_response
   decoded_response = device_list(DeviceType)
   result = decoded_response['result']
-  devices = {}
-  devicesproperties = {}
-  for i = 1, #result do
-    record = result[i]
-    if type(record) == "table" then
-      if DeviceType == "plans" then
-        devices[record['Name']] = record['idx']
-      else
-        devices[string.lower(record['Name'])] = record['idx']
-        devices[record['idx']] = record['Name']
-        if DeviceType == 'scenes' then
-          devicesproperties[record['idx']] = {Type=record['Type'], SwitchType = record['Type']}
+  if result ~= nil then
+    devices = {}
+    devicesproperties = {}
+    for i = 1, #result do
+      record = result[i]
+      if type(record) == "table" then
+        if DeviceType == "plans" then
+          devices[record['Name']] = record['idx']
+        else
+          devices[string.lower(record['Name'])] = record['idx']
+          devices[record['idx']] = record['Name']
+          if DeviceType == 'scenes' then
+            devicesproperties[record['idx']] = {Type=record['Type'], SwitchType = record['Type']}
+          end
         end
       end
     end
+    return devices, devicesproperties
+  else
+    print_to_log(0,'device_list_names_idxs',DeviceType,'No items returned from Domoticz')
+    return nil, nil
   end
-  return devices, devicesproperties
 end
 
+--returns a devcie idx based on its name
 function idx_from_name(DeviceName,DeviceType)
-  --returns a devcie idx based on its name
   if DeviceType == "devices" then
     return Devicelist[string.lower(DeviceName)]
   elseif DeviceType == "scenes" then
@@ -150,6 +159,7 @@ function idx_from_name(DeviceName,DeviceType)
   end
 end
 
+-- returns the status of a device based on idx
 function retrieve_status(idx,DeviceType)
   local t, jresponse, status, decoded_response
   t = server_url.."/json.htm?type="..DeviceType.."&rid="..tostring(idx)
@@ -235,11 +245,13 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
   return ridx,rDeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status
 end
 
+-- returns true if file exists
 function file_exists(name)
   local f=io.open(name,"r")
   if f~=nil then io.close(f) return true else return false end
 end
 
+--returns 2 character language string set in Domoticz
 function domoticz_language()
   local t, jresponse, status, decoded_response
   t = server_url.."/json.htm?type=command&param=getlanguage"
