@@ -170,7 +170,15 @@ end
 -- initialise room, device, scene and variable list from Domoticz
 function dtgbot_initialise()
   Variablelist = variable_list_names_idxs()
+  if Variablelist == nil then
+    print_to_log(0,'No Variables defined in Domoticz - exiting')
+    os.exit()
+  end
   Devicelist = device_list_names_idxs("devices")
+  if Devicelist == nil then
+    print_to_log(0,'No Devices defined in Domoticz - exiting')
+    os.exit()
+  end
   Scenelist, Sceneproperties = device_list_names_idxs("scenes")
   Roomlist = device_list_names_idxs("plans")
 
