@@ -17,7 +17,8 @@ function help_module.handler(parsed_cli)
     return status, response
   end
   local DotPos = 0
-  HelpText='⚠️ Available Lua commands ⚠️ \n'
+  HelpText='⚠️ Start Menu: /menu ⚠️ \n\n'
+  HelpText=HelpText..'⚠️ Available Lua commands ⚠️ \n'
   for i,help in pairs(commands) do
     print_to_log(help.description)
    --send_msg(SendTo,help,ok_cb,false)

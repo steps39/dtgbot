@@ -1,5 +1,5 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.2 150826
+-- Version 0.3 160424
 -- Automation bot framework for telegram to control Domoticz
 -- dtgbot.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
@@ -30,6 +30,26 @@ function print_to_log(loglevel, logmessage, ...)
     print(os.date("%Y-%m-%d %H:%M:%S")..' - '..tostring(logmessage))
   end
 end
+-- print Telegram exchange to a separate debug log
+function print_to_debuglog(loglevel, logmessage, ...)
+  -- when only one parameter is provided => set the loglevel to 0 and assume the parameter is the messagetext
+  if tonumber(loglevel) == nil or logmessage == nil then
+    logmessage = loglevel
+    loglevel=0
+  end
+  if loglevel <= dtgbotLogLevel then
+    file = io.open(os.getenv("BotLuaLog").."_Telegram_debug.log", "a")
+    logcount = #{...}
+    if logcount > 0 then
+      for i, v in pairs({...}) do
+        logmessage = logmessage ..' ('..tostring(i)..') '..tostring(v)
+      end
+      logmessage=tostring(logmessage):gsub(" (.+) nil","")
+    end
+    file:write(os.date("%M:%S")..' '..tostring(logmessage).."\r\n")
+    file:close()
+  end
+end
 
 function domoticzdata(envvar)
   -- loads get environment variable and prints in log
@@ -51,6 +71,7 @@ end
 
 -- set default loglevel which will be retrieve later from the domoticz user variable TelegramBotLoglevel
 dtgbotLogLevel=0
+
 -- loglevel 0 - Always shown
 -- loglevel 1 - only shown when TelegramBotLoglevel >= 1
 
@@ -200,17 +221,6 @@ function dtgbot_initialise()
     end
   end
 
-  -- Initialise and populate dtgmenu tables in case the menu is switched on
-  Menuidx = idx_from_variable_name("TelegramBotMenu")
-  if Menuidx ~= nil then
-    Menuval = get_variable_value(Menuidx)
-    if Menuval == "On" then
-      -- initialise
-      -- define the menu table and initialize the table first time
-      PopulateMenuTab(1,"")
-    end
-  end
-
 -- Retrieve id white list
   WLidx = idx_from_variable_name(WLName)
   if WLidx == nil then
@@ -241,8 +251,9 @@ function timedifference(s)
   return difference
 end
 
-function HandleCommand(cmd, SendTo, Group, MessageId)
-  print_to_log(0,"Handle command function started with " .. cmd .. " and " .. SendTo)
+function HandleCommand(cmd, SendTo, Group, MessageId,MsgType)
+  print_to_log(0,"Handle command function started with " .. cmd .. " ==>for " .. SendTo)
+  local replymarkup =""
   --- parse the command
   if command_prefix == "" then
     -- Command prefix is not needed, as can be enforced by Telegram api directly
@@ -250,72 +261,60 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
   else
     parsed_command = {}
   end
-  -- strip the beginning / from any command
-  --cmd = cmd:gsub("/","") - takes out all slashes
---  if cmd:sub(1,1) == "/" then -- should just take out one
---    cmd = cmd:sub(2)
---  end
   local found=0
-
-  ---------------------------------------------------------------------------
-  -- Change for menu.lua option
-  -- When LastCommand starts with menu then assume the rest is for menu.lua
-  ---------------------------------------------------------------------------
-  if Menuval == "On" then
-    print_to_log(0,"dtgbot: Start DTGMENU ...", cmd)
-    local menu_cli = {}
-    table.insert(menu_cli, "")  -- make it compatible
-    table.insert(menu_cli, cmd)
-    -- send whole cmd line instead of first word
-    command_dispatch = commands["dtgmenu"];
-    status, text, replymarkup, cmd = command_dispatch.handler(menu_cli,SendTo);
-    if status ~= 0 then
-      -- stop the process when status is not 0
-      if text ~= "" then
-        while string.len(text)>0 do
-          if Group ~= "" then
-            send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
-          else
-            send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
-          end
-          text = string.sub(text,4000,-1)
-        end
-      end
-      print_to_log(0,"dtgbot: dtgmenu ended and text send ...return:"..status)
-      -- no need to process anything further
-      return 1
-    end
-    print_to_log(0,"dtgbot:continue regular processing. cmd =>",cmd)
-  end
-  ---------------------------------------------------------------------------
-  -- End change for menu.lua option
-  ---------------------------------------------------------------------------
-
   --~	added "-_"to allowed characters a command/word
-  for w in string.gmatch(cmd, "([%w-_]+)") do
+  for w in string.gmatch(cmd, "([%w-_?++-**]+)") do
     table.insert(parsed_command, w)
+    print_to_log(2,"### w:",w)
   end
   if command_prefix ~= "" then
     if parsed_command[1] ~= command_prefix then -- command prefix has not been found so ignore message
       return 1 -- not a command so successful but nothing done
     end
   end
-
+  ---------------------------------------------------------------------------
+  -- Change for menu.lua option
+  -- When LastCommand starts with menu then assume the rest is for menu.lua
+  ---------------------------------------------------------------------------
+--~   if(parsed_command[2]~=nil) then
+  if tostring(parsed_command[2]) == "menu" then
+    command_dispatch = commands[string.lower(parsed_command[2])];
+    if command_dispatch then
+      print_to_log(0,"dtgbot: found MENU start command ...", cmd)
+      status, text, replymarkup, parsed_command = command_dispatch.handler(parsed_command,SendTo);
+      if status ~= 0 then
+        -- stop the process when status is not 0
+        if text ~= "" then
+          while string.len(text)>0 do
+            if Group ~= "" then
+              send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup,MsgType)
+            else
+              send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup,MsgType)
+            end
+            text = string.sub(text,4000,-1)
+          end
+        end
+        print_to_log(0,"dtgbot: menu ended and text send ...return:"..status)
+        -- no need to process anything further
+        return 1
+      end
+      print_to_log(0,"dtgbot:continue regular processing.==>"..tostring(parsed_command[2]))
+    end
+  end
+--~   end
+  ---------------------------------------------------------------------------
+  -- End change for menu.lua option
+  ---------------------------------------------------------------------------
+  -- start normal DTGbot command processing
   if(parsed_command[2]~=nil) then
     command_dispatch = commands[string.lower(parsed_command[2])];
---~ change to allow for replymarkup.
-    local savereplymarkup = replymarkup
---~ 	print("debug1." ,replymarkup)
+    local savereplymarkup=replymarkup
     if command_dispatch then
---?      status, text = command_dispatch.handler(parsed_command);
---~      change to allow for replymarkup.
       status, text, replymarkup = command_dispatch.handler(parsed_command,SendTo);
       found=1
     else
       text = ""
       local f = io.popen("ls " .. BotBashScriptPath)
---?      cmda = string.lower(parsed_command[2])
---~ change to avoid nil error
       cmda = string.lower(tostring(parsed_command[2]))
       len_parsed_command = #parsed_command
       stuff = ""
@@ -338,7 +337,6 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
     end
 --~ 	print("debug2." ,replymarkup)
     if found==0 then
---?      text = "command <"..parsed_command[2].."> not found";
 --~ change to avoid nil error
       text = "command <"..tostring(parsed_command[2]).."> not found";
     end
@@ -347,11 +345,12 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
   end
   if text ~= "" then
     while string.len(text)>0 do
+
 --~         added replymarkup to allow for custom keyboard
       if Group ~= "" then
-        send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
+        send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup,MsgType)
       else
-        send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
+        send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup,MsgType)
       end
       text = string.sub(text,4000,-1)
     end
@@ -359,9 +358,9 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
 --~     added replymarkup to allow for custom keyboard reset also in case there is no text to send.
 --~     This could happen after running a bash file.
     if Group ~= "" then
-      send_msg(Group,"done",MessageId,replymarkup)
+      send_msg(Group,"done",MessageId,replymarkup,MsgType)
     else
-      send_msg(SendTo,"done",MessageId,replymarkup)
+      send_msg(SendTo,"done",MessageId,replymarkup,MsgType)
     end
   end
   return found
@@ -378,41 +377,40 @@ function url_encode(str)
 end
 
 --~ added replymarkup to allow for custom keyboard
-function send_msg(SendTo, Message, MessageId, replymarkup)
-  if replymarkup == nil or replymarkup == "" then
-    print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
-    response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+function send_msg(SendTo, Message, MessageId, replymarkup,MsgType)
+  --
+  if MsgType == "Callback" then
+    if replymarkup == nil or replymarkup == "" then
+      replymarkup = "&reply_markup="
+    else
+      replymarkup = '&reply_markup='..url_encode(replymarkup)
+    end
+    print_to_log(1,telegram_url..'editMessageText?chat_id='..SendTo..'&message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
+    print_to_debuglog(1,'==> /editMessageText?chat_id='..SendTo..'&message_id='..MessageId..'&text='..Message.. replymarkup)
+    response, status = https.request(telegram_url..'editMessageText?chat_id='..SendTo..'&message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
+    -- rebuild new message with inlinemenu when the old message can't be updated
+    if status == 400 and string.find(response, "Message can't be edited") then
+      print_to_debuglog(1,status..'<== ',response)
+      print_to_debuglog(1,'==> /sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..Message..replymarkup)
+      response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
+    end
   else
-    print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
-    response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
+    if replymarkup == nil or replymarkup == "" then
+      replymarkup = ""
+    else
+      replymarkup = '&reply_markup='..url_encode(replymarkup)
+    end
+    print_to_debuglog(1,'==> /sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..Message..replymarkup)
+    print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
+    response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
   end
---  response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&text=hjk')
+  --  response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&text=hjk')
   print_to_log(0,'Message sent',status)
+  print_to_log(2,'response',response)
+  print_to_debuglog(1,status..'<== ',response)
+  print_to_debuglog(1,'-----------------------------------------------------------------------------------')
   return
 end
-
---?function send_msg(SendTo, Message,MessageId)
---?  print_to_log(0,telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
---?  response, status = --?https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
---  response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&text=hjk')
---?  print_to_log(0,status)
---?  return
---?end
-
-
-
---Commands.Smiliesoverview = "Smiliesoverview - sends a range of smilies"
-
---function Smiliesoverview(SendTo)
---  smilies = {"smiley 😀", "crying smiley 😢", "sleeping smiley 😴", "beer 🍺", "double beer 🍻",
---    "wine 🍷", "double red excam ‼️", "yellow sign exclamation mark ⚠️ ", "camera 📷", "light(on) 💡",
---    "open sun 🔆", "battery 🔋", "plug 🔌", "film 🎬", "music 🎶", "moon 🌙", "sun ☀️", "sun behind some clouds ⛅️",
---    "clouds ☁️", "lightning ⚡️", "umbrella ☔️", "snowflake ❄️"}
---  for i,smiley in ipairs(smilies) do
---    send_msg(SendTo,smiley,ok_cb,false)
---  end
---  return
---end
 
 function id_check(SendTo)
   --Check if whitelist empty then let any message through
@@ -444,20 +442,47 @@ function on_msg_receive (msg)
   if msg.text then   -- check if message is text
     --  ReceivedText = string.lower(msg.text)
     ReceivedText = msg.text
-
---    if msg.to.type == "chat" then -- check if the command was given in a group chat
---      msg_from = msg.to.print_name -- if yes, take the group name as a destination for the reply
---    else
---      msg_from = msg.from.print_name -- if no, take the users name as destination for the reply
---    end
---    msg_from = msg.from.id
 --  Changed from from.id to chat.id to allow group chats to work as expected.
     grp_from = msg.chat.id
     msg_from = msg.from.id
-    msg_id =msg.message_id
+    msg_id = msg.message_id
 --Check to see if id is whitelisted, if not record in log and exit
     if id_check(msg_from) then
-      if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id) == 1 then
+      if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id,"Message") == 1 then
+        print_to_log(0,"Succesfully handled incoming request")
+      else
+        print_to_log(0,"Invalid command received")
+        print_to_log(0,msg_from)
+        send_msg(msg_from,'⚡️ INVALID COMMAND ⚡️',msg_id)
+        --      os.execute("sleep 5")
+        --      Help(tostring (msg_from))
+      end
+    else
+      print_to_log(0,'id '..msg_from..' not on white list, command ignored')
+      send_msg(msg_from,'⚡️ ID Not Recognised - Command Ignored ⚡️',msg_id)
+    end
+  end
+--  mark_read(msg_from)
+end
+
+function on_callback_receive (msg)
+  if started == 0 then
+    return
+  end
+  if msg.out then
+    return
+  end
+
+  if msg.data then   -- check if message is text
+    --  ReceivedText = string.lower(msg.data)
+    MessageText = msg.data
+    ReceivedText = msg.data
+    grp_from = msg.message.chat.id
+    msg_from = msg.from.id
+    msg_id =msg.message.message_id
+--Check to see if id is whitelisted, if not record in log and exit
+    if id_check(msg_from) then
+      if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id,"Callback") == 1 then
         print_to_log(0,"Succesfully handled incoming request")
       else
         print_to_log(0,"Invalid command received")
@@ -505,6 +530,7 @@ if dtgbotLogLevelidx ~= nil then
     dtgbotLogLevel=0
   end
 end
+
 print_to_log(0,' dtgbotLogLevel set to: '..tostring(dtgbotLogLevel))
 
 -- Retrieve id white list
@@ -531,12 +557,19 @@ end
 TelegramBotOffset=get_variable_value(TBOidx)
 print_to_log(1,'TBO '..TelegramBotOffset)
 print_to_log(1,telegram_url)
+telegram_connected = false
 --while TelegramBotOffset do
 while file_exists(dtgbot_pid) do
   response, status = https.request(telegram_url..'getUpdates?timeout=60&offset='..TelegramBotOffset)
   if status == 200 then
+    if not telegram_connected then
+      print_to_log(0,'')
+      print_to_log(0,'### In contact with Telegram servers')
+      telegram_connected = true
+    end
     if response ~= nil then
       io.write('.')
+      print_to_log(1,"")
       print_to_log(1,response)
       decoded_response = JSON:decode(response)
       result_table = decoded_response['result']
@@ -544,18 +577,35 @@ while file_exists(dtgbot_pid) do
       for i = 1, tc do
         print_to_log(1,'Message: '..i)
         tt = table.remove(result_table,1)
-        msg = tt['message']
-        print_to_log(1,'update_id ',tt.update_id)
-        print_to_log(1,msg.text)
         TelegramBotOffset = tt.update_id + 1
         print_to_log(1,'TelegramBotOffset '..TelegramBotOffset)
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
-        -- Offset updated before processing in case of crash allows clean restart
-        on_msg_receive(msg)
+        msg = tt['message']
+        if msg ~= nil then
+          print_to_debuglog(1,'<== message:' .. tostring(msg.text).." -->"..response)
+          on_msg_receive(msg)
+        else
+          msg = tt['callback_query']
+          if msg ~= nil then
+            print_to_debuglog(1,'<== callback_query:' .. tostring(msg.data).." -->"..response)
+            lastmsg = on_callback_receive(msg)
+          end
+        end
       end
     else
+      io.write('X')
+      print_to_log(2,'')
       print_to_log(2,'Updates retrieved',status)
     end
+  else
+    io.write('?')
+    if telegram_connected then
+      print_to_log(0,'')
+      print_to_log(0,'### Lost contact with Telegram servers, received Non 200 status - returned - ',status)
+      telegram_connected = false
+    end
+    -- sleep a little to slow the loop
+    os.execute("sleep 5")
   end
 end
 print_to_log(0,dtgbot_pid..' does not exist, so exiting')
