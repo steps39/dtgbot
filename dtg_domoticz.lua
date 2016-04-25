@@ -63,7 +63,7 @@ end
 -- returns the value of the variable from the idx
 function get_variable_value(idx)
   local t, jresponse, decoded_response
-  if idx == nill then
+  if idx == nil then
     return ""
   end
   t = server_url.."/json.htm?type=command&param=getuservariable&idx="..tostring(idx)
@@ -122,16 +122,18 @@ function device_list_names_idxs(DeviceType)
   result = decoded_response['result']
   devices = {}
   devicesproperties = {}
-  for i = 1, #result do
-    record = result[i]
-    if type(record) == "table" then
-      if DeviceType == "plans" then
-        devices[record['Name']] = record['idx']
-      else
-        devices[string.lower(record['Name'])] = record['idx']
-        devices[record['idx']] = record['Name']
-        if DeviceType == 'scenes' then
-          devicesproperties[record['idx']] = {Type=record['Type'], SwitchType = record['Type']}
+  if result ~= nil then
+    for i = 1, #result do
+      record = result[i]
+      if type(record) == "table" then
+        if DeviceType == "plans" then
+          devices[record['Name']] = record['idx']
+          else
+          devices[string.lower(record['Name'])] = record['idx']
+          devices[record['idx']] = record['Name']
+          if DeviceType == 'scenes' then
+            devicesproperties[record['idx']] = {Type=record['Type'], SwitchType = record['Type']}
+          end
         end
       end
     end
@@ -153,7 +155,7 @@ end
 function retrieve_status(idx,DeviceType)
   local t, jresponse, status, decoded_response
   t = server_url.."/json.htm?type="..DeviceType.."&rid="..tostring(idx)
-  print_to_log(1,"JSON request <"..t..">");
+  print_to_log(2,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   decoded_response = JSON:decode(jresponse)
   return decoded_response
@@ -165,6 +167,8 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
   local found = 0
   local rDeviceName=""
   local status=""
+  local LevelNames=""
+  local LevelInt=0
   local MaxDimLevel=100
   local ridx=0
   if DeviceScene~="scenes" then
@@ -176,12 +180,16 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
     print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
     if idx ~= nil then
       record = retrieve_status(idx,"devices")['result'][1]
-      print_to_log(2,'device ',DeviceName,record.Name,idx,record.idx)
+--~       print_to_log(2,'  device ',DeviceName,record.Name,idx,record.idx)
       if type(record) == "table" then
         ridx = record.idx
         rDeviceName = record.Name
         DeviceType="devices"
         Type=record.Type
+        LevelInt=record.LevelInt
+        if LevelInt == nil then LevelInt = 0 end
+        LevelNames=record.LevelNames
+        if LevelNames == nil then LevelNames = "" end
         -- as default simply use the status field
         -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
         if dtgbot_type_status[Type] ~= nil then
@@ -202,10 +210,10 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
           status = tostring(record.Status)
         end
         found = 1
-        print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
+--~         print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
       end
     end
-    print_to_log(2," !!!! found device",rDeviceName,ridx)
+--~     print_to_log(2," !!!! found device",rDeviceName,ridx)
   end
 -- Check for Scenes
   if found == 0 then
@@ -231,10 +239,57 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
     Type="command"
     SwitchType="command"
   end
-  print_to_log(2," --< devinfo_from_name:",found,ridx,rDeviceName,DeviceType,Type,SwitchType,status)
-  return ridx,rDeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status
+  print_to_log(2," --< devinfo_from_name:",found,ridx,rDeviceName,DeviceType,Type,SwitchType,status,LevelNames,LevelInt)
+  return ridx,rDeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status,LevelNames,LevelInt
 end
 
+-- Switch functions
+function SwitchID(DeviceName, idx, DeviceType, state, SendTo)
+	if string.lower(state) == "on" then
+        	state = "On";
+       	elseif string.lower(state) == "off" then
+        	state = "Off";
+        else
+        	return "state must be on or off!";
+        end
+        t = server_url.."/json.htm?type=command&param=switch"..DeviceType.."&idx="..idx.."&switchcmd="..state;
+        print_to_log (1,"JSON request <"..t..">");
+        jresponse, status = http.request(t)
+        print_to_log(1,"raw jason", jresponse)
+        response = 'Switched '..DeviceName..' '..command
+	return response
+end
+
+function sSwitchName(DeviceName, DeviceType, SwitchType,idx,state)
+  local status
+  if idx == nil then
+    response = 'Device '..DeviceName..'  not found.'
+  else
+    local subgroup = "light"
+    if DeviceType == "scenes" then
+      subgroup = "scene"
+    end
+    if string.lower(state) == "on" then
+      state = "On";
+      t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd="..state;
+    elseif string.lower(state) == "off" then
+      state = "Off";
+      t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd="..state;
+    elseif string.lower(string.sub(state,1,9)) == "set level" then
+      t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd=Set%20Level&level="..string.sub(state,11)
+    else
+      return "state must be on, off or Set Level!";
+    end
+    print_to_log(3,"JSON request <"..t..">");
+    jresponse, status = http.request(t)
+    print_to_log(3,"JSON feedback: ", jresponse)
+    response = dtgmenu_lang[language].text["Switched"] .. ' ' ..DeviceName..' => '..state
+  end
+  print_to_log(0,"   -< SwitchName:",DeviceName,idx, status,response)
+  return response, status
+end
+
+-- other functions
 function file_exists(name)
   local f=io.open(name,"r")
   if f~=nil then io.close(f) return true else return false end

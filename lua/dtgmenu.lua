@@ -99,24 +99,6 @@ end
 -- END Functions to SORT the TABLE
 -------------------------------------------------------------------------------
 
--- function to return a numeric value for a device status.
-function status2number(switchstatus)
-  -- translater the switchstatus to a number from 0-100
-  switchstatus = tostring(switchstatus)
-  print_to_log(2,"status2number Input switchstatus",switchstatus)
-  if switchstatus == "Off" or switchstatus == "Open" then
-    switchstatus = 0
-  elseif switchstatus == "On" or switchstatus == "Closed" then
-    switchstatus = 100
-  else
-    -- retrieve number from: "Set Level: 49 %"
-    switchstatus = switchstatus:gsub("Set Level: ", "")
-    switchstatus = switchstatus:gsub(" ", "")
-    switchstatus = switchstatus:gsub("%%", "")
-  end
-  print_to_log(2,"status2number Returned switchstatus",switchstatus)
-  return switchstatus
-end
 
 -------------------------------------------------------------------------------
 -- Start Function to set the new devicestatus. needs changing moving to on
@@ -128,34 +110,6 @@ end
 --      We could revamp this into supporting more Type's or just create a separate Function for that.
 --      The Thermostat update is currently done in the Actions section of the logic
 -------------------------------------------------------------------------------
-function SwitchName(DeviceName, DeviceType, SwitchType,idx,state)
-  local status
-  if idx == nil then
-    response = 'Device '..DeviceName..'  not found.'
-  else
-    local subgroup = "light"
-    if DeviceType == "scenes" then
-      subgroup = "scene"
-    end
-    if string.lower(state) == "on" then
-      state = "On";
-      t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd="..state;
-    elseif string.lower(state) == "off" then
-      state = "Off";
-      t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd="..state;
-    elseif string.lower(string.sub(state,1,9)) == "set level" then
-      t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd=Set%20Level&level="..string.sub(state,11)
-    else
-      return "state must be on, off or Set Level!";
-    end
-    print_to_log(1,"JSON request <"..t..">");
-    jresponse, status = http.request(t)
-    print_to_log(2,"JSON feedback: ", jresponse)
-    response = dtgmenu_lang[menu_language].text["Switched"] .. ' ' ..DeviceName..' => '..state
-  end
-  print_to_log(0,"   -< SwitchName:",DeviceName,idx, status,response)
-  return response, status
-end
 
 -------------------------------------------------------------------------------
 --- START Build the reply_markup functions.
@@ -184,7 +138,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
   local l3menu=""
 -- ==== Build Submenu - showing the Devices from the selected room of static config
 --                      This will also add the device status when showdevstatus=true for the option.
-  print_to_log(1,'submenu: '..submenu)
+  print_to_log(1,'     submenu: '..submenu)
   if Level == "submenu" or Level == "devicemenu" then
     if dtgmenu_submenus[submenu] ~= nil
     and dtgmenu_submenus[submenu].buttons ~= nil then
@@ -197,7 +151,6 @@ function makereplymenu(SendTo, Level, submenu, devicename)
         end
       end
       for i,get in orderedPairs(dtgmenu_submenus[submenu].buttons) do
-        print_to_log(2," Submenu item:",i,get.submenu)
         -- process all found devices in dtgmenu_submenus buttons table
         if i ~= "" then
           local switchstatus = ""
@@ -206,33 +159,34 @@ function makereplymenu(SendTo, Level, submenu, devicename)
           if get.whitelist == "" or ChkInTable(get.whitelist,SendTo) then
             -- add the device status to the button when requested
             if dtgmenu_submenus[submenu].showdevstatus == "y" then
-              didx,dDeviceName,dDeviceType,dType,dSwitchType,dMaxDimLevel,switchstatus = devinfo_from_name(get.idx,get.Name,get.DeviceType)
+              didx,dDeviceName,dDeviceType,dType,dSwitchType,dMaxDimLevel,switchstatus,LevelNames,LevelInt = devinfo_from_name(get.idx,get.Name,get.DeviceType)
               if ChkEmpty(switchstatus) then
                 switchstatus = ""
               else
-                switchstatus = tostring(switchstatus)
-                switchstatus = switchstatus:gsub("Set Level: ", "")
-                switchstatus = switchstatus:gsub(" ", "")
-                switchstatus = " " .. switchstatus
+                if dSwitchType == "Selector" then
+                  switchstatus = " "..getSelectorStatusLabel(get.actions,LevelInt)
+                else
+                  switchstatus = tostring(switchstatus)
+                  switchstatus = switchstatus:gsub("Set Level: ", "")
+                  switchstatus = switchstatus:gsub(" ", "")
+                  switchstatus = " " .. switchstatus
+                end
               end
             end
             -- add to the total menu string for later processing
-            print_to_log(2,"i:",i,"switchstatus:",switchstatus,"ButtonTextwidth:",ButtonTextwidth,"string.len(switchstatus):",string.len(switchstatus))
             t,newbutton = buildmenuitem(string.sub(i,1,ButtonTextwidth-string.len(switchstatus))..switchstatus,"menu",submenu .. " " .. i, DevMwitdh,t)
             l2menu=l2menu .. newbutton
             -- show the actions menu immediately for this devices since that is requested in the config
             -- this can avoid having the press 2 button before getting to the actions menu
             if get.showactions and devicename == "" then
-              print_to_log(2,"  - Changing to Device action level due to showactions:",i)
+              print_to_log(2,"    - Changing to Device action level due to showactions:",i)
               Level = "devicemenu"
               devicename = i
             end
           end
         end
-        print_to_log(2,"l2menu:",l2menu)
         -- ==== Build DeviceActionmenu
         -- do not build the actions menu when NoDevMenu == true. EG temp devices have no actions
-        print_to_log(2,"##### Level:",Level,"  i:",i,"  devicename:",devicename)
         if dtgmenu_submenus[submenu].NoDevMenu ~= true
         and Level == "devicemenu" and i == devicename then
           -- do not build the actions menu when DisplayActions == false on Device level. EG temp devices have no actions
@@ -252,7 +206,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
                 l3menu = dtgmenu_lang[menu_language].devices_options[Type]
                 if l3menu == nil then
                   print_to_log(1,"  !!! No default dtgmenu_lang[menu_language].devices_options for SwitchType:",SwitchType,Type)
-                  l3menu = "Aan,Uit"
+                  l3menu = dtgmenu_lang[menu_language].devices_options["On/Off"]
                 end
               end
             end
@@ -317,7 +271,7 @@ end
 function buildmenu(menuitems,width,prefix)
   local replymenu=""
   local t=0
-  print_to_log(2," process buildmenu:",menuitems," w:",width)
+  print_to_log(2,"      process buildmenu:",menuitems," w:",width)
   for dev in string.gmatch(menuitems, "[^|,]+") do
     if t == width then
       replymenu = replymenu .. '],'
@@ -339,7 +293,7 @@ end
 -- convert the provided menu options into a proper format for the replymenu
 function buildmenuitem(menuitem,prefix,Callback,width,t)
   local replymenu=""
-  print_to_log(2," process buildmenuitem:",menuitem,prefix,Callback," w:",width," t:",t)
+  print_to_log(2,"       process buildmenuitem:",menuitem,prefix,Callback," w:",width," t:",t)
   if t == width then
     replymenu = replymenu .. '],'
     t = 0
@@ -371,7 +325,7 @@ function PopulateMenuTab(iLevel,iSubmenu)
   -- reset menu table and rebuild
   dtgmenu_submenus = {}
 
-  print_to_log(1,"Submenu table including buttons defined in menu.cfg:",iLevel,iSubmenu)
+  print_to_log(1,"   Submenu table including buttons defined in menu.cfg:",iLevel,iSubmenu)
   for submenu,get in pairs(static_dtgmenu_submenus) do
     print_to_log(1,"=>",submenu, get.whitelist, get.showdevstatus,get.Menuwidth)
     if static_dtgmenu_submenus[submenu].buttons ~= nil then
@@ -446,6 +400,7 @@ function MakeRoomMenus(iLevel,iSubmenu)
             local SwitchType
             local Type
             local status=""
+            local LevelNames=""
             local MaxDimLevel=100
             local idx=DIPrecord.devidx
             local name=DIPrecord.Name
@@ -457,7 +412,7 @@ function MakeRoomMenus(iLevel,iSubmenu)
               idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"","scenes")
             else
               print_to_log(1,"--> device record")
-              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = devinfo_from_name(idx,"","devices")
+              idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status,LevelNames = devinfo_from_name(idx,"","devices")
             end
             -- Remove the name of the room from the device if it is present and any susequent Space or Hyphen or undersciore
             button = string.gsub(DeviceName,room_name.."[%s-_]*","")
@@ -474,7 +429,11 @@ function MakeRoomMenus(iLevel,iSubmenu)
             -- fill the button table records with all required fields
             buttons[button]={}
             buttons[button].whitelist=""               -- Not implemented for Dynamic menu: Whitelist number(s) for this device, blank is ALL
-            buttons[button].actions=""                 -- Not implemented for Dynamic menu: Hardcoded Actions for the device
+            if LevelNames == "" or LevelNames == nil then
+              buttons[button].actions=""                 -- Not implemented for Dynamic menu: Hardcoded Actions for the device
+            else
+              buttons[button].actions=LevelNames:gsub("|",",")
+            end
             buttons[button].showactions=false          -- Not implemented for Dynamic menu: Show Device action menu right away when its menu is selected
             buttons[button].Name=DeviceName            -- Original devicename needed to be able to perform the "Set new status" commands
             buttons[button].idx=idx
@@ -500,19 +459,59 @@ end
 -----------------------------------------------
 --- Start Misc Function to support the process
 -----------------------------------------------
+-- function to return a numeric value for a device status.
+function status2number(switchstatus)
+  -- translater the switchstatus to a number from 0-100
+  switchstatus = tostring(switchstatus)
+  print_to_log(2,"--> status2number Input switchstatus",switchstatus)
+  if switchstatus == "Off" or switchstatus == "Open" then
+    switchstatus = 0
+  elseif switchstatus == "On" or switchstatus == "Closed" then
+    switchstatus = 100
+  else
+    -- retrieve number from: "Set Level: 49 %"
+    switchstatus = switchstatus:gsub("Set Level: ", "")
+    switchstatus = switchstatus:gsub(" ", "")
+    switchstatus = switchstatus:gsub("%%", "")
+  end
+  print_to_log(2,"--< status2number Returned switchstatus",switchstatus)
+  return switchstatus
+end
 -- SCAN through provided delimited string for the second parameter
 function ChkInTable(itab,idev)
-  print_to_log(2, " ChkInTable: ", itab)
+--~   print_to_log(2, " ChkInTable: ",idev,itab)
+  local cnt=0
   if itab ~= nil then
     for dev in string.gmatch(itab, "[^|,]+") do
+      cnt=cnt+1
       if dev == idev then
---~ 				print_to_log(0, "- ChkInTable found: ".. dev)
-        return true
+				print_to_log(2, "-< ChkInTable found: "..idev,cnt,itab)
+        return true,cnt
       end
     end
   end
-  print_to_log(2, "- ChkInTable not found: "..idev)
-  return false
+  print_to_log(2, "-< ChkInTable not found: "..idev,cnt,itab)
+  return false,0
+end
+-- SCAN through provided delimited string for the second parameter
+function getSelectorStatusLabel(itab,ival)
+--~   print_to_log(2, " getSelectorStatusLabel: ",ival,itab)
+  local cnt=0
+  --
+  if itab ~= nil then
+    -- convert 0;10;20;30  etc  to 1;2;3;5  etc
+    ival=(ival/10)+1
+    -- get the label and return
+    for lbl in string.gmatch(itab, "[^|,]+") do
+      cnt=cnt+1
+      if cnt == ival then
+				print_to_log(2, "-< getSelectorStatusLabel found: "..lbl,cnt,itab)
+        return lbl
+      end
+    end
+  end
+  print_to_log(2, "-< getSelectorStatusLabel not found: "..ival,cnt,itab)
+  return ""
 end
 --
 -- Simple check function whether the input field is nil or empty ("")
@@ -536,7 +535,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   local commandlinex = ""  -- need to rebuild the commndline for feedng back
   local parsed_command = {} -- rebuild table without the dtgmenu command in case we need to hand it back as other command
   for nbr,param in pairs(menu_cli) do
-    print_to_log(2,"param:",param)
+    print_to_log(2,"  param:",param)
     if nbr > 2 then
       commandline = commandline .. param .. " "
     end
@@ -597,17 +596,6 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   print_to_log(1,' => cmdisbutton :',cmdisbutton)
   print_to_log(1,' => cmdissubmenu:',cmdissubmenu)
 
-  --???  not yet sure this is needed anymore
---~   Menuidx = idx_from_variable_name("TelegramBotMenu")
---~   if Menuidx ~= nil then
---~     Menuval = get_variable_value(Menuidx)
---~     if Menuval == "On" then
---~       -- initialise
---~       -- define the menu table and initialize the table first time
---~       PopulateMenuTab(1,"")
---~     end
---~   end
-
   -------------------------------------------------
   -- Process "start" or "menu" commands
   -------------------------------------------------
@@ -632,18 +620,6 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     return status, response, replymarkup, commandline
   end
 
-  -----------------------------------------------------
-  -- process when command is not known in the last menu
-  -----------------------------------------------------
-  -- This shouldn't happen anymore with the callback statements!!!
-  if cmdisaction == false
-  and cmdisbutton == false
-  and cmdissubmenu == false then
-    status = 1
-    response = "Unknown DTGMENU commandline:"..commandline
-    print_to_log(0,"==<1b found regular lua command and param was given. -> hand back to dtgbot to run",commandlinex )
-    return status, response, replymarkup, parsed_command
-  end
   -------------------------------------------------
   -- continue set local variables
   -------------------------------------------------
@@ -656,42 +632,19 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   local SwitchType = ""
   local idx        = ""
   local Type       = ""
-  local dstatus     = ""
+  local dstatus    = ""
   local MaxDimLevel= 0
+  local LevelNames = ""
+  local LevelInt=0
   if cmdissubmenu then
     submenu    = param1
   end
 
   local dummy
   ----------------------------------------------------------------------
-  -- Set needed variable when the command is a known device menu button
-  ----------------------------------------------------------------------
-  if cmdisbutton then
-    print_to_log(2,"submenu:",submenu,"devicename:",devicename)
-    print_to_log(2,"dtgmenu_submenus[submenu]:",dtgmenu_submenus[submenu])
-    print_to_log(2,"dtgmenu_submenus[submenu].buttons[devicename]:",dtgmenu_submenus[submenu].buttons[devicename])
-    realdevicename = dtgmenu_submenus[submenu].buttons[devicename].Name
-    Type       = dtgmenu_submenus[submenu].buttons[devicename].Type
-    idx        = dtgmenu_submenus[submenu].buttons[devicename].idx
-    DeviceType = dtgmenu_submenus[submenu].buttons[devicename].DeviceType
-    SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
-    MaxDimLevel= dtgmenu_submenus[submenu].buttons[devicename].MaxDimLevel
-    print_to_log(1,' => devicename :',devicename)
-    print_to_log(1,' => realdevicename :',realdevicename)
-    print_to_log(1,' => idx:',idx)
-    print_to_log(1,' => Type :',Type)
-    print_to_log(1,' => DeviceType :',DeviceType)
-    print_to_log(1,' => SwitchType :',SwitchType)
-    print_to_log(1,' => MaxDimLevel:',MaxDimLevel)
-    if DeviceType ~= "command" then
-      dummy,dummy,dummy,dummy,dummy,dummy,dstatus = devinfo_from_name(idx,realdevicename,DeviceType)
-      print_to_log(1,' => dstatus    :',dstatus)
-    end
-  end
-  ----------------------------------------------------------------------
   -- Set needed variables when the command is a known action menu button
   ----------------------------------------------------------------------
-  if cmdisaction then
+  if cmdisbutton or cmdisaction then
     realdevicename = dtgmenu_submenus[submenu].buttons[devicename].Name
     Type       = dtgmenu_submenus[submenu].buttons[devicename].Type
     idx        = dtgmenu_submenus[submenu].buttons[devicename].idx
@@ -706,8 +659,10 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     print_to_log(1,' => SwitchType :',SwitchType)
     print_to_log(1,' => MaxDimLevel :',MaxDimLevel)
     if DeviceType ~= "command" then
-      dummy,dummy,dummy,dummy,dummy,dummy,dstatus = devinfo_from_name(idx,realdevicename,DeviceType)
+      dummy,dummy,dummy,dummy,dummy,dummy,dstatus,LevelNames,LevelInt = devinfo_from_name(idx,realdevicename,DeviceType)
       print_to_log(1,' => dstatus    :',dstatus)
+      print_to_log(1,' => LevelNames :',LevelNames)
+      print_to_log(1,' => LevelInt   :',LevelInt)
     end
   end
 
@@ -781,6 +736,10 @@ function dtgmenu_module.handler(menu_cli,SendTo)
           switchstatus = tostring(switchstatus)
           switchstatus = switchstatus:gsub("Set Level: ", "")
         end
+        -- Get the correct Label for a Selector switch which belongs to the level.
+        if SwitchType == "Selector" then
+          switchstatus = getSelectorStatusLabel(LevelNames,LevelInt)
+        end
         response = dtgmenu_lang[menu_language].text["SelectOptionwo"].. devicename .. "(" .. switchstatus .. ")"
       else
         switchstatus = dstatus
@@ -816,20 +775,29 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     jresponse, status = http.request(t)
     print_to_log(1,"JSON feedback: ", jresponse)
     response="Set "..realdevicename.." to "..action
+  elseif SwitchType=="Selector" then
+    local sfound,Selector_Option = ChkInTable(LevelNames,action)
+    if sfound then
+      Selector_Option=(Selector_Option-1)*10
+      print_to_log(2,"    -> Selector Switch level found ", Selector_Option,LevelNames,action)
+      response=sSwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level "..Selector_Option)
+    else
+      response= "Selector Option not found:"..action
+    end
   -------------------------------------------------
   -- regular On/Off/Set Level
   -------------------------------------------------
   elseif ChkInTable(string.lower(dtgmenu_lang[menu_language].switch_options["Off"]),string.lower(action)) then
-    response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'Off')
+    response= sSwitchName(realdevicename,DeviceType,SwitchType,idx,'Off')
   elseif ChkInTable(string.lower(dtgmenu_lang[menu_language].switch_options["On"]),string.lower(action)) then
-    response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'On')
-  elseif string.find(action, "%d") then
-    -- calculate the proper leve lto set the dimmer
-    rellev = MaxDimLevel/100*tonumber(action)  -- calculate the relative level
+    response= sSwitchName(realdevicename,DeviceType,SwitchType,idx,'On')
+  elseif string.find(action, "%d") then  -- assume a percentage is specified.
+    -- calculate the proper level to set the dimmer
+    action = action:gsub("%%","") -- remove % sign
+    rellev = tonumber(action)*MaxDimLevel/100  -- calculate the relative level
     rellev = tonumber(string.format("%.0f", rellev)) -- remove decimals
     action = tostring(rellev)
-    response = "Set level " .. action
-    response= SwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level " .. action)
+    response= sSwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level " .. action)
   elseif action == "+" or action == "-" then
     -- calculate the proper leve lto set the dimmer
     dstatus=status2number(dstatus)
@@ -837,11 +805,10 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     action = tonumber(dstatus) + tonumber(action.."10")
     if action > 100 then action = 100 end
     if action < 0 then action = 0 end
-    response = realdevicename.." Set level " .. action .. "%"
     rellev = MaxDimLevel/100*tonumber(action)  -- calculate the relative level
     rellev = tonumber(string.format("%.0f", rellev)) -- remove decimals
     action = tostring(rellev)
-    SwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level " .. action)
+    response=sSwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level " .. action)
   -------------------------------------------------
   -- Unknown Action
   -------------------------------------------------

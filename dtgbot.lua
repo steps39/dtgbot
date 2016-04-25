@@ -263,9 +263,8 @@ function HandleCommand(cmd, SendTo, Group, MessageId,MsgType)
   end
   local found=0
   --~	added "-_"to allowed characters a command/word
-  for w in string.gmatch(cmd, "([%w-_?++-**]+)") do
+  for w in string.gmatch(cmd, "([%w-_?%%++-**]+)") do
     table.insert(parsed_command, w)
-    print_to_log(2,"### w:",w)
   end
   if command_prefix ~= "" then
     if parsed_command[1] ~= command_prefix then -- command prefix has not been found so ignore message
@@ -386,12 +385,12 @@ function send_msg(SendTo, Message, MessageId, replymarkup,MsgType)
       replymarkup = '&reply_markup='..url_encode(replymarkup)
     end
     print_to_log(1,telegram_url..'editMessageText?chat_id='..SendTo..'&message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
-    print_to_debuglog(1,'==> /editMessageText?chat_id='..SendTo..'&message_id='..MessageId..'&text='..Message.. replymarkup)
+    print_to_log(3,'==> /editMessageText?chat_id='..SendTo..'&message_id='..MessageId..'&text='..Message.. replymarkup)
     response, status = https.request(telegram_url..'editMessageText?chat_id='..SendTo..'&message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
     -- rebuild new message with inlinemenu when the old message can't be updated
     if status == 400 and string.find(response, "Message can't be edited") then
-      print_to_debuglog(1,status..'<== ',response)
-      print_to_debuglog(1,'==> /sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..Message..replymarkup)
+      print_to_log(3,status..'<== ',response)
+      print_to_log(3,'==> /sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..Message..replymarkup)
       response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
     end
   else
@@ -400,15 +399,15 @@ function send_msg(SendTo, Message, MessageId, replymarkup,MsgType)
     else
       replymarkup = '&reply_markup='..url_encode(replymarkup)
     end
-    print_to_debuglog(1,'==> /sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..Message..replymarkup)
+    print_to_log(3,'==> /sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..Message..replymarkup)
     print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
     response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
   end
   --  response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&text=hjk')
-  print_to_log(0,'Message sent',status)
+  print_to_log(1,'Message sent',status)
   print_to_log(2,'response',response)
-  print_to_debuglog(1,status..'<== ',response)
-  print_to_debuglog(1,'-----------------------------------------------------------------------------------')
+  print_to_log(3,status..'<== ',response)
+  print_to_log(3,'-----------------------------------------------------------------------------------')
   return
 end
 
@@ -533,18 +532,6 @@ end
 
 print_to_log(0,' dtgbotLogLevel set to: '..tostring(dtgbotLogLevel))
 
--- Retrieve id white list
-WLidx = idx_from_variable_name(WLName)
-if WLidx == nil then
-  print_to_log(0,WLName..' user variable does not exist in Domoticz')
-  print_to_log(0,'So will allow any id to use the bot')
-else
-  print_to_log(0,'WLidx '..WLidx)
-  WLString = get_variable_value(WLidx)
-  print_to_log(0,'WLString: '..WLString)
-  WhiteList = get_names_from_variable(WLString)
-end
-
 -- Get the updates
 print_to_log(0,'Getting '..TBOName..' the previous Telegram bot message offset from Domoticz')
 TBOidx = idx_from_variable_name(TBOName)
@@ -582,12 +569,12 @@ while file_exists(dtgbot_pid) do
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
         msg = tt['message']
         if msg ~= nil then
-          print_to_debuglog(1,'<== message:' .. tostring(msg.text).." -->"..response)
+          print_to_log(3,'<== message:' .. tostring(msg.text).." -->"..response)
           on_msg_receive(msg)
         else
           msg = tt['callback_query']
           if msg ~= nil then
-            print_to_debuglog(1,'<== callback_query:' .. tostring(msg.data).." -->"..response)
+            print_to_log(3,'<== callback_query:' .. tostring(msg.data).." -->"..response)
             lastmsg = on_callback_receive(msg)
           end
         end
