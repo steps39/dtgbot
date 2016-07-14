@@ -122,6 +122,12 @@ function device_list_names_idxs(DeviceType)
   result = decoded_response['result']
   devices = {}
   devicesproperties = {}
+  
+  if type(result) ~= 'table' then
+        print_to_log(0, 'No devices found for type "'.. DeviceType ..'"')
+        return devices, devicesproperties
+  end
+  
   for i = 1, #result do
     record = result[i]
     if type(record) == "table" then
