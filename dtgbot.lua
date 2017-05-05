@@ -532,7 +532,8 @@ end
 TelegramBotOffset=get_variable_value(TBOidx)
 print_to_log(1,'TBO '..TelegramBotOffset)
 print_to_log(1,telegram_url)
---while TelegramBotOffset do
+--Update monitorfile before loop
+os.execute("echo " .. os.date("%Y-%m-%d %H:%M:%S") .. " >> " .. TempFileDir .. "/dtgloop.txt")
 while file_exists(dtgbot_pid) do
   response, status = https.request(telegram_url..'getUpdates?timeout=60&offset='..TelegramBotOffset)
   if status == 200 then
