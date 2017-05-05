@@ -59,6 +59,7 @@ DomoticzIP = domoticzdata("DomoticzIP")
 DomoticzPort = domoticzdata("DomoticzPort")
 BotHomePath = domoticzdata("BotHomePath")
 BotLuaScriptPath = domoticzdata("BotLuaScriptPath")
+TempFileDir = domoticzdata("TempFileDir")
 BotBashScriptPath = domoticzdata("BotBashScriptPath")
 TelegramBotToken = domoticzdata("TelegramBotToken")
 TBOName = domoticzdata("TelegramBotOffset")
@@ -559,5 +560,7 @@ while file_exists(dtgbot_pid) do
       print_to_log(2,'Updates retrieved',status)
     end
   end
+  --Update monitorfile each loop
+  os.execute("echo " .. os.date("%Y-%m-%d %H:%M:%S") .. " >> " .. TempFileDir .. "/dtgloop.txt")
 end
 print_to_log(0,dtgbot_pid..' does not exist, so exiting')
