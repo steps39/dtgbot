@@ -546,13 +546,15 @@ while file_exists(dtgbot_pid) do
         tt = table.remove(result_table,1)
         msg = tt['message']
         print_to_log(1,'update_id ',tt.update_id)
-        print_to_log(1,msg.text)
         TelegramBotOffset = tt.update_id + 1
         print_to_log(1,'TelegramBotOffset '..TelegramBotOffset)
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
         -- Offset updated before processing in case of crash allows clean restart
-        on_msg_receive(msg)
-      end
+				if msg ~= nil and msg.text ~= nil then
+					print_to_log(1,msg.text)
+					on_msg_receive(msg)
+				end
+			end
     else
       print_to_log(2,'Updates retrieved',status)
     end
