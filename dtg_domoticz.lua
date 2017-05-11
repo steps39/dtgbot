@@ -63,7 +63,7 @@ end
 -- returns the value of the variable from the idx
 function get_variable_value(idx)
   local t, jresponse, decoded_response
-  if idx == nill then
+  if idx == nil then
     return ""
   end
   t = server_url.."/json.htm?type=command&param=getuservariable&idx="..tostring(idx)
@@ -122,6 +122,7 @@ function device_list_names_idxs(DeviceType)
   result = decoded_response['result']
   devices = {}
   devicesproperties = {}
+  if result ~= nil then
   for i = 1, #result do
     record = result[i]
     if type(record) == "table" then
@@ -135,6 +136,7 @@ function device_list_names_idxs(DeviceType)
         end
       end
     end
+  end
   end
   return devices, devicesproperties
 end
@@ -153,7 +155,7 @@ end
 function retrieve_status(idx,DeviceType)
   local t, jresponse, status, decoded_response
   t = server_url.."/json.htm?type="..DeviceType.."&rid="..tostring(idx)
-  print_to_log(1,"JSON request <"..t..">");
+  print_to_log(2,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   decoded_response = JSON:decode(jresponse)
   return decoded_response
@@ -165,6 +167,8 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
   local found = 0
   local rDeviceName=""
   local status=""
+  local LevelNames=""
+  local LevelInt=0
   local MaxDimLevel=100
   local ridx=0
   if DeviceScene~="scenes" then
@@ -174,38 +178,46 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
       idx = idx_from_name(DeviceName,'devices')
     end
     print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
-    if idx ~= nil then
-      record = retrieve_status(idx,"devices")['result'][1]
-      print_to_log(2,'device ',DeviceName,record.Name,idx,record.idx)
-      if type(record) == "table" then
-        ridx = record.idx
-        rDeviceName = record.Name
-        DeviceType="devices"
-        Type=record.Type
-        -- as default simply use the status field
-        -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
-        if dtgbot_type_status[Type] ~= nil then
-          if dtgbot_type_status[Type].Status ~= nil then
-            status = ''
-            CurrentStatus = dtgbot_type_status[Type].Status
-            for i=1, #CurrentStatus do
-              if status ~= '' then
-                status = status .. ' - '
-              end
-              cindex, csuffix = next(CurrentStatus[i])
-              status = status .. tostring(record[cindex])..tostring(csuffix)
-            end
-          end
-        else
-          SwitchType=record.SwitchType
-          MaxDimLevel=record.MaxDimLevel
-          status = tostring(record.Status)
-        end
-        found = 1
-        print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
-      end
-    end
-    print_to_log(2," !!!! found device",rDeviceName,ridx)
+		if idx ~= nil then
+			local tvar	= retrieve_status(idx,"devices")['result']
+			-- added test to avoid crash in case the returned json doesn't contain the RESULT section
+			if tvar ~= nil then
+				record = tvar[1]
+				print_to_log(2,'device ',DeviceName,record.Name,idx,record.idx)
+				if type(record) == "table" then
+					ridx = record.idx
+					rDeviceName = record.Name
+					DeviceType="devices"
+					Type=record.Type
+					LevelInt=record.LevelInt
+					if LevelInt == nil then LevelInt = 0 end
+					LevelNames=record.LevelNames
+					if LevelNames == nil then LevelNames = "" end
+					-- as default simply use the status field
+					-- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
+					if dtgbot_type_status[Type] ~= nil then
+						if dtgbot_type_status[Type].Status ~= nil then
+							status = ''
+							CurrentStatus = dtgbot_type_status[Type].Status
+							for i=1, #CurrentStatus do
+								if status ~= '' then
+									status = status .. ' - '
+								end
+								cindex, csuffix = next(CurrentStatus[i])
+								status = status .. tostring(record[cindex])..tostring(csuffix)
+							end
+						end
+					else
+						SwitchType=record.SwitchType
+						MaxDimLevel=record.MaxDimLevel
+						status = tostring(record.Status)
+					end
+					found = 1
+--~         			print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
+				end
+			end
+		end
+--~     print_to_log(2," !!!! found device",rDeviceName,ridx)
   end
 -- Check for Scenes
   if found == 0 then

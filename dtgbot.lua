@@ -212,18 +212,6 @@ function dtgbot_initialise()
     end
   end
 
--- Retrieve id white list
-  WLidx = idx_from_variable_name(WLName)
-  if WLidx == nil then
-    print_to_log(0,WLName..' user variable does not exist in Domoticz')
-    print_to_log(0,'So will allow any id to use the bot')
-  else
-    print_to_log(0,'WLidx '..WLidx)
-    WLString = get_variable_value(WLidx)
-    print_to_log(0,'WLString: '..WLString)
-    WhiteList = get_names_from_variable(WLString)
-  end
-
   return
 end
 
@@ -252,10 +240,9 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
     parsed_command = {}
   end
   -- strip the beginning / from any command
-  --cmd = cmd:gsub("/","") - takes out all slashes
---  if cmd:sub(1,1) == "/" then -- should just take out one
---    cmd = cmd:sub(2)
---  end
+--~   print(cmd)
+--~   cmd = cmd:gsub("/.*","%1")
+--~   print(cmd)
   local found=0
 
   ---------------------------------------------------------------------------
@@ -348,6 +335,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
   end
   if text ~= "" then
     while string.len(text)>0 do
+
 --~         added replymarkup to allow for custom keyboard
       if Group ~= "" then
         send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
@@ -532,13 +520,20 @@ end
 TelegramBotOffset=get_variable_value(TBOidx)
 print_to_log(1,'TBO '..TelegramBotOffset)
 print_to_log(1,telegram_url)
+telegram_connected = false
 --Update monitorfile before loop
 os.execute("echo " .. os.date("%Y-%m-%d %H:%M:%S") .. " >> " .. TempFileDir .. "/dtgloop.txt")
 while file_exists(dtgbot_pid) do
   response, status = https.request(telegram_url..'getUpdates?timeout=60&offset='..TelegramBotOffset)
   if status == 200 then
+    if not telegram_connected then
+      print_to_log(0,'')
+      print_to_log(0,'### In contact with Telegram servers')
+      telegram_connected = true
+    end
     if response ~= nil then
       io.write('.')
+      print_to_log(1,"")
       print_to_log(1,response)
       decoded_response = JSON:decode(response)
       result_table = decoded_response['result']
@@ -558,8 +553,19 @@ while file_exists(dtgbot_pid) do
 				end
 			end
     else
+      io.write('X')
+      print_to_log(2,'')
       print_to_log(2,'Updates retrieved',status)
     end
+  else
+    io.write('?')
+    if telegram_connected then
+      print_to_log(0,'')
+      print_to_log(0,'### Lost contact with Telegram servers, received Non 200 status - returned - ',status)
+      telegram_connected = false
+    end
+    -- sleep a little to slow donw the loop
+    os.execute("sleep 5")
   end
   --Update monitorfile each loop
   os.execute("echo " .. os.date("%Y-%m-%d %H:%M:%S") .. " >> " .. TempFileDir .. "/dtgloop.txt")

@@ -517,7 +517,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   end
   --~	split the commandline into parameters
   local dtgmenu_cli={}
-  for w in string.gmatch(menu_cli[2], "([%w-_*]+)") do
+  for w in string.gmatch(menu_cli[2], "([%w-_?%%++><&-**]+)") do
     table.insert(dtgmenu_cli, w)
   end
   --
@@ -643,7 +643,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     LastCommand[SendTo]["l2menu"] = ""
     LastCommand[SendTo]["l3menu"] = ""
     LastCommand[SendTo]["prompt"] = false
-    print_to_log(0,"==<1a promt and found regular lua command and param was given. -> hand back to dtgbot to run",commandline)
+    print_to_log(0,"==<1a prompt and found regular lua command and param was given. -> hand back to dtgbot to run",commandline)
     return status, response, replymarkup, commandline
   end
 
@@ -876,9 +876,9 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   -------------------------------------------------
   -- regular On/Off/Set Level
   -------------------------------------------------
-  elseif ChkInTable(string.lower(dtgmenu_lang[menu_language].switch_options["Off"]),action) then
+  elseif ChkInTable(string.lower(dtgmenu_lang[menu_language].switch_options["Off"]),string.lower(action)) then
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'Off')
-  elseif ChkInTable(string.lower(dtgmenu_lang[menu_language].switch_options["On"]),action) then
+  elseif ChkInTable(string.lower(dtgmenu_lang[menu_language].switch_options["On"]),string.lower(action)) then
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'On')
   elseif string.find(action, "%d") then
     -- calculate the proper leve lto set the dimmer
@@ -923,6 +923,5 @@ Menuidx=0
 Menuval="Off"
 dtgmenu_submenus = {}
 --~ PopulateMenuTab(1,"")  -- now done in refresh
-
 
 return dtgmenu_module;
