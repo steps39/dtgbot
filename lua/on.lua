@@ -2,7 +2,6 @@ local on_module = {};
 local http = require "socket.http";
 --JSON = assert(loadfile "JSON.lua")() -- one-time load of the routines
 
-
 function switch(parsed_cli)
   command = parsed_cli[2]
   DeviceName = form_device_name(parsed_cli)

@@ -79,6 +79,7 @@ dtgbotLogLevel=0
 DomoticzIP = domoticzdata("DomoticzIP")
 DomoticzPort = domoticzdata("DomoticzPort")
 BotHomePath = domoticzdata("BotHomePath")
+TempFileDir = domoticzdata("TempFileDir")
 BotLuaScriptPath = domoticzdata("BotLuaScriptPath")
 BotBashScriptPath = domoticzdata("BotBashScriptPath")
 TelegramBotToken = domoticzdata("TelegramBotToken")
@@ -232,7 +233,6 @@ function dtgbot_initialise()
     print_to_log(0,'WLString: '..WLString)
     WhiteList = get_names_from_variable(WLString)
   end
-
   return
 end
 
@@ -251,7 +251,7 @@ function timedifference(s)
   return difference
 end
 
-function HandleCommand(cmd, SendTo, Group, MessageId,MsgType)
+function HandleCommand(cmd, SendTo, Group, MessageId, MsgType)
   print_to_log(0,"Handle command function started with " .. cmd .. " ==>for " .. SendTo)
   local replymarkup =""
   --- parse the command
@@ -263,7 +263,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId,MsgType)
   end
   local found=0
   --~	added "-_"to allowed characters a command/word
-  for w in string.gmatch(cmd, "([%w-_?%%++-**]+)") do
+  for w in string.gmatch(cmd, "([%w-_?%%++><&-**]+)") do
     table.insert(parsed_command, w)
   end
   if command_prefix ~= "" then
@@ -545,6 +545,7 @@ TelegramBotOffset=get_variable_value(TBOidx)
 print_to_log(1,'TBO '..TelegramBotOffset)
 print_to_log(1,telegram_url)
 telegram_connected = false
+os.execute("echo " .. os.date("%Y-%m-%d %H:%M:%S") .. " >> " .. TempFileDir .. "/dtgnewloop.txt")
 --while TelegramBotOffset do
 while file_exists(dtgbot_pid) do
   response, status = https.request(telegram_url..'getUpdates?timeout=60&offset='..TelegramBotOffset)
@@ -587,12 +588,12 @@ while file_exists(dtgbot_pid) do
   else
     io.write('?')
     if telegram_connected then
-      print_to_log(0,'')
       print_to_log(0,'### Lost contact with Telegram servers, received Non 200 status - returned - ',status)
       telegram_connected = false
     end
     -- sleep a little to slow the loop
     os.execute("sleep 5")
   end
+    os.execute("echo " .. os.date("%Y-%m-%d %H:%M:%S") .. " >> " .. TempFileDir .. "/dtgnewloop.txt")
 end
 print_to_log(0,dtgbot_pid..' does not exist, so exiting')

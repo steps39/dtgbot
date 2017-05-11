@@ -98,8 +98,6 @@ end
 -------------------------------------------------------------------------------
 -- END Functions to SORT the TABLE
 -------------------------------------------------------------------------------
-
-
 -------------------------------------------------------------------------------
 -- Start Function to set the new devicestatus. needs changing moving to on
 -- Jos: Maybe we should create a general lua library because this does more than On/Off
@@ -110,7 +108,6 @@ end
 --      We could revamp this into supporting more Type's or just create a separate Function for that.
 --      The Thermostat update is currently done in the Actions section of the logic
 -------------------------------------------------------------------------------
-
 -------------------------------------------------------------------------------
 --- START Build the reply_markup functions.
 --  this function will build the requested menu layout and calls the function to retrieve the devices/scenes  details.
@@ -259,9 +256,10 @@ function makereplymenu(SendTo, Level, submenu, devicename)
   t,newbutton = buildmenuitem("Exit","menu","exit",SubMenuwidth,t)
   l1menu=l1menu .. newbutton
   l1menu=l1menu .. ']'
-  replymarkup = replymarkup .. l1menu .. '],"resize_keyboard":true'
+  replymarkup = replymarkup .. l1menu .. ']'
   --(not working with inline keyboards (yet?). add the resize menu option when desired. this sizes the keyboard menu to the size required for the options
-  --replymarkup = replymarkup .. ',"resize_keyboard":true}'
+--~   replymarkup = replymarkup..',"resize_keyboard":true'
+--~   replymarkup = replymarkup..',"hide_keyboard":true,"selective":false'
   replymarkup = replymarkup .. '}'
   print_to_log(0,"  -< replymarkup:"..replymarkup)
 -- save menus
@@ -459,6 +457,7 @@ end
 -----------------------------------------------
 --- Start Misc Function to support the process
 -----------------------------------------------
+
 -- function to return a numeric value for a device status.
 function status2number(switchstatus)
   -- translater the switchstatus to a number from 0-100
@@ -485,7 +484,7 @@ function ChkInTable(itab,idev)
     for dev in string.gmatch(itab, "[^|,]+") do
       cnt=cnt+1
       if dev == idev then
-				print_to_log(2, "-< ChkInTable found: "..idev,cnt,itab)
+        print_to_log(2, "-< ChkInTable found: "..idev,cnt,itab)
         return true,cnt
       end
     end
@@ -505,7 +504,7 @@ function getSelectorStatusLabel(itab,ival)
     for lbl in string.gmatch(itab, "[^|,]+") do
       cnt=cnt+1
       if cnt == ival then
-				print_to_log(2, "-< getSelectorStatusLabel found: "..lbl,cnt,itab)
+        print_to_log(2, "-< getSelectorStatusLabel found: "..lbl,cnt,itab)
         return lbl
       end
     end
@@ -513,6 +512,7 @@ function getSelectorStatusLabel(itab,ival)
   print_to_log(2, "-< getSelectorStatusLabel not found: "..ival,cnt,itab)
   return ""
 end
+
 --
 -- Simple check function whether the input field is nil or empty ("")
 function ChkEmpty(itxt)
@@ -645,13 +645,16 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   -- Set needed variables when the command is a known action menu button
   ----------------------------------------------------------------------
   if cmdisbutton or cmdisaction then
+    print_to_log(1,' => submenu :',submenu)
+    print_to_log(1,' => devicename :',devicename)
+    print_to_log(1,' => dtgmenu_submenus[submenu] :',dtgmenu_submenus[submenu])
+    print_to_log(1,' => dtgmenu_submenus[submenu].buttons[devicename] :',dtgmenu_submenus[submenu].buttons[devicename])
     realdevicename = dtgmenu_submenus[submenu].buttons[devicename].Name
     Type       = dtgmenu_submenus[submenu].buttons[devicename].Type
     idx        = dtgmenu_submenus[submenu].buttons[devicename].idx
     DeviceType = dtgmenu_submenus[submenu].buttons[devicename].DeviceType
     SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
     MaxDimLevel = dtgmenu_submenus[submenu].buttons[devicename].MaxDimLevel
-    print_to_log(1,' => devicename :',devicename)
     print_to_log(1,' => realdevicename :',realdevicename)
     print_to_log(1,' => idx:',idx)
     print_to_log(1,' => Type :',Type)
@@ -760,6 +763,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   -- Specials
   -------------------------------------------------
   print_to_log(1,"   -> Start Action:"..action)
+
   if Type == "Thermostat" then
     -- Set Temp + or - .5 degrees
     if action == "+" or action == "-" then
@@ -775,6 +779,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     jresponse, status = http.request(t)
     print_to_log(1,"JSON feedback: ", jresponse)
     response="Set "..realdevicename.." to "..action
+
   elseif SwitchType=="Selector" then
     local sfound,Selector_Option = ChkInTable(LevelNames,action)
     if sfound then

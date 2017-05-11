@@ -128,7 +128,7 @@ function device_list_names_idxs(DeviceType)
       if type(record) == "table" then
         if DeviceType == "plans" then
           devices[record['Name']] = record['idx']
-          else
+        else
           devices[string.lower(record['Name'])] = record['idx']
           devices[record['idx']] = record['Name']
           if DeviceType == 'scenes' then
@@ -179,38 +179,42 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
     end
     print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
     if idx ~= nil then
-      record = retrieve_status(idx,"devices")['result'][1]
---~       print_to_log(2,'  device ',DeviceName,record.Name,idx,record.idx)
-      if type(record) == "table" then
-        ridx = record.idx
-        rDeviceName = record.Name
-        DeviceType="devices"
-        Type=record.Type
-        LevelInt=record.LevelInt
-        if LevelInt == nil then LevelInt = 0 end
-        LevelNames=record.LevelNames
-        if LevelNames == nil then LevelNames = "" end
-        -- as default simply use the status field
-        -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
-        if dtgbot_type_status[Type] ~= nil then
-          if dtgbot_type_status[Type].Status ~= nil then
-            status = ''
-            CurrentStatus = dtgbot_type_status[Type].Status
-            for i=1, #CurrentStatus do
-              if status ~= '' then
-                status = status .. ' - '
+      local tvar	= retrieve_status(idx,"devices")['result']
+      -- added test to avoid crash in case the returned json doesn't contain the RESULT section
+      if tvar ~= nil then
+        record = tvar[1]
+        print_to_log(2,'device ',DeviceName,record.Name,idx,record.idx)
+        if type(record) == "table" then
+          ridx = record.idx
+          rDeviceName = record.Name
+          DeviceType="devices"
+          Type=record.Type
+          LevelInt=record.LevelInt
+          if LevelInt == nil then LevelInt = 0 end
+          LevelNames=record.LevelNames
+          if LevelNames == nil then LevelNames = "" end
+          -- as default simply use the status field
+          -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
+          if dtgbot_type_status[Type] ~= nil then
+            if dtgbot_type_status[Type].Status ~= nil then
+              status = ''
+              CurrentStatus = dtgbot_type_status[Type].Status
+              for i=1, #CurrentStatus do
+                if status ~= '' then
+                  status = status .. ' - '
+                end
+                cindex, csuffix = next(CurrentStatus[i])
+                status = status .. tostring(record[cindex])..tostring(csuffix)
               end
-              cindex, csuffix = next(CurrentStatus[i])
-              status = status .. tostring(record[cindex])..tostring(csuffix)
             end
+          else
+            SwitchType=record.SwitchType
+            MaxDimLevel=record.MaxDimLevel
+            status = tostring(record.Status)
           end
-        else
-          SwitchType=record.SwitchType
-          MaxDimLevel=record.MaxDimLevel
-          status = tostring(record.Status)
+          found = 1
+  --~         print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
         end
-        found = 1
---~         print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
       end
     end
 --~     print_to_log(2," !!!! found device",rDeviceName,ridx)
@@ -245,19 +249,19 @@ end
 
 -- Switch functions
 function SwitchID(DeviceName, idx, DeviceType, state, SendTo)
-	if string.lower(state) == "on" then
-        	state = "On";
-       	elseif string.lower(state) == "off" then
-        	state = "Off";
+  if string.lower(state) == "on" then
+          state = "On";
+        elseif string.lower(state) == "off" then
+          state = "Off";
         else
-        	return "state must be on or off!";
+          return "state must be on or off!";
         end
         t = server_url.."/json.htm?type=command&param=switch"..DeviceType.."&idx="..idx.."&switchcmd="..state;
         print_to_log (1,"JSON request <"..t..">");
         jresponse, status = http.request(t)
         print_to_log(1,"raw jason", jresponse)
         response = 'Switched '..DeviceName..' '..command
-	return response
+  return response
 end
 
 function sSwitchName(DeviceName, DeviceType, SwitchType,idx,state)
