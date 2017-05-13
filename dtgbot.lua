@@ -97,8 +97,13 @@ JSON = require "JSON";
 
 -- Load the configuration file this file contains the list of commands
 -- used to define the external files with the command function to load.
-local config = assert(loadfile(BotHomePath.."dtgbot.cfg"))();
-
+local config = assert(loadfile(BotHomePath.."dtgbot-user.cfg"))();
+if (dtgbot_pid == nil) then
+  config = assert(loadfile(BotHomePath.."dtgbot.cfg"))();
+  print_to_log ("Using DTGBOT config file:"..BotHomePath.."dtgbot.cfg")
+else
+  print_to_log ("Using DTGBOT config file:"..BotHomePath.."dtgbot-user.cfg")
+end
 --Not quite sure what this is here for
 started = 1
 

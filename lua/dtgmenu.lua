@@ -27,7 +27,14 @@
 --------------------------------------
 -- Include config
 --------------------------------------
-local config = assert(loadfile(BotHomePath.."lua/dtgmenu.cfg"))();
+local config = assert(loadfile(BotHomePath.."lua/dtgmenu-user.cfg"))();
+if (menu_debug == nil) then
+  config = assert(loadfile(BotHomePath.."dtgbot.cfg"))();
+  print_to_log ("Using DTGMENU config file:"..BotHomePath.."lua/dtgmenu.cfg")
+else
+  print_to_log ("Using DTGMENU config file:"..BotHomePath.."dtgbot-user.cfg")
+end
+
 local http = require "socket.http";
 
 -- definition used by DTGBOT
