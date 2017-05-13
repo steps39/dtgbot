@@ -176,7 +176,7 @@ function dtgbot_initialise()
   Roomlist = device_list_names_idxs("plans")
 
 -- Get language from Domoticz
-  language = domoticz_language()
+	language = domoticz_language()
 
 -- get the required loglevel
   dtgbotLogLevelidx = idx_from_variable_name("TelegramBotLoglevel")
@@ -547,11 +547,11 @@ while file_exists(dtgbot_pid) do
         print_to_log(1,'TelegramBotOffset '..TelegramBotOffset)
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
         -- Offset updated before processing in case of crash allows clean restart
-				if msg ~= nil and msg.text ~= nil then
-					print_to_log(1,msg.text)
-					on_msg_receive(msg)
-				end
-			end
+        if msg ~= nil and msg.text ~= nil then
+            print_to_log(1,msg.text)
+            on_msg_receive(msg)
+        end
+      end
     else
       io.write('X')
       print_to_log(2,'')

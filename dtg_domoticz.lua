@@ -7,9 +7,9 @@ function form_device_name(parsed_cli)
   DeviceName = parsed_cli[3]
   len_parsed_cli = #parsed_cli
   if len_parsed_cli > 3 then
-    for i = 4, len_parsed_cli do
-      DeviceName = DeviceName..' '..parsed_cli[i]
-    end
+  for i = 4, len_parsed_cli do
+    DeviceName = DeviceName..' '..parsed_cli[i]
+  end
   end
   return DeviceName
 end
@@ -25,16 +25,16 @@ function variable_list()
   -- Domoticz seems to take a while to respond to getuservariables after start-up
   -- So just keep trying after 1 second sleep
   while (jresponse == nil) do
-    print_to_log(1,"JSON request <"..t..">");
-    jresponse, status = http.request(t)
-    if (jresponse == nil) then
-      socket.sleep(1)
-      domoticz_tries = domoticz_tries + 1
-      if domoticz_tries > 100 then
-        print_to_log(0,'Domoticz not sending back user variable list')
-        break
-      end
+  print_to_log(1,"JSON request <"..t..">");
+  jresponse, status = http.request(t)
+  if (jresponse == nil) then
+    socket.sleep(1)
+    domoticz_tries = domoticz_tries + 1
+    if domoticz_tries > 100 then
+    print_to_log(0,'Domoticz not sending back user variable list')
+    break
     end
+  end
   end
   print_to_log(0,'Domoticz returned getuservariables after '..domoticz_tries..' attempts')
   decoded_response = JSON:decode(jresponse)
@@ -48,10 +48,10 @@ function variable_list_names_idxs()
   result = decoded_response["result"]
   variables = {}
   for i = 1, #result do
-    record = result[i]
-    if type(record) == "table" then
-      variables[record['Name']] = record['idx']
-    end
+  record = result[i]
+  if type(record) == "table" then
+    variables[record['Name']] = record['idx']
+  end
   end
   return variables
 end
@@ -64,7 +64,7 @@ end
 function get_variable_value(idx)
   local t, jresponse, decoded_response
   if idx == nil then
-    return ""
+  return ""
   end
   t = server_url.."/json.htm?type=command&param=getuservariable&idx="..tostring(idx)
   print_to_log(1,"JSON request <"..t..">");
@@ -74,19 +74,19 @@ function get_variable_value(idx)
   return decoded_response["result"][1]["Value"]
 end
 
-function set_variable_value(idx,name,type,value)
+function set_variable_value(idx, name, Type, value)
   -- store the value of a user variable
   local t, jresponse, decoded_response
-  t = server_url.."/json.htm?type=command&param=updateuservariable&idx="..idx.."&vname="..name.."&vtype="..type.."&vvalue="..tostring(value)
+  t = server_url.."/json.htm?type=command&param=updateuservariable&idx="..idx.."&vname="..name.."&vtype="..Type.."&vvalue="..tostring(value)
   print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   return
 end
 
-function create_variable(name,type,value)
+function create_variable(name, Type, value)
   -- creates user variable
   local t, jresponse, decoded_response
-  t = server_url.."/json.htm?type=command&param=saveuservariable&vname="..name.."&vtype="..type.."&vvalue="..tostring(value)
+  t = server_url.."/json.htm?type=command&param=saveuservariable&vname="..name.."&vtype="..Type.."&vvalue="..tostring(value)
   print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   return
@@ -122,19 +122,17 @@ function device_list_names_idxs(DeviceType)
   result = decoded_response['result']
   devices = {}
   devicesproperties = {}
-  if result ~= nil then
   for i = 1, #result do
-    record = result[i]
-    if type(record) == "table" then
-      if DeviceType == "plans" then
-        devices[record['Name']] = record['idx']
-      else
-        devices[string.lower(record['Name'])] = record['idx']
-        devices[record['idx']] = record['Name']
-        if DeviceType == 'scenes' then
-          devicesproperties[record['idx']] = {Type=record['Type'], SwitchType = record['Type']}
-        end
-      end
+  record = result[i]
+  if type(record) == "table" then
+    if DeviceType == "plans" then
+    devices[record['Name']] = record['idx']
+    else
+    devices[string.lower(record['Name'])] = record['idx']
+    devices[record['idx']] = record['Name']
+    if DeviceType == 'scenes' then
+      devicesproperties[record['idx']] = {Type=record['Type'], SwitchType = record['Type']}
+    end
     end
   end
   end
@@ -144,18 +142,18 @@ end
 function idx_from_name(DeviceName,DeviceType)
   --returns a devcie idx based on its name
   if DeviceType == "devices" then
-    return Devicelist[string.lower(DeviceName)]
+  return Devicelist[string.lower(DeviceName)]
   elseif DeviceType == "scenes" then
-    return Scenelist[string.lower(DeviceName)]
+  return Scenelist[string.lower(DeviceName)]
   else
-    return Roomlist[DeviceName]
+  return Roomlist[DeviceName]
   end
 end
 
 function retrieve_status(idx,DeviceType)
   local t, jresponse, status, decoded_response
   t = server_url.."/json.htm?type="..DeviceType.."&rid="..tostring(idx)
-  print_to_log(2,"JSON request <"..t..">");
+  print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   decoded_response = JSON:decode(jresponse)
   return decoded_response
@@ -167,10 +165,9 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
   local found = 0
   local rDeviceName=""
   local status=""
-  local LevelNames=""
-  local LevelInt=0
   local MaxDimLevel=100
   local ridx=0
+  local tvar
   if DeviceScene~="scenes" then
     -- Check for Devices
     -- Have the device name
@@ -178,70 +175,67 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
       idx = idx_from_name(DeviceName,'devices')
     end
     print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
-		if idx ~= nil then
-			local tvar	= retrieve_status(idx,"devices")['result']
-			-- added test to avoid crash in case the returned json doesn't contain the RESULT section
-			if tvar ~= nil then
-				record = tvar[1]
-				print_to_log(2,'device ',DeviceName,record.Name,idx,record.idx)
-				if type(record) == "table" then
-					ridx = record.idx
-					rDeviceName = record.Name
-					DeviceType="devices"
-					Type=record.Type
-					LevelInt=record.LevelInt
-					if LevelInt == nil then LevelInt = 0 end
-					LevelNames=record.LevelNames
-					if LevelNames == nil then LevelNames = "" end
-					-- as default simply use the status field
-					-- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
-					if dtgbot_type_status[Type] ~= nil then
-						if dtgbot_type_status[Type].Status ~= nil then
-							status = ''
-							CurrentStatus = dtgbot_type_status[Type].Status
-							for i=1, #CurrentStatus do
-								if status ~= '' then
-									status = status .. ' - '
-								end
-								cindex, csuffix = next(CurrentStatus[i])
-								status = status .. tostring(record[cindex])..tostring(csuffix)
-							end
-						end
-					else
-						SwitchType=record.SwitchType
-						MaxDimLevel=record.MaxDimLevel
-						status = tostring(record.Status)
-					end
-					found = 1
---~         			print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
-				end
-			end
-		end
---~     print_to_log(2," !!!! found device",rDeviceName,ridx)
+      if idx ~= nil then
+       test   = retrieve_status(idx,"devices")['result']
+      if test == nil then
+        found = 9
+      else
+        record = test[1]
+        print_to_log(2,'device ',DeviceName,record.Name,idx,record.idx)
+        if type(record) == "table" then
+           ridx = record.idx
+           rDeviceName = record.Name
+           DeviceType="devices"
+           Type=record.Type
+           -- as default simply use the status field
+           -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
+           if dtgbot_type_status[Type] ~= nil then
+            if dtgbot_type_status[Type].status ~= nil then
+             status = ''
+              CurrentStatus = dtgbot_type_status[Type].status
+             for i=1, #CurrentStatus do
+              if status ~= '' then
+                 status = status .. ' - '
+              end
+              cindex, csuffix = next(CurrentStatus[i])
+              status = status .. tostring(record[cindex])..tostring(csuffix)
+             end
+            end
+           else
+            SwitchType=record.SwitchType
+            MaxDimLevel=record.MaxDimLevel
+            status = tostring(record.status)
+           end
+           found = 1
+           print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
+        end
+       end
+      end
+    print_to_log(2," !!!! found device",rDeviceName,ridx)
   end
 -- Check for Scenes
-  if found == 0 then
-    if DeviceName ~= "" then
-      idx = idx_from_name(DeviceName,'scenes')
-    else
-      DeviceName = idx_from_name(idx,'scenes')
+    if found == 0 then
+      if DeviceName ~= "" then
+        idx = idx_from_name(DeviceName,'scenes')
+      else
+        DeviceName = idx_from_name(idx,'scenes')
+      end
+      if idx ~= nil then
+        DeviceName = Scenelist[idx]
+        DeviceType="scenes"
+        ridx = idx
+        rDeviceName = DeviceName
+        SwitchType = Sceneproperties[tostring(idx)]['SwitchType']
+        Type = Sceneproperties[tostring(idx)]['Type']
+        found = 1
+      end
     end
-    if idx ~= nil then
-      DeviceName = Scenelist[idx]
-      DeviceType="scenes"
-      ridx = idx
-      rDeviceName = DeviceName
-      SwitchType = Sceneproperties[tostring(idx)]['SwitchType']
-      Type = Sceneproperties[tostring(idx)]['Type']
-      found = 1
-    end
-  end
 -- Check for Scenes
-  if found == 0 then
-    ridx = 9999
-    DeviceType="command"
-    Type="command"
-    SwitchType="command"
+  if found == 0 or found == 9 then
+  ridx = 9999
+  DeviceType="command"
+  Type="command"
+  SwitchType="command"
   end
   print_to_log(2," --< devinfo_from_name:",found,ridx,rDeviceName,DeviceType,Type,SwitchType,status)
   return ridx,rDeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status
@@ -261,8 +255,8 @@ function domoticz_language()
   decoded_response = JSON:decode(jresponse)
   local language = decoded_response['language']
   if language ~= nil then
-    return language
+  return language
   else
-    return 'en'
+  return 'en'
   end
 end
