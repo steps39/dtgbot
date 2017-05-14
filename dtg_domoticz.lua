@@ -204,7 +204,7 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
            else
             SwitchType=record.SwitchType
             MaxDimLevel=record.MaxDimLevel
-            status = tostring(record.status)
+            status = tostring(record.Status)
            end
            found = 1
            print_to_log(2," !!!! found device",record.Name,rDeviceName,record.idx,ridx)
@@ -237,7 +237,7 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
   Type="command"
   SwitchType="command"
   end
-  print_to_log(2," --< devinfo_from_name:",found,ridx,rDeviceName,DeviceType,Type,SwitchType,status)
+  print_to_log(2, " --< devinfo_from_name:",found,ridx, rDeviceName, DeviceType, Type, SwitchType, MaxDimLevel, status)
   return ridx,rDeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status
 end
 

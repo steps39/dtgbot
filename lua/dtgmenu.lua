@@ -483,7 +483,7 @@ end
 -----------------------------------------------
 -- SCAN through provided delimited string for the second parameter
 function ChkInTable(itab,idev)
-  print_to_log(2, " ChkInTable: ", itab)
+  print_to_log(2, " ChkInTable: ", itab,idev)
   if itab ~= nil then
     for dev in string.gmatch(itab, "[^|,]+") do
       if dev == idev then
@@ -889,6 +889,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'On')
   elseif string.find(action, "%d") then
     -- calculate the proper leve lto set the dimmer
+    action = action:gsub("%%", "")
     rellev = MaxDimLevel/100*tonumber(action)  -- calculate the relative level
     rellev = tonumber(string.format("%.0f", rellev)) -- remove decimals
     action = tostring(rellev)
