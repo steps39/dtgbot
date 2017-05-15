@@ -95,14 +95,20 @@ socket = require "socket";
 https = require "ssl.https";
 JSON = require "JSON";
 
+function file_exists(name)
+   local f=io.open(name,"r")
+   if f~=nil then io.close(f) return true else return false end
+end
+
 -- Load the configuration file this file contains the list of commands
 -- used to define the external files with the command function to load.
-local config = assert(loadfile(BotHomePath.."dtgbot-user.cfg"))();
-if (dtgbot_pid == nil) then
+local config=""
+if (file_exists(BotHomePath.."dtgbot-user.cfg")) then
+  config = assert(loadfile(BotHomePath.."dtgbot-user.cfg"))();
+  print_to_log ("Using DTGBOT config file:"..BotHomePath.."dtgbot-user.cfg")
+else
   config = assert(loadfile(BotHomePath.."dtgbot.cfg"))();
   print_to_log ("Using DTGBOT config file:"..BotHomePath.."dtgbot.cfg")
-else
-  print_to_log ("Using DTGBOT config file:"..BotHomePath.."dtgbot-user.cfg")
 end
 --Not quite sure what this is here for
 started = 1

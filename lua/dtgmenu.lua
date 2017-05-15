@@ -27,12 +27,13 @@
 --------------------------------------
 -- Include config
 --------------------------------------
-local config = assert(loadfile(BotHomePath.."lua/dtgmenu-user.cfg"))();
-if (menu_debug == nil) then
-  config = assert(loadfile(BotHomePath.."dtgbot.cfg"))();
-  print_to_log ("Using DTGMENU config file:"..BotHomePath.."lua/dtgmenu.cfg")
+local config="" 
+if (file_exists(BotHomePath.."dtgbot-user.cfg")) then
+  config = assert(loadfile(BotHomePath.."lua/dtgmenu-user.cfg"))();
+  print_to_log ("Using DTGMENU config file:"..BotHomePath.."lua/dtgmenu-user.cfg")
 else
-  print_to_log ("Using DTGMENU config file:"..BotHomePath.."dtgbot-user.cfg")
+  config = assert(loadfile(BotHomePath.."lua/dtgmenu.cfg"))();
+  print_to_log ("Using DTGMENU config file:"..BotHomePath.."dtgmenu.cfg")
 end
 
 local http = require "socket.http";
