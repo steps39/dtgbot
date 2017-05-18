@@ -190,9 +190,9 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
            -- as default simply use the status field
            -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
            if dtgbot_type_status[Type] ~= nil then
-            if dtgbot_type_status[Type].status ~= nil then
+            if dtgbot_type_status[Type].Status ~= nil then
              status = ''
-              CurrentStatus = dtgbot_type_status[Type].status
+              CurrentStatus = dtgbot_type_status[Type].Status
              for i=1, #CurrentStatus do
               if status ~= '' then
                  status = status .. ' - '
