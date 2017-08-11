@@ -302,25 +302,16 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
 
   if(parsed_command[2]~=nil) then
     command_dispatch = commands[string.lower(parsed_command[2])];
---~ change to allow for replymarkup.
     local savereplymarkup = replymarkup
---~ 	print("debug1." ,replymarkup)
     if command_dispatch then
---?      status, text = command_dispatch.handler(parsed_command);
---~      change to allow for replymarkup.
       status, text, replymarkup = command_dispatch.handler(parsed_command,SendTo);
       found=1
     else
       text = ""
       local f = io.popen("ls " .. BotBashScriptPath)
---?      cmda = string.lower(parsed_command[2])
---~ change to avoid nil error
       cmda = string.lower(tostring(parsed_command[2]))
       len_parsed_command = #parsed_command
-      stuff = ""
-      for i = 3, len_parsed_command do
-        stuff = stuff..parsed_command[i]
-      end
+      stuff = string.sub(cmd, string.len(cmda)+1)
       for line in f:lines() do
         print_to_log(0,"checking line ".. line)
         if(line:match(cmda)) then
@@ -335,10 +326,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
       -- restore the menu supplied replymarkup in case the shelled LUA didn't provide one
       replymarkup = savereplymarkup
     end
---~ 	print("debug2." ,replymarkup)
     if found==0 then
---?      text = "command <"..parsed_command[2].."> not found";
---~ change to avoid nil error
       text = "command <"..tostring(parsed_command[2]).."> not found";
     end
   else
@@ -347,7 +335,6 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
   if text ~= "" then
     while string.len(text)>0 do
 
---~         added replymarkup to allow for custom keyboard
       if Group ~= "" then
         send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
       else
@@ -356,8 +343,6 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
       text = string.sub(text,4000,-1)
     end
   elseif replymarkup ~= "" then
---~     added replymarkup to allow for custom keyboard reset also in case there is no text to send.
---~     This could happen after running a bash file.
     if Group ~= "" then
       send_msg(Group,"done",MessageId,replymarkup)
     else
@@ -386,33 +371,9 @@ function send_msg(SendTo, Message, MessageId, replymarkup)
     print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
     response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
   end
---  response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&text=hjk')
   print_to_log(0,'Message sent',status)
   return
 end
-
---?function send_msg(SendTo, Message,MessageId)
---?  print_to_log(0,telegram_url..'sendMessage?timeout=60&chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
---?  response, status = --?https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
---  response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&text=hjk')
---?  print_to_log(0,status)
---?  return
---?end
-
-
-
---Commands.Smiliesoverview = "Smiliesoverview - sends a range of smilies"
-
---function Smiliesoverview(SendTo)
---  smilies = {"smiley 😀", "crying smiley 😢", "sleeping smiley 😴", "beer 🍺", "double beer 🍻",
---    "wine 🍷", "double red excam ‼️", "yellow sign exclamation mark ⚠️ ", "camera 📷", "light(on) 💡",
---    "open sun 🔆", "battery 🔋", "plug 🔌", "film 🎬", "music 🎶", "moon 🌙", "sun ☀️", "sun behind some clouds ⛅️",
---    "clouds ☁️", "lightning ⚡️", "umbrella ☔️", "snowflake ❄️"}
---  for i,smiley in ipairs(smilies) do
---    send_msg(SendTo,smiley,ok_cb,false)
---  end
---  return
---end
 
 function id_check(SendTo)
   --Check if whitelist empty then let any message through
@@ -441,22 +402,13 @@ function on_msg_receive (msg)
     return
   end
 
-  if msg.text then   -- check if message is text
-    --  ReceivedText = string.lower(msg.text)
-    ReceivedText = msg.text
-
---    if msg.to.type == "chat" then -- check if the command was given in a group chat
---      msg_from = msg.to.print_name -- if yes, take the group name as a destination for the reply
---    else
---      msg_from = msg.from.print_name -- if no, take the users name as destination for the reply
---    end
---    msg_from = msg.from.id
---  Changed from from.id to chat.id to allow group chats to work as expected.
+--Check to see if id is whitelisted, if not record in log and exit
+  if id_check(msg.from.id) then
     grp_from = msg.chat.id
     msg_from = msg.from.id
-    msg_id =msg.message_id
---Check to see if id is whitelisted, if not record in log and exit
-    if id_check(msg_from) then
+    msg_id = msg.message_id
+    if msg.text then   -- check if message is text
+      ReceivedText = msg.text
       if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id) == 1 then
         print_to_log(0,"Succesfully handled incoming request")
       else
@@ -466,10 +418,29 @@ function on_msg_receive (msg)
         --      os.execute("sleep 5")
         --      Help(tostring (msg_from))
       end
-    else
-      print_to_log(0,'id '..msg_from..' not on white list, command ignored')
-      send_msg(msg_from,'⚡️ ID Not Recognised - Command Ignored ⚡️',msg_id)
+    -- check for received voicefiles
+    elseif msg.voice then   -- check if message is voicefile
+      print_to_log(0,"msg.voice.file_id:",msg.voice.file_id)
+      responsev, statusv = https.request(telegram_url..'getFile?file_id='..msg.voice.file_id)
+      if statusv == 200 then
+        print_to_log(1,"responsev:",responsev)
+        decoded_responsev = JSON:decode(responsev)
+        result = decoded_responsev["result"]
+        filelink = result["file_path"]
+        print_to_log(1,"filelink:",filelink)
+        ReceivedText="voice "..filelink
+        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id) == 1 then
+          print_to_log(0,"Succesfully handled incoming voice request")
+        else
+          print_to_log(0,"Voice file received but voice.sh or lua not found to process it. skipping the message.")
+          print_to_log(0,msg_from)
+          send_msg(msg_from,'⚡️ INVALID COMMAND ⚡️',msg_id)
+        end
+      end
     end
+  else
+    print_to_log(0,'id '..msg_from..' not on white list, command ignored')
+    send_msg(msg_from,'⚡️ ID Not Recognised - Command Ignored ⚡️',msg_id)
   end
 --  mark_read(msg_from)
 end
@@ -558,7 +529,7 @@ while file_exists(dtgbot_pid) do
         print_to_log(1,'TelegramBotOffset '..TelegramBotOffset)
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
         -- Offset updated before processing in case of crash allows clean restart
-        if msg ~= nil and msg.text ~= nil then
+        if (msg ~= nil and (msg.text ~= nil or msg.voice ~= nil)) then
             print_to_log(1,msg.text)
             on_msg_receive(msg)
         end

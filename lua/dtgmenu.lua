@@ -27,7 +27,7 @@
 --------------------------------------
 -- Include config
 --------------------------------------
-local config="" 
+local config=""
 if (file_exists(BotHomePath.."dtgbot-user.cfg")) then
   config = assert(loadfile(BotHomePath.."lua/dtgmenu-user.cfg"))();
   print_to_log ("Using DTGMENU config file:"..BotHomePath.."lua/dtgmenu-user.cfg")
@@ -889,7 +889,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   elseif ChkInTable(string.lower(dtgmenu_lang[menu_language].switch_options["On"]),string.lower(action)) then
     response= SwitchName(realdevicename,DeviceType,SwitchType,idx,'On')
   elseif string.find(action, "%d") then
-    -- calculate the proper leve lto set the dimmer
+    -- calculate the proper level to set the dimmer
     action = action:gsub("%%", "")
     rellev = MaxDimLevel/100*tonumber(action)  -- calculate the relative level
     rellev = tonumber(string.format("%.0f", rellev)) -- remove decimals
