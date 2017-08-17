@@ -438,6 +438,25 @@ function on_msg_receive (msg)
         end
       end
     end
+    elseif msg.video_note then   -- check if message is videofile
+      print_to_log(0,"msg.video_note.file_id:",msg.video_note.file_id)
+      responsev, statusv = https.request(telegram_url..'getFile?file_id='..msg.video_note.file_id)
+      if statusv == 200 then
+        print_to_log(1,"responsev:",responsev)
+        decoded_responsev = JSON:decode(responsev)
+        result = decoded_responsev["result"]
+        filelink = result["file_path"]
+        print_to_log(1,"filelink:",filelink)
+        ReceivedText="video "..filelink
+        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id) == 1 then
+          print_to_log(0,"Succesfully handled incoming video request")
+        else
+          print_to_log(0,"Video file received but video_note.sh or lua not found to process it. Skipping the message.")
+          print_to_log(0,msg_from)
+          send_msg(msg_from,'⚡️ INVALID COMMAND ⚡️',msg_id)
+        end
+      end
+    end
   else
     print_to_log(0,'id '..msg_from..' not on white list, command ignored')
     send_msg(msg_from,'⚡️ ID Not Recognised - Command Ignored ⚡️',msg_id)
@@ -529,7 +548,7 @@ while file_exists(dtgbot_pid) do
         print_to_log(1,'TelegramBotOffset '..TelegramBotOffset)
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
         -- Offset updated before processing in case of crash allows clean restart
-        if (msg ~= nil and (msg.text ~= nil or msg.voice ~= nil)) then
+        if (msg ~= nil and (msg.text ~= nil or msg.voice ~= nil or msg.video_note ~= nil)) then
             print_to_log(1,msg.text)
             on_msg_receive(msg)
         end
