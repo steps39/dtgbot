@@ -437,7 +437,6 @@ function on_msg_receive (msg)
           send_msg(msg_from,'⚡️ INVALID COMMAND ⚡️',msg_id)
         end
       end
-    end
     elseif msg.video_note then   -- check if message is videofile
       print_to_log(0,"msg.video_note.file_id:",msg.video_note.file_id)
       responsev, statusv = https.request(telegram_url..'getFile?file_id='..msg.video_note.file_id)
