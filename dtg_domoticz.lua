@@ -171,6 +171,7 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
   local LevelInt=0
   local MaxDimLevel=100
   local ridx=0
+  local tvar
   if DeviceScene~="scenes" then
     -- Check for Devices
     -- Have the device name
@@ -179,9 +180,10 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
     end
     print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
     if idx ~= nil then
-      local tvar	= retrieve_status(idx,"devices")['result']
-      -- added test to avoid crash in case the returned json doesn't contain the RESULT section
-      if tvar ~= nil then
+      tvar = retrieve_status(idx, "devices")['result']
+      if tvar == nil then
+        found = 9
+      else
         record = tvar[1]
         print_to_log(2,'device ',DeviceName,record.Name,idx,record.idx)
         if type(record) == "table" then
@@ -237,7 +239,7 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
     end
   end
 -- Check for Scenes
-  if found == 0 then
+  if found == 0 or found == 9 then
     ridx = 9999
     DeviceType="command"
     Type="command"

@@ -116,10 +116,21 @@ socket = require "socket";
 https = require "ssl.https";
 JSON = require "JSON";
 
+function file_exists(name)
+   local f=io.open(name,"r")
+   if f~=nil then io.close(f) return true else return false end
+end
+
 -- Load the configuration file this file contains the list of commands
 -- used to define the external files with the command function to load.
-local config = assert(loadfile(BotHomePath.."dtgbot.cfg"))();
-
+local config=""
+if (file_exists(BotHomePath.."dtgbot-user.cfg")) then
+  config = assert(loadfile(BotHomePath.."dtgbot-user.cfg"))();
+  print_to_log ("Using DTGBOT config file:"..BotHomePath.."dtgbot-user.cfg")
+else
+  config = assert(loadfile(BotHomePath.."dtgbot.cfg"))();
+  print_to_log ("Using DTGBOT config file:"..BotHomePath.."dtgbot.cfg")
+end
 --Not quite sure what this is here for
 started = 1
 
@@ -316,14 +327,11 @@ function HandleCommand(cmd, SendTo, Group, MessageId, MsgType)
       local f = io.popen("ls " .. BotBashScriptPath)
       cmda = string.lower(tostring(parsed_command[2]))
       len_parsed_command = #parsed_command
-      stuff = ""
-      for i = 3, len_parsed_command do
-        stuff = stuff..parsed_command[i]
-      end
+      stuff = string.sub(cmd, string.len(cmda)+1)
       for line in f:lines() do
         print_to_log(0,"checking line ".. line)
         if(line:match(cmda)) then
-          print_to_log(0,line)
+          print_to_log(0,line.. ' ' .. SendTo .. ' ' .. stuff)
           os.execute(BotBashScriptPath  .. line .. ' ' .. SendTo .. ' ' .. stuff)
           found=1
         end
@@ -438,15 +446,14 @@ function on_msg_receive (msg)
     return
   end
 
-  if msg.text then   -- check if message is text
-    --  ReceivedText = string.lower(msg.text)
-    ReceivedText = msg.text
---  Changed from from.id to chat.id to allow group chats to work as expected.
+--Check to see if id is whitelisted, if not record in log and exit
+  if id_check(msg.from.id) then
     grp_from = msg.chat.id
     msg_from = msg.from.id
     msg_id = msg.message_id
---Check to see if id is whitelisted, if not record in log and exit
-    if id_check(msg_from) then
+  if msg.text then   -- check if message is text
+    --  ReceivedText = string.lower(msg.text)
+    ReceivedText = msg.text
       if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id,"Message") == 1 then
         print_to_log(0,"Succesfully handled incoming request")
       else
@@ -456,11 +463,48 @@ function on_msg_receive (msg)
         --      os.execute("sleep 5")
         --      Help(tostring (msg_from))
       end
+    -- check for received voicefiles
+    elseif msg.voice then   -- check if message is voicefile
+      print_to_log(0,"msg.voice.file_id:",msg.voice.file_id)
+      responsev, statusv = https.request(telegram_url..'getFile?file_id='..msg.voice.file_id)
+      if statusv == 200 then
+        print_to_log(0,"responsev:",responsev)
+        decoded_responsev = JSON:decode(responsev)
+        result = decoded_responsev["result"]
+        filelink = result["file_path"]
+        print_to_log(0,"filelink3:",filelink)
+        ReceivedText="voice "..filelink
+        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id,"Message") == 1 then
+          print_to_log(0,"Succesfully handled incoming voice request")
+        else
+          print_to_log(0,"Voice file received but voice.sh or lua not found to process it. skipping the message.")
+          print_to_log(0,msg_from)
+          send_msg(msg_from,'⚡️ INVALID COMMAND ⚡️',msg_id)
+        end
+      end
+    elseif msg.video_note then   -- check if message is videofile
+      print_to_log(0,"msg.video_note.file_id:",msg.video_note.file_id)
+      responsev, statusv = https.request(telegram_url..'getFile?file_id='..msg.video_note.file_id)
+      if statusv == 200 then
+        print_to_log(1,"responsev:",responsev)
+        decoded_responsev = JSON:decode(responsev)
+        result = decoded_responsev["result"]
+        filelink = result["file_path"]
+        print_to_log(1,"filelink:",filelink)
+        ReceivedText="video "..filelink
+        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id) == 1 then
+          print_to_log(0,"Succesfully handled incoming video request")
+        else
+          print_to_log(0,"Video file received but video_note.sh or lua not found to process it. Skipping the message.")
+          print_to_log(0,msg_from)
+          send_msg(msg_from,'⚡️ INVALID COMMAND ⚡️',msg_id)
+        end
+      end
+    end
     else
       print_to_log(0,'id '..msg_from..' not on white list, command ignored')
       send_msg(msg_from,'⚡️ ID Not Recognised - Command Ignored ⚡️',msg_id)
     end
-  end
 --  mark_read(msg_from)
 end
 
@@ -479,7 +523,6 @@ function on_callback_receive (msg)
     grp_from = msg.message.chat.id
     msg_from = msg.from.id
     msg_id =msg.message.message_id
---Check to see if id is whitelisted, if not record in log and exit
     if id_check(msg_from) then
       if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id,"Callback") == 1 then
         print_to_log(0,"Succesfully handled incoming request")
@@ -569,7 +612,7 @@ while file_exists(dtgbot_pid) do
         print_to_log(1,'TelegramBotOffset '..TelegramBotOffset)
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
         msg = tt['message']
-        if msg ~= nil then
+        if (msg ~= nil and (msg.text ~= nil or msg.voice ~= nil or msg.video_note ~= nil)) then
           print_to_log(3,'<== message:' .. tostring(msg.text).." -->"..response)
           on_msg_receive(msg)
         else
