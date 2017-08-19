@@ -501,10 +501,10 @@ function on_msg_receive (msg)
         end
       end
     end
-    else
-      print_to_log(0,'id '..msg_from..' not on white list, command ignored')
-      send_msg(msg_from,'⚡️ ID Not Recognised - Command Ignored ⚡️',msg_id)
-    end
+  else
+    print_to_log(0,'id '..msg_from..' not on white list, command ignored')
+    send_msg(msg_from,'⚡️ ID Not Recognised - Command Ignored ⚡️',msg_id)
+  end
 --  mark_read(msg_from)
 end
 
