@@ -122,16 +122,18 @@ function device_list_names_idxs(DeviceType)
 	result = decoded_response['result']
 	devices = {}
 	devicesproperties = {}
-	for i = 1, #result do
-		record = result[i]
-		if type(record) == "table" then
-			if DeviceType == "plans" then
-				devices[record['Name']] = record['idx']
-			else
-				devices[string.lower(record['Name'])] = record['idx']
-				devices[record['idx']] = record['Name']
-				if DeviceType == 'scenes' then
-					devicesproperties[record['idx']] = {Type=record['Type'], SwitchType = record['Type']}
+	if result ~= nil then
+		for i = 1, #result do
+			record = result[i]
+			if type(record) == "table" then
+				if DeviceType == "plans" then
+					devices[record['Name']] = record['idx']
+				else
+					devices[string.lower(record['Name'])] = record['idx']
+					devices[record['idx']] = record['Name']
+					if DeviceType == 'scenes' then
+						devicesproperties[record['idx']] = {Type=record['Type'], SwitchType = record['Type']}
+					end
 				end
 			end
 		end
