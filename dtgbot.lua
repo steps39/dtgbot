@@ -43,7 +43,7 @@ function domoticzdata(envvar)
 end
 
 function checkpath(envpath)
-  if string.sub(envpath,-2,-1) ~= "/" then
+  if string.sub(envpath,-1,-1) ~= "/" then
     envpath = envpath .. "/"
   end
   return envpath

@@ -33,7 +33,7 @@ if (file_exists(BotHomePath.."dtgbot-user.cfg")) then
   print_to_log ("Using DTGMENU config file:"..BotHomePath.."lua/dtgmenu-user.cfg")
 else
   config = assert(loadfile(BotHomePath.."lua/dtgmenu.cfg"))();
-  print_to_log ("Using DTGMENU config file:"..BotHomePath.."dtgmenu.cfg")
+  print_to_log ("Using DTGMENU config file:"..BotHomePath.."lua/dtgmenu.cfg")
 end
 
 local http = require "socket.http";
