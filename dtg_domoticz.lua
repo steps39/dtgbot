@@ -137,6 +137,8 @@ function device_list_names_idxs(DeviceType)
 				end
 			end
 		end
+	else
+		print_to_log(0," !!!! device_list_names_idxs(): nothing found for ",DeviceType)
 	end
 	return devices, devicesproperties
 end
