@@ -1,5 +1,5 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.4 170819
+-- Version 0.4 171119
 -- Automation bot framework for telegram to control Domoticz
 -- dtgbot.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
@@ -63,7 +63,7 @@ function domoticzdata(envvar)
 end
 
 function checkpath(envpath)
-  if string.sub(envpath,-2,-1) ~= "/" then
+  if string.sub(envpath,-1,-1) ~= "/" then
     envpath = envpath .. "/"
   end
   return envpath
