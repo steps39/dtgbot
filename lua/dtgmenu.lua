@@ -5,7 +5,8 @@
 --  - all static actions defined in DTGMENU.CFG. Open the file for descript of the details.
 --
 -- programmer: Jos van der Zande
--- version: 0.1.150824
+-- version: 0.1.-- 171119
+
 -- =====================================================================================================================
 -----------------------------------------------------------------------------------------------------------------------
 -- these are the different formats of reply_markup. looksimple but needed a lot of testing before it worked :)
@@ -28,6 +29,14 @@
 -- Include config
 --------------------------------------
 local config = assert(loadfile(BotHomePath.."lua/dtgmenu.cfg"))();
+if (file_exists(BotHomePath.."dtgbot-user.cfg")) then
+  config = assert(loadfile(BotHomePath.."lua/dtgmenu-user.cfg"))();
+  print_to_log ("Using DTGMENU config file:"..BotHomePath.."lua/dtgmenu-user.cfg")
+else
+  config = assert(loadfile(BotHomePath.."lua/dtgmenu.cfg"))();
+  print_to_log ("Using DTGMENU config file:"..BotHomePath.."lua/dtgmenu.cfg")
+end
+
 local http = require "socket.http";
 
 -- definition used by DTGBOT
