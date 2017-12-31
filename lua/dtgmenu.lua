@@ -919,6 +919,12 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       status=1
       return status, response, replymarkup, commandline;
     else
+      if commandline == "+" or commandline == "-" then
+        dstatus = dstatus:gsub("°C", "")
+        dstatus = dstatus:gsub("°F", "")
+        dstatus = dstatus:gsub(" ", "")
+        commandline = tonumber(dstatus) + tonumber(commandline.."0.5")
+      end
       -- set thermostate temperature
       local t,jresponse
       t = server_url.."/json.htm?type=command&param=udevice&idx="..idx.."&nvalue=0&svalue="..commandline
