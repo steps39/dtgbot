@@ -1,5 +1,5 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.4 170819
+-- Version 0.5 171231
 -- Automation bot framework for telegram to control Domoticz
 -- dtgbot.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
@@ -30,6 +30,26 @@ function print_to_log(loglevel, logmessage, ...)
     print(os.date("%Y-%m-%d %H:%M:%S")..' - '..tostring(logmessage))
   end
 end
+-- print Telegram exchange to a separate debug log
+function print_to_debuglog(loglevel, logmessage, ...)
+  -- when only one parameter is provided => set the loglevel to 0 and assume the parameter is the messagetext
+  if tonumber(loglevel) == nil or logmessage == nil then
+    logmessage = loglevel
+    loglevel=0
+  end
+  if loglevel <= dtgbotLogLevel then
+    file = io.open(os.getenv("BotLuaLog").."_Telegram_debug.log", "a")
+    logcount = #{...}
+    if logcount > 0 then
+      for i, v in pairs({...}) do
+        logmessage = logmessage ..' ('..tostring(i)..') '..tostring(v)
+      end
+      logmessage=tostring(logmessage):gsub(" (.+) nil","")
+    end
+    file:write(os.date("%M:%S")..' '..tostring(logmessage).."\r\n")
+    file:close()
+  end
+end
 
 function domoticzdata(envvar)
   -- loads get environment variable and prints in log
@@ -51,6 +71,7 @@ end
 
 -- set default loglevel which will be retrieve later from the domoticz user variable TelegramBotLoglevel
 dtgbotLogLevel=0
+
 -- loglevel 0 - Always shown
 -- loglevel 1 - only shown when TelegramBotLoglevel >= 1
 
@@ -58,8 +79,8 @@ dtgbotLogLevel=0
 DomoticzIP = domoticzdata("DomoticzIP")
 DomoticzPort = domoticzdata("DomoticzPort")
 BotHomePath = domoticzdata("BotHomePath")
-BotLuaScriptPath = domoticzdata("BotLuaScriptPath")
 TempFileDir = domoticzdata("TempFileDir")
+BotLuaScriptPath = domoticzdata("BotLuaScriptPath")
 BotBashScriptPath = domoticzdata("BotBashScriptPath")
 TelegramBotToken = domoticzdata("TelegramBotToken")
 TBOName = domoticzdata("TelegramBotOffset")
