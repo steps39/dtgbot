@@ -44,3 +44,4 @@ Temporary Items
 *.properties
 /dtgbot-user.cfg
 /lua/dtgmenu-user.cfg
+/.vs*
