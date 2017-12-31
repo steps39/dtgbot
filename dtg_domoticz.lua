@@ -137,6 +137,8 @@ function device_list_names_idxs(DeviceType)
         end
       end
     end
+  else
+    print_to_log(0," !!!! device_list_names_idxs(): nothing found for ",DeviceType)
   end
   return devices, devicesproperties
 end
@@ -197,16 +199,20 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
           if LevelNames == nil then LevelNames = "" end
           -- as default simply use the status field
           -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
+          print_to_log(2,'Type ',Type)
           if dtgbot_type_status[Type] ~= nil then
+            print_to_log(2,'dtgbot_type_status[Type] ',dtgbot_type_status[Type])
             if dtgbot_type_status[Type].Status ~= nil then
               status = ''
               CurrentStatus = dtgbot_type_status[Type].Status
+              print_to_log(2,'CurrentStatus ',CurrentStatus)
               for i=1, #CurrentStatus do
                 if status ~= '' then
                   status = status .. ' - '
                 end
                 cindex, csuffix = next(CurrentStatus[i])
                 status = status .. tostring(record[cindex])..tostring(csuffix)
+                print_to_log(2,'status ',status)
               end
             end
           else

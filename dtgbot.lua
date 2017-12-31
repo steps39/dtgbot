@@ -1,5 +1,5 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.4 171119
+-- Version 0.4 171231
 -- Automation bot framework for telegram to control Domoticz
 -- dtgbot.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
@@ -451,9 +451,9 @@ function on_msg_receive (msg)
     grp_from = msg.chat.id
     msg_from = msg.from.id
     msg_id = msg.message_id
-  if msg.text then   -- check if message is text
-    --  ReceivedText = string.lower(msg.text)
-    ReceivedText = msg.text
+    if msg.text then   -- check if message is text
+      --  ReceivedText = string.lower(msg.text)
+      ReceivedText = msg.text
       if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id,"Message") == 1 then
         print_to_log(0,"Succesfully handled incoming request")
       else

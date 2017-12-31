@@ -5,8 +5,7 @@
 --  - all static actions defined in DTGMENU.CFG. Open the file for descript of the details.
 --
 -- programmer: Jos van der Zande
--- version: 0.1.-- 171119
-
+-- version: 0.1.171231
 -- =====================================================================================================================
 -----------------------------------------------------------------------------------------------------------------------
 -- these are the different formats of reply_markup. looksimple but needed a lot of testing before it worked :)
@@ -28,7 +27,7 @@
 --------------------------------------
 -- Include config
 --------------------------------------
-local config = assert(loadfile(BotHomePath.."lua/dtgmenu.cfg"))();
+local config=""
 if (file_exists(BotHomePath.."dtgbot-user.cfg")) then
   config = assert(loadfile(BotHomePath.."lua/dtgmenu-user.cfg"))();
   print_to_log ("Using DTGMENU config file:"..BotHomePath.."lua/dtgmenu-user.cfg")
@@ -503,22 +502,24 @@ function ChkInTable(itab,idev)
 end
 -- SCAN through provided delimited string for the second parameter
 function getSelectorStatusLabel(itab,ival)
---~   print_to_log(2, " getSelectorStatusLabel: ",ival,itab)
+  print_to_log(2, " getSelectorStatusLabel: ",ival,itab)
   local cnt=0
   --
   if itab ~= nil then
     -- convert 0;10;20;30  etc  to 1;2;3;5  etc
-    ival=(ival/10)+1
+    if ival > 9 then
+      ival=(ival/10)
+    end
     -- get the label and return
     for lbl in string.gmatch(itab, "[^|,]+") do
       cnt=cnt+1
       if cnt == ival then
-        print_to_log(2, "-< getSelectorStatusLabel found: "..lbl,cnt,itab)
+        print_to_log(0, "-< getSelectorStatusLabel found: "..lbl,cnt,itab)
         return lbl
       end
     end
   end
-  print_to_log(2, "-< getSelectorStatusLabel not found: "..ival,cnt,itab)
+  print_to_log(0, "-< getSelectorStatusLabel not found: "..ival,cnt,itab)
   return ""
 end
 
@@ -792,7 +793,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   elseif SwitchType=="Selector" then
     local sfound,Selector_Option = ChkInTable(LevelNames,action)
     if sfound then
-      Selector_Option=(Selector_Option-1)*10
+      Selector_Option=(Selector_Option)*10
       print_to_log(2,"    -> Selector Switch level found ", Selector_Option,LevelNames,action)
       response=sSwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level "..Selector_Option)
     else
