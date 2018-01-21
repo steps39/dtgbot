@@ -1,0 +1,12 @@
+# Monitor the DTGBOT Service
+check process dtgbot with pidfile /var/run/dtgbot.pid
+  start program = "/home/pi/dtgbot/restartbot.sh" timeout 20 seconds
+  stop  program = "/home/pi/dtgbot/stopbot.sh" timeout 20 seconds
+  if 5 restarts within 5 cycles then timeout
+
+# Monitor the DTGBOT loop file which should be updated each minute.
+# Restart DTGBOT when not updated in 2 minutes
+check file dtgloop with path /var/tmp/dtgloop.txt
+  start program = "/home/pi/dtgbot/restartbot.sh" timeout 20 seconds
+  if timestamp > 2 minutes then restart
+  if 5 restarts within 5 cycles then timeout
