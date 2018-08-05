@@ -1,5 +1,5 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.4 171231
+-- Version 0.5 180803
 -- Automation bot framework for telegram to control Domoticz
 -- dtgbot.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
@@ -611,7 +611,16 @@ while file_exists(dtgbot_pid) do
         TelegramBotOffset = tt.update_id + 1
         print_to_log(1,'TelegramBotOffset '..TelegramBotOffset)
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
+        -- get message from Json result
         msg = tt['message']
+        -- checking for channel posts
+        if tt['channel_post'] ~= nil then
+          print_to_log(3,'<== received channel message, reformating result to be able to process.')
+          msg = tt['channel_post']
+          msg.from = {}
+          msg.from.id = msg.chat.id
+        end
+        -- processing message
         if (msg ~= nil and (msg.text ~= nil or msg.voice ~= nil or msg.video_note ~= nil)) then
           print_to_log(3,'<== message:' .. tostring(msg.text).." -->"..response)
           on_msg_receive(msg)
