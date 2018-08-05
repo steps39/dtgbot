@@ -1,5 +1,5 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.5 171231
+-- Version 0.6 180803
 -- Automation bot framework for telegram to control Domoticz
 -- dtgbot.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
@@ -262,8 +262,8 @@ function timedifference(s)
   return difference
 end
 
-function HandleCommand(cmd, SendTo, Group, MessageId)
-  print_to_log(0,"Handle command function started with " .. cmd .. " and " .. SendTo)
+function HandleCommand(cmd, SendTo, Group, MessageId, channelmsg)
+  print_to_log(0,"Handle command function started with " .. cmd .. " and " .. SendTo .. "  Group:"..Group)
   --- parse the command
   if command_prefix == "" then
     -- Command prefix is not needed, as can be enforced by Telegram api directly
@@ -281,7 +281,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
   -- Change for menu.lua option
   -- When LastCommand starts with menu then assume the rest is for menu.lua
   ---------------------------------------------------------------------------
-  if Menuval == "On" then
+  if Menuval == "On" and not channelmsg then
     print_to_log(0,"dtgbot: Start DTGMENU ...", cmd)
     local menu_cli = {}
     table.insert(menu_cli, "")  -- make it compatible
@@ -355,8 +355,9 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
   end
   if text ~= "" then
     while string.len(text)>0 do
-
-      if Group ~= "" then
+      if channelmsg then
+        send_msg(Group,string.sub(text,1,4000),MessageId)  -- channel messages on support inline menus
+      elseif Group ~= "" then
         send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
       else
         send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
@@ -364,7 +365,9 @@ function HandleCommand(cmd, SendTo, Group, MessageId)
       text = string.sub(text,4000,-1)
     end
   elseif replymarkup ~= "" then
-    if Group ~= "" then
+    if channelmsg then
+      send_msg(Group,"done",MessageId)
+    elseif Group ~= "" then
       send_msg(Group,"done",MessageId,replymarkup)
     else
       send_msg(SendTo,"done",MessageId,replymarkup)
@@ -428,9 +431,13 @@ function on_msg_receive (msg)
     grp_from = msg.chat.id
     msg_from = msg.from.id
     msg_id = msg.message_id
+    channelmsg = false
+    if msg.chat.id then
+      channelmsg = true
+    end
     if msg.text then   -- check if message is text
       ReceivedText = msg.text
-      if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id) == 1 then
+      if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from), msg_id, channelmsg) == 1 then
         print_to_log(0,"Succesfully handled incoming request")
       else
         print_to_log(0,"Invalid command received")
@@ -450,7 +457,7 @@ function on_msg_receive (msg)
         filelink = result["file_path"]
         print_to_log(1,"filelink:",filelink)
         ReceivedText="voice "..filelink
-        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id) == 1 then
+        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from), msg_id, channelmsg) == 1 then
           print_to_log(0,"Succesfully handled incoming voice request")
         else
           print_to_log(0,"Voice file received but voice.sh or lua not found to process it. skipping the message.")
@@ -468,7 +475,7 @@ function on_msg_receive (msg)
         filelink = result["file_path"]
         print_to_log(1,"filelink:",filelink)
         ReceivedText="video "..filelink
-        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from),msg_id) == 1 then
+        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from), msg_id, channelmsg) == 1 then
           print_to_log(0,"Succesfully handled incoming video request")
         else
           print_to_log(0,"Video file received but video_note.sh or lua not found to process it. Skipping the message.")
@@ -562,11 +569,20 @@ while file_exists(dtgbot_pid) do
       for i = 1, tc do
         print_to_log(1,'Message: '..i)
         tt = table.remove(result_table,1)
-        msg = tt['message']
         print_to_log(1,'update_id ',tt.update_id)
         TelegramBotOffset = tt.update_id + 1
         print_to_log(1,'TelegramBotOffset '..TelegramBotOffset)
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
+        -- get message from Json result
+        msg = tt['message']
+        -- checking for channel message
+        if tt['channel_post'] ~= nil then
+          print_to_log(3,'<== received channel message, reformating result to be able to process.')
+          msg = tt['channel_post']
+          msg.from = {}
+          msg.from.id = msg.chat.id
+        end
+        -- processing message
         -- Offset updated before processing in case of crash allows clean restart
         if (msg ~= nil and (msg.text ~= nil or msg.voice ~= nil or msg.video_note ~= nil)) then
             print_to_log(1,msg.text)
