@@ -4,5 +4,5 @@ This branch is the version of DTGBOT which contains DTGMENU with the inline Menu
 # Setup
 
   See wiki: https://www.domoticz.com/wiki/Remote_Control_of_Domoticz_by_Telegram_Bot
-# DTGMenu screenshots:</b>
+# Inline DTGMenu screenshots:</b>
   ![Alt text](/img/Inline-menus.jpg?raw=true "DTGMenu")
