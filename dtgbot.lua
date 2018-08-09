@@ -1,5 +1,5 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.6 180803
+-- Version 0.6 180809
 -- Automation bot framework for telegram to control Domoticz
 -- dtgbot.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
@@ -263,7 +263,11 @@ function timedifference(s)
 end
 
 function HandleCommand(cmd, SendTo, Group, MessageId, channelmsg)
-  print_to_log(0,"Handle command function started with " .. cmd .. " and " .. SendTo .. "  Group:"..Group)
+  if channelmsg then
+    print_to_log(0,"Handle command function started with " .. cmd .. " and " .. SendTo .. "  Group:"..Group.."   channelmsg:true" )
+  else
+    print_to_log(0,"Handle command function started with " .. cmd .. " and " .. SendTo .. "  Group:"..Group.."   channelmsg:False")
+  end
   --- parse the command
   if command_prefix == "" then
     -- Command prefix is not needed, as can be enforced by Telegram api directly
@@ -432,7 +436,7 @@ function on_msg_receive (msg)
     msg_from = msg.from.id
     msg_id = msg.message_id
     channelmsg = false
-    if msg.chat.id then
+    if msg.chat.type == "channel" then
       channelmsg = true
     end
     if msg.text then   -- check if message is text
