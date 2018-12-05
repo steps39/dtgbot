@@ -30,14 +30,19 @@ function variable_list()
     if (jresponse == nil) then
       socket.sleep(1)
       domoticz_tries = domoticz_tries + 1
-      if domoticz_tries > 100 then
+      if domoticz_tries > 20 then
         print_to_log(0,'Domoticz not sending back user variable list')
         break
       end
     end
   end
   print_to_log(0,'Domoticz returned getuservariables after '..domoticz_tries..' attempts')
-  decoded_response = JSON:decode(jresponse)
+  if jresponse ~= nil then
+    decoded_response = JSON:decode(jresponse)
+  else
+    decoded_response = {}
+    decoded_response["result"] = "{}"
+  end
   return decoded_response
 end
 
@@ -110,7 +115,12 @@ function device_list(DeviceType)
   t = server_url.."/json.htm?type="..DeviceType.."&order=name&used=true"
   print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
-  decoded_response = JSON:decode(jresponse)
+  if jresponse ~= nil then
+    decoded_response = JSON:decode(jresponse)
+  else
+    decoded_response = {}
+    decoded_response["result"] = "{}"
+  end
   return decoded_response
 end
 
@@ -159,7 +169,12 @@ function retrieve_status(idx,DeviceType)
   t = server_url.."/json.htm?type="..DeviceType.."&rid="..tostring(idx)
   print_to_log(2,"JSON request <"..t..">");
   jresponse, status = http.request(t)
-  decoded_response = JSON:decode(jresponse)
+  if jresponse ~= nil then
+    decoded_response = JSON:decode(jresponse)
+  else
+    decoded_response = {}
+    decoded_response['result'] = ""
+  end
   return decoded_response
 end
 
@@ -187,7 +202,9 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
         found = 9
       else
         record = tvar[1]
-        print_to_log(2,'device ',DeviceName,record.Name,idx,record.idx)
+        if record ~= nil and record.Name ~= nil and record.idx ~= nil then
+          print_to_log(2,'device ',DeviceName,record.Name,idx,record.idx)
+        end
         if type(record) == "table" then
           ridx = record.idx
           rDeviceName = record.Name
@@ -217,6 +234,15 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
             end
           else
             SwitchType=record.SwitchType
+            -- Check for encoded selector LevelNames
+            if SwitchType == "Selector" then
+              if string.find(LevelNames, "[|,]+") then
+                print_to_log(2, "--  < 4.9700 selector switch levelnames: ",LevelNames)
+              else
+                LevelNames=mime.unb64(LevelNames)
+                print_to_log(2, "--  >= 4.9700  decoded selector switch levelnames: ",LevelNames)
+              end
+            end
             MaxDimLevel=record.MaxDimLevel
             status = tostring(record.Status)
           end
@@ -313,7 +339,12 @@ function domoticz_language()
   jresponse = nil
   print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
-  decoded_response = JSON:decode(jresponse)
+  if jresponse ~= nil then
+    decoded_response = JSON:decode(jresponse)
+  else
+    decoded_response = {}
+    decoded_response["result"] = "{}"
+  end
   local language = decoded_response['language']
   if language ~= nil then
     return language
