@@ -23,7 +23,128 @@
 -- >Resize the keyboard
 --	reply_markup={"keyboard":[["menu"]],"resize_keyboard":true}
 --  reply_markup={"keyboard":[["opt 1","opt 2","opt 3"],["menu"]],"resize_keyboard":true}
+--// exportstring( string )
+--// returns a "Lua" portable version of the string
+local function exportstring( s )
+  return string.format("%q", s)
+end
 
+--// The Save Function
+function table.save(tbl,tblname)
+  local charS,charE = "   ","\n"
+  local filename = BotLuaScriptPath.."dtgmenu_"..tblname..".tbl"
+  local file,err = io.open( filename, "wb" )
+  if err then return err end
+
+  -- initiate variables for save procedure
+  local tables,lookup = { tbl },{ [tbl] = 1 }
+  file:write( "return {"..charE )
+
+  for idx,t in ipairs( tables ) do
+     file:write( "-- Table: {"..idx.."}"..charE )
+     file:write( "{"..charE )
+     local thandled = {}
+
+     for i,v in ipairs( t ) do
+        thandled[i] = true
+        local stype = type( v )
+        -- only handle value
+        if stype == "table" then
+           if not lookup[v] then
+              table.insert( tables, v )
+              lookup[v] = #tables
+           end
+           file:write( charS.."{"..lookup[v].."},"..charE )
+        elseif stype == "string" then
+           file:write(  charS..exportstring( v )..","..charE )
+        elseif stype == "number" then
+           file:write(  charS..tostring( v )..","..charE )
+        end
+     end
+
+     for i,v in pairs( t ) do
+        -- escape handled values
+        if (not thandled[i]) then
+
+           local str = ""
+           local stype = type( i )
+           -- handle index
+           if stype == "table" then
+              if not lookup[i] then
+                 table.insert( tables,i )
+                 lookup[i] = #tables
+              end
+              str = charS.."[{"..lookup[i].."}]="
+           elseif stype == "string" then
+              str = charS.."["..exportstring( i ).."]="
+           elseif stype == "number" then
+              str = charS.."["..tostring( i ).."]="
+           end
+
+           if str ~= "" then
+              stype = type( v )
+              -- handle value
+              if stype == "table" then
+                 if not lookup[v] then
+                    table.insert( tables,v )
+                    lookup[v] = #tables
+                 end
+                 file:write( str.."{"..lookup[v].."},"..charE )
+              elseif stype == "string" then
+                 file:write( str..exportstring( v )..","..charE )
+              elseif stype == "number" then
+                 file:write( str..tostring( v )..","..charE )
+              end
+           end
+        end
+     end
+     file:write( "},"..charE )
+  end
+  file:write( "}" )
+  file:close()
+end
+
+--// The Load Function
+function table.load( tblname )
+  local sfile = BotLuaScriptPath.."dtgmenu_"..tblname..".tbl"
+  local ftables,err = loadfile( sfile )
+  if err then return _,err end
+  local tables = ftables()
+  for idx = 1,#tables do
+     local tolinki = {}
+     for i,v in pairs( tables[idx] ) do
+        if type( v ) == "table" then
+           tables[idx][i] = tables[v[1]]
+        end
+        if type( i ) == "table" and tables[i[1]] then
+           table.insert( tolinki,{ i,tables[i[1]] } )
+        end
+     end
+     -- link indices
+     for _,v in ipairs( tolinki ) do
+        tables[idx][v[2]],tables[idx][v[1]] =  tables[idx][v[1]],nil
+     end
+  end
+  return tables[1]
+end
+--
+function printtbl( t,tab,lookup )
+   local lookup = lookup or { [t] = 1 }
+   local tab = tab or ""
+   for i,v in pairs( t ) do
+      print( tab..tostring(i), v )
+      if type(i) == "table" and not lookup[i] then
+         lookup[i] = 1
+         print( tab.."Table: i" )
+         printtbl( i,tab.."\t",lookup )
+      end
+      if type(v) == "table" and not lookup[v] then
+         lookup[v] = 1
+         print( tab.."Table: v" )
+         printtbl( v,tab.."\t",lookup )
+      end
+   end
+end
 --------------------------------------
 -- Include config
 --------------------------------------
@@ -53,6 +174,7 @@ end
 -- Copied from internet location: -- http://lua-users.org/wiki/SortedIteration
 -- These are used to sort the items on the menu alphabetically
 -------------------------------------------------------------------------------
+-- declare local variables
 function __genOrderedIndex( t )
   local orderedIndex = {}
   for key in pairs(t) do
@@ -286,6 +408,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
   LastCommand[SendTo]["l1menu"] = l1menu  -- rooms or submenu items
   LastCommand[SendTo]["l2menu"] = l2menu  -- Devices scenes or commands
   LastCommand[SendTo]["l3menu"] = l3menu  -- actions
+  table.save(LastCommand,"LastCommand")
   return replymarkup, devicename
 end
 -- convert the provided menu options into a proper format for the replymenu
@@ -314,7 +437,7 @@ end
 -----------------------------------------------
 --- END Build the reply_markup functions.
 -----------------------------------------------
-
+-- decoding
 -----------------------------------------------
 --- START population the table which runs at each menu update -> makereplymenu
 -----------------------------------------------
@@ -535,6 +658,7 @@ end
 --- START the main process handler
 -----------------------------------------------
 function dtgmenu_module.handler(menu_cli,SendTo)
+
   -- initialise the user table in case it runs the firsttime
   if LastCommand[SendTo] == nil then
     LastCommand[SendTo] = {}
@@ -586,10 +710,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   if not (cmdisaction or cmdisbutton or cmdisbutton) and ChkInTable(LastCommand[SendTo]["l3menu"],"?") and string.find(command, "%d") then
     cmdisaction = true
   end
-  print_to_log(1,' => cmdisaction :',cmdisaction)
-  print_to_log(1,' => cmdisbutton :',cmdisbutton)
-  print_to_log(1,' => cmdissubmenu:',cmdissubmenu)
-
+  -- Check just the command Command if all False
   -------------------------------------------------
   -- Process "dtgmenu  (On/Off)" command
   -------------------------------------------------
@@ -637,6 +758,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     end
       status=1
     print_to_log(0,"==< Show main menu")
+    table.save(LastCommand,"LastCommand")
     return status, response, replymarkup, commandline
   end
   -------------------------------------------------
@@ -654,6 +776,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     LastCommand[SendTo]["l2menu"] = ""
     LastCommand[SendTo]["l3menu"] = ""
     print_to_log(0,"==< Show main menu")
+    table.save(LastCommand,"LastCommand")
     return status, response, replymarkup, commandline
   end
 
@@ -675,6 +798,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     LastCommand[SendTo]["l3menu"] = ""
     LastCommand[SendTo]["prompt"] = false
     print_to_log(0,"==<1a prompt and found regular lua command and param was given. -> hand back to dtgbot to run",commandline)
+    table.save(LastCommand,"LastCommand")
     return status, response, replymarkup, commandline
   end
 
@@ -697,6 +821,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     LastCommand[SendTo]["l3menu"] = ""
     LastCommand[SendTo]["prompt"] = false
     print_to_log(0,"==<1b found regular lua command and param was given. -> hand back to dtgbot to run",commandline )
+    table.save(LastCommand,"LastCommand")
     return status, response, replymarkup, commandline
   end
 
@@ -805,6 +930,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
         LastCommand[SendTo]["l3menu"] = ""
         print_to_log(0,"==<1 found regular lua command. -> hand back to dtgbot to run")
       end
+      table.save(LastCommand,"LastCommand")
       return status, response, replymarkup, commandline
     end
 
@@ -822,6 +948,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       LastCommand[SendTo]["l2menu"] = ""
       LastCommand[SendTo]["l3menu"] = ""
       print_to_log(0,"==<2 found regular lua command. -> hand back to dtgbot to run:"..LastCommand[SendTo]["device"].. " " .. commandline )
+      table.save(LastCommand,"LastCommand")
       return status, response, replymarkup, commandline
     end
   end
@@ -846,6 +973,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     end
     status=1
     print_to_log(0,"==< show options in submenu.")
+    table.save(LastCommand,"LastCommand")
     return status, response, replymarkup, commandline;
   end
 
@@ -899,7 +1027,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       response = dtgmenu_lang[menu_language].text["Select"]
       print_to_log(0,"==< Show options menu plus other devices in submenu.")
     end
-
+    table.save(LastCommand,"LastCommand")
     return status, response, replymarkup, commandline;
   end
 
