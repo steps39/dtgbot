@@ -1064,6 +1064,9 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   elseif SwitchType=="Selector" then
     local sfound,Selector_Option = ChkInTable(string.lower(LevelNames),string.lower(action))
     if sfound then
+      if LevelNames:sub(1,1) ~= "|" then
+        Selector_Option=Selector_Option-1
+      end
       Selector_Option=(Selector_Option)*10
       print_to_log(2,"    -> Selector Switch level found ", Selector_Option,LevelNames,action)
       response=sSwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level "..Selector_Option)
