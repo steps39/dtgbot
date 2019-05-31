@@ -512,11 +512,11 @@ function getSelectorStatusLabel(itab,ival)
     end
     -- get the label and return
     for lbl in string.gmatch(itab, "[^|,]+") do
-      cnt=cnt+1
       if cnt == ival then
         print_to_log(0, "-< getSelectorStatusLabel found: "..lbl,cnt,itab)
         return lbl
       end
+      cnt=cnt+1
     end
   end
   print_to_log(0, "-< getSelectorStatusLabel not found: "..ival,cnt,itab)
