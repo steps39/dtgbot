@@ -324,7 +324,6 @@ function sSwitchName(DeviceName, DeviceType, SwitchType,idx,state)
     print_to_log(3,"JSON request <"..t..">");
     jresponse, status = http.request(t)
     print_to_log(3,"JSON feedback: ", jresponse)
-   -- linea erronea  response = dtgmenu_lang[menu_language].text["Switched"] .. ' ' ..DeviceName..' => '..state
     response = 'Switched' .. ' ' ..DeviceName..' => '..state
   end
   print_to_log(0,"   -< SwitchName:",DeviceName,idx, status,response)
