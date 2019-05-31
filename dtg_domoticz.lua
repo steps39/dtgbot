@@ -30,14 +30,20 @@ function variable_list()
     if (jresponse == nil) then
       socket.sleep(1)
       domoticz_tries = domoticz_tries + 1
-      if domoticz_tries > 100 then
+      if domoticz_tries > 20 then
         print_to_log(0,'Domoticz not sending back user variable list')
         break
       end
     end
   end
   print_to_log(0,'Domoticz returned getuservariables after '..domoticz_tries..' attempts')
-  decoded_response = JSON:decode(jresponse)
+  --decoded_response = JSON:decode(jresponse)
+   if jresponse ~= nil then
+    decoded_response = JSON:decode(jresponse)
+  else
+    decoded_response = {}
+    decoded_response["result"] = "{}"
+  end
   return decoded_response
 end
 
@@ -103,14 +109,19 @@ function get_names_from_variable(DividedString)
   end
   return Names
 end
-
 -- returns a device table of Domoticz items based on type i.e. devices or scenes
 function device_list(DeviceType)
   local t, jresponse, status, decoded_response
   t = server_url.."/json.htm?type="..DeviceType.."&order=name&used=true"
   print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
-  decoded_response = JSON:decode(jresponse)
+  --decoded_response = JSON:decode(jresponse)
+    if jresponse ~= nil then
+    decoded_response = JSON:decode(jresponse)
+  else
+    decoded_response = {}
+    decoded_response["result"] = "{}"
+  end
   return decoded_response
 end
 
@@ -159,7 +170,13 @@ function retrieve_status(idx,DeviceType)
   t = server_url.."/json.htm?type="..DeviceType.."&rid="..tostring(idx)
   print_to_log(2,"JSON request <"..t..">");
   jresponse, status = http.request(t)
-  decoded_response = JSON:decode(jresponse)
+  --decoded_response = JSON:decode(jresponse)
+    if jresponse ~= nil then
+    decoded_response = JSON:decode(jresponse)
+  else
+    decoded_response = {}
+    decoded_response['result'] = ""
+  end
   return decoded_response
 end
 
@@ -180,7 +197,10 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
     if DeviceName ~= "" then
       idx = idx_from_name(DeviceName,'devices')
     end
-    print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
+    --print_to_log(2,"==> start devinfo_from_name", idx,DeviceName)
+	if record ~= nil and record.Name ~= nil and record.idx ~= nil then
+      print_to_log(2,'device ',DeviceName,record.Name,idx,record.idx)
+    end
     if idx ~= nil then
       tvar = retrieve_status(idx, "devices")['result']
       if tvar == nil then
@@ -217,6 +237,15 @@ function devinfo_from_name(idx,DeviceName,DeviceScene)
             end
           else
             SwitchType=record.SwitchType
+			            -- Check for encoded selector LevelNames
+            if SwitchType == "Selector" then
+              if string.find(LevelNames, "[|,]+") then
+                print_to_log(2, "--  < 4.9700 selector switch levelnames: ",LevelNames)
+              else
+                LevelNames=mime.unb64(LevelNames)
+                print_to_log(2, "--  >= 4.9700  decoded selector switch levelnames: ",LevelNames)
+              end
+            end
             MaxDimLevel=record.MaxDimLevel
             status = tostring(record.Status)
           end
@@ -295,7 +324,8 @@ function sSwitchName(DeviceName, DeviceType, SwitchType,idx,state)
     print_to_log(3,"JSON request <"..t..">");
     jresponse, status = http.request(t)
     print_to_log(3,"JSON feedback: ", jresponse)
-    response = dtgmenu_lang[language].text["Switched"] .. ' ' ..DeviceName..' => '..state
+   -- linea erronea  response = dtgmenu_lang[menu_language].text["Switched"] .. ' ' ..DeviceName..' => '..state
+    response = 'Switched' .. ' ' ..DeviceName..' => '..state
   end
   print_to_log(0,"   -< SwitchName:",DeviceName,idx, status,response)
   return response, status
@@ -313,7 +343,13 @@ function domoticz_language()
   jresponse = nil
   print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
-  decoded_response = JSON:decode(jresponse)
+  --decoded_response = JSON:decode(jresponse)
+    if jresponse ~= nil then
+    decoded_response = JSON:decode(jresponse)
+  else
+    decoded_response = {}
+    decoded_response["result"] = "{}"
+  end
   local language = decoded_response['language']
   if language ~= nil then
     return language
