@@ -115,6 +115,7 @@ http = require "socket.http";
 socket = require "socket";
 https = require "ssl.https";
 JSON = require "JSON";
+mime = require("mime")
 
 function file_exists(name)
    local f=io.open(name,"r")
