@@ -1,5 +1,5 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.6 180809
+-- Version 0.7 20200206
 -- Automation bot framework for telegram to control Domoticz
 -- dtgbot.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
@@ -49,6 +49,19 @@ function print_to_debuglog(loglevel, logmessage, ...)
     file:write(os.date("%M:%S")..' '..tostring(logmessage).."\r\n")
     file:close()
   end
+end
+---------------------------------------------------------
+-- new geturl to set protocol
+function geturl(url)
+  local resp = {}
+  local r, c, h, s = https.request{
+     url = url,
+     sink = ltn12.sink.table(resp),
+     protocol = "tlsv1_2"
+  }
+  returncode=c
+  response = resp[1]
+  return response, returncode
 end
 
 function domoticzdata(envvar)
@@ -395,10 +408,10 @@ end
 function send_msg(SendTo, Message, MessageId, replymarkup)
   if replymarkup == nil or replymarkup == "" then
     print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
-    response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+    response, status = geturl(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
   else
     print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
-    response, status = https.request(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
+    response, status = geturl(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
   end
   print_to_log(0,'Message sent',status)
   return
@@ -454,7 +467,7 @@ function on_msg_receive (msg)
     -- check for received voicefiles
     elseif msg.voice then   -- check if message is voicefile
       print_to_log(0,"msg.voice.file_id:",msg.voice.file_id)
-      responsev, statusv = https.request(telegram_url..'getFile?file_id='..msg.voice.file_id)
+      responsev, statusv = geturl(telegram_url..'getFile?file_id='..msg.voice.file_id)
       if statusv == 200 then
         print_to_log(1,"responsev:",responsev)
         decoded_responsev = JSON:decode(responsev)
@@ -472,7 +485,7 @@ function on_msg_receive (msg)
       end
     elseif msg.video_note then   -- check if message is videofile
       print_to_log(0,"msg.video_note.file_id:",msg.video_note.file_id)
-      responsev, statusv = https.request(telegram_url..'getFile?file_id='..msg.video_note.file_id)
+      responsev, statusv = geturl(telegram_url..'getFile?file_id='..msg.video_note.file_id)
       if statusv == 200 then
         print_to_log(1,"responsev:",responsev)
         decoded_responsev = JSON:decode(responsev)
@@ -557,7 +570,7 @@ telegram_connected = false
 --Update monitorfile before loop
 os.execute("echo " .. os.date("%Y-%m-%d %H:%M:%S") .. " >> " .. TempFileDir .. "/dtgloop.txt")
 while file_exists(dtgbot_pid) do
-  response, status = https.request(telegram_url..'getUpdates?timeout=60&offset='..TelegramBotOffset)
+  response, status = geturl(telegram_url..'getUpdates?timeout=60&limit=1&offset='..TelegramBotOffset)
   if status == 200 then
     if not telegram_connected then
       print_to_log(0,'')
