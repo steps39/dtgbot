@@ -127,7 +127,8 @@ commands = {};
 http = require "socket.http";
 socket = require "socket";
 https = require "ssl.https";
-JSON = require "JSON";
+--JSON = require "JSON";
+JSON = require "json";
 mime = require("mime")
 
 function file_exists(name)
@@ -470,7 +471,7 @@ function on_msg_receive (msg)
       responsev, statusv = geturl(telegram_url..'getFile?file_id='..msg.voice.file_id)
       if statusv == 200 then
         print_to_log(1,"responsev:",responsev)
-        decoded_responsev = JSON:decode(responsev)
+        decoded_responsev = JSON.decode(responsev)
         result = decoded_responsev["result"]
         filelink = result["file_path"]
         print_to_log(1,"filelink:",filelink)
@@ -488,7 +489,7 @@ function on_msg_receive (msg)
       responsev, statusv = geturl(telegram_url..'getFile?file_id='..msg.video_note.file_id)
       if statusv == 200 then
         print_to_log(1,"responsev:",responsev)
-        decoded_responsev = JSON:decode(responsev)
+        decoded_responsev = JSON.decode(responsev)
         result = decoded_responsev["result"]
         filelink = result["file_path"]
         print_to_log(1,"filelink:",filelink)
@@ -581,7 +582,7 @@ while file_exists(dtgbot_pid) do
       io.write('.')
       print_to_log(1,"")
       print_to_log(1,response)
-      decoded_response = JSON:decode(response)
+      decoded_response = JSON.decode(response)
       result_table = decoded_response['result']
       tc = #result_table
       for i = 1, tc do

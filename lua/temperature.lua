@@ -14,7 +14,7 @@ function get_temperature(DeviceName)
   t = server_url.."/json.htm?type=devices&rid=" .. idx
   print ("JSON request <"..t..">");
   jresponse, status = http.request(t)
-  decoded_response = JSON:decode(jresponse)
+  decoded_response = JSON.decode(jresponse)
   result = decoded_response["result"]
   record = result[1]
   DeviceType = record["Type"]

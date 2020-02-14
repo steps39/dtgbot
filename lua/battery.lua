@@ -11,7 +11,7 @@ function get_battery_level(DeviceName)
   t = server_url.."/json.htm?type=devices&rid=" .. idx
   print_to_log ("JSON request <"..t..">");
   jresponse, status = http.request(t)
-  decoded_response = JSON:decode(jresponse)
+  decoded_response = JSON.decode(jresponse)
   result = decoded_response["result"]
   record = result[1]
 	BattLevel = record["BatteryLevel"]
@@ -47,7 +47,7 @@ function battery_module.handler(parsed_cli)
 --        	t = server_url.."/json.htm?type=devices"
         	print_to_log ("JSON request <"..t..">");  
 		jresponse, status = http.request(t)
-		decoded_response = JSON:decode(jresponse)
+		decoded_response = JSON.decode(jresponse)
 		result = decoded_response["result"]
 		idx = 0
 		for k,record in pairs(result) do
@@ -66,7 +66,7 @@ function battery_module.handler(parsed_cli)
 		t = server_url.."/json.htm?type=command&param=getuservariable&idx="..idx
         	print_to_log ("JSON request <"..t..">");  
 		jresponse, status = http.request(t)
-		decoded_response = JSON:decode(jresponse)
+		decoded_response = JSON.decode(jresponse)
 		result = decoded_response["result"]
 		record = result[1]
 		DevicesWithBatteries = record["Value"]

@@ -38,7 +38,7 @@ function variable_list()
   end
   print_to_log(0,'Domoticz returned getuservariables after '..domoticz_tries..' attempts')
   if jresponse ~= nil then
-    decoded_response = JSON:decode(jresponse)
+    decoded_response = JSON.decode(jresponse)
   else
     decoded_response = {}
     decoded_response["result"] = "{}"
@@ -74,7 +74,7 @@ function get_variable_value(idx)
   t = server_url.."/json.htm?type=command&param=getuservariable&idx="..tostring(idx)
   print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
-  decoded_response = JSON:decode(jresponse)
+  decoded_response = JSON.decode(jresponse)
   print_to_log(0,'Decoded '..decoded_response["result"][1]["Value"])
   return decoded_response["result"][1]["Value"]
 end
@@ -116,7 +116,7 @@ function device_list(DeviceType)
   print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   if jresponse ~= nil then
-    decoded_response = JSON:decode(jresponse)
+    decoded_response = JSON.decode(jresponse)
   else
     decoded_response = {}
     decoded_response["result"] = "{}"
@@ -170,7 +170,7 @@ function retrieve_status(idx,DeviceType)
   print_to_log(2,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   if jresponse ~= nil then
-    decoded_response = JSON:decode(jresponse)
+    decoded_response = JSON.decode(jresponse)
   else
     decoded_response = {}
     decoded_response['result'] = ""
@@ -340,7 +340,7 @@ function domoticz_language()
   print_to_log(1,"JSON request <"..t..">");
   jresponse, status = http.request(t)
   if jresponse ~= nil then
-    decoded_response = JSON:decode(jresponse)
+    decoded_response = JSON.decode(jresponse)
   else
     decoded_response = {}
     decoded_response["result"] = "{}"

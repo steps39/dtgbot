@@ -21,7 +21,7 @@ function list_module.handler(parsed_cli)
 	end
 
 	jresponse, status = http.request(server_url.."/json.htm?type=devices")
-	decoded_response = JSON:decode(jresponse)
+	decoded_response = JSON.decode(jresponse)
 	for k,record in pairs(decoded_response) do
 		print_to_log(k, type(record))
 		if type(record) == "table" then

@@ -37,7 +37,7 @@ function nflick_module.handler(parsed_cli)
 	print ("JSON request <"..t..">");
 	jresponse, status = http.request(t)
 	print("raw jason", jresponse)
-	decoded_response = JSON:decode(jresponse)
+	decoded_response = JSON.decode(jresponse)
 	for k,record in pairs(decoded_response) do
 		print(k, type(record))
 		if type(record) == "table" then
