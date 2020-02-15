@@ -329,9 +329,11 @@ function HandleCommand(cmd, SendTo, Group, MessageId, channelmsg)
   ---------------------------------------------------------------------------
   -- End change for menu.lua option
   ---------------------------------------------------------------------------
-
   --~	added "-_"to allowed characters a command/word
-  for w in string.gmatch(cmd, "([%w-_]+)") do
+  --  for w in string.gmatch(cmd, "([%w-_]+)") do
+  -- 200215 corrected to allow non-asci characters to be used in names and commands
+  -- now only a space will separate commands
+  for w in string.gmatch(cmd, "([^ ]+)") do
     table.insert(parsed_command, w)
   end
   if command_prefix ~= "" then

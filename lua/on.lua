@@ -6,13 +6,12 @@ function switch(parsed_cli)
   command = parsed_cli[2]
   DeviceName = form_device_name(parsed_cli)
   if DeviceName ~= nil then
-    print_to_log('Device Name: '..DeviceName)
     -- DeviceName can either be a device / group / scene name or a number refering to list previously generated
     if tonumber(DeviceName) ~= nil then
       NewDeviceName = StoredList[tonumber(DeviceName)]
       if NewDeviceName == nil then
         response = 'No '..StoredType..' with number '..DeviceName..' was found - please execute devices or scenes command with qualifier to generate list'
-        return status, response
+        return response
       else
         DeviceName = NewDeviceName
       end
