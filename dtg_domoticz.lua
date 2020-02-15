@@ -4,14 +4,55 @@
 function form_device_name(parsed_cli)
 -- joins together parameters after the command name to form the full "device name"
   command = parsed_cli[2]
+print_to_log(0,command)
   DeviceName = parsed_cli[3]
+print_to_log(0,parsed_cli[3])
   len_parsed_cli = #parsed_cli
   if len_parsed_cli > 3 then
     for i = 4, len_parsed_cli do
       DeviceName = DeviceName..' '..parsed_cli[i]
+print_to_log(0,parsed_cli[i])
     end
   end
+print_to_log(0,DeviceName)
   return DeviceName
+end
+
+function form_device_names(parsed_cli)
+-- joins together parameters after the command name to form the full "device name"
+  command = parsed_cli[2]
+  DeviceNames={}
+  DeviceNames[1] = ''
+  j = 1
+  len_parsed_cli = #parsed_cli
+  for i = 3, len_parsed_cli do
+	bit = parsed_cli[i]
+    if not(string.match(bit,",")) then
+	  bit = string.gsub(bit," ","")
+	  if (DeviceNames[j]=='') then
+		DeviceNames[j] = bit
+	  else
+        DeviceNames[j] = DeviceNames[j]..' '..bit
+      end
+	else
+	  -- Needed to deal with , ,word, word,word etc..
+	  bit = string.gsub(bit,","," , ")
+	  for w in string.gmatch(bit,"([^ ]+)") do
+		w = string.gsub(w," ","")
+		if (w==",") then
+		  j = j+1
+		  DeviceNames[j] = ''
+		else
+		  if (DeviceNames[j]=='') then
+		    DeviceNames[j] = w
+		  else
+			DeviceNames[j] = DeviceNames[j]..' '..w
+		  end
+	    end
+	  end
+	end
+  end
+  return DeviceNames
 end
 
 -- returns list of all user variables - called early by dtgbot
@@ -142,7 +183,7 @@ function device_list_names_idxs(DeviceType)
           devices[string.lower(record['Name'])] = record['idx']
           devices[record['idx']] = record['Name']
           if DeviceType == 'scenes' then
-        devicesproperties[record['idx']] = {Type=record['Type'], SwitchType = record['Type']}
+			devicesproperties[record['idx']] = {Type=record['Type'], SwitchType = record['Type']}
           end
         end
       end
@@ -154,7 +195,7 @@ function device_list_names_idxs(DeviceType)
 end
 
 function idx_from_name(DeviceName,DeviceType)
-  --returns a devcie idx based on its name
+  --returns a device idx based on its name
   if DeviceType == "devices" then
     return Devicelist[string.lower(DeviceName)]
   elseif DeviceType == "scenes" then

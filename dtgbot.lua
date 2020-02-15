@@ -333,7 +333,13 @@ function HandleCommand(cmd, SendTo, Group, MessageId, channelmsg)
   --  for w in string.gmatch(cmd, "([%w-_]+)") do
   -- 200215 corrected to allow non-asci characters to be used in names and commands
   -- now only a space will separate commands
-  for w in string.gmatch(cmd, "([^ ]+)") do
+--  table.insert(parsed_command,string.match(cmd,"([^ ]+)"))
+-- print_to_log(0,cmd)
+-- print_to_log(0,parsed_command[1])
+-- print_to_log(0,parsed_command[2])
+--  for w in string.gmatch(string.sub(cmd,string.len(parsed_command[2])+2),"([^,]+)") do
+  for w in string.gmatch(cmd,"([^ ]+)") do
+--print_to_log(0,w)
     table.insert(parsed_command, w)
   end
   if command_prefix ~= "" then
