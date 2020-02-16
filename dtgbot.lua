@@ -60,7 +60,10 @@ function geturl(url)
      protocol = "tlsv1_2"
   }
   returncode=c
-  response = resp[1]
+  response = ""
+  for i = 1, #resp do
+    response = response .. resp[i]
+  end
   return response, returncode
 end
 
