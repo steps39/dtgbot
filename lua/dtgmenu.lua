@@ -512,11 +512,11 @@ function getSelectorStatusLabel(itab,ival)
     end
     -- get the label and return
     for lbl in string.gmatch(itab, "[^|,]+") do
-      cnt=cnt+1
       if cnt == ival then
         print_to_log(0, "-< getSelectorStatusLabel found: "..lbl,cnt,itab)
         return lbl
       end
+      cnt=cnt+1
     end
   end
   print_to_log(0, "-< getSelectorStatusLabel not found: "..ival,cnt,itab)
@@ -793,6 +793,9 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   elseif SwitchType=="Selector" then
     local sfound,Selector_Option = ChkInTable(LevelNames,action)
     if sfound then
+      if LevelNames:sub(1,1) ~= "|" then
+        Selector_Option=Selector_Option-1
+      end
       Selector_Option=(Selector_Option)*10
       print_to_log(2,"    -> Selector Switch level found ", Selector_Option,LevelNames,action)
       response=sSwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level "..Selector_Option)
