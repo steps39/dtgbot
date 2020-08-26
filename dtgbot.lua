@@ -1,5 +1,5 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.7 20200206
+-- Version 0.8 20200826
 -- Automation bot framework for telegram to control Domoticz
 -- dtgbot.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
@@ -279,12 +279,9 @@ function timedifference(s)
   return difference
 end
 
-function HandleCommand(cmd, SendTo, Group, MessageId, channelmsg)
-  if channelmsg then
-    print_to_log(0,"Handle command function started with " .. cmd .. " and " .. SendTo .. "  Group:"..Group.."   channelmsg:true" )
-  else
-    print_to_log(0,"Handle command function started with " .. cmd .. " and " .. SendTo .. "  Group:"..Group.."   channelmsg:False")
-  end
+function HandleCommand(cmd, SendTo, Group, MessageId, msg_type)
+  msg_type = msg_type or ""
+  print_to_log(0,"Handle command function started with " .. cmd .. " and " .. SendTo .. "  Group:"..Group.."   msg_type:"..msg_type )
   --- parse the command
   if command_prefix == "" then
     -- Command prefix is not needed, as can be enforced by Telegram api directly
@@ -302,7 +299,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, channelmsg)
   -- Change for menu.lua option
   -- When LastCommand starts with menu then assume the rest is for menu.lua
   ---------------------------------------------------------------------------
-  if Menuval == "On" and not channelmsg then
+  if Menuval == "On" and msg_type ~= 'channel' then
     print_to_log(0,"dtgbot: Start DTGMENU ...", cmd)
     local menu_cli = {}
     table.insert(menu_cli, "")  -- make it compatible
@@ -345,8 +342,15 @@ function HandleCommand(cmd, SendTo, Group, MessageId, channelmsg)
   if(parsed_command[2]~=nil) then
     command_dispatch = commands[string.lower(parsed_command[2])];
     local savereplymarkup = replymarkup
+    if msg_type == "callback" then
+      savereplymarkup = JSON:encode(msg.message.reply_markup or "")
+    end
     if command_dispatch then
-      status, text, replymarkup = command_dispatch.handler(parsed_command,SendTo);
+      status, text, replymarkup = command_dispatch.handler(parsed_command,SendTo,MessageId,savereplymarkup);
+      if ((replymarkup or "") == "remove") then
+        savereplymarkup = ''
+        replymarkup = ''
+      end
       found=1
     else
       text = ""
@@ -376,22 +380,21 @@ function HandleCommand(cmd, SendTo, Group, MessageId, channelmsg)
   end
   if text ~= "" then
     while string.len(text)>0 do
-      if channelmsg then
-        send_msg(Group,string.sub(text,1,4000),MessageId)  -- channel messages on support inline menus
-      elseif Group ~= "" then
-        send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
+      if Group ~= "" then
+        send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup,msg_type)
       else
-        send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
+        send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup,msg_type)
       end
       text = string.sub(text,4000,-1)
     end
-  elseif replymarkup ~= "" then
-    if channelmsg then
-      send_msg(Group,"done",MessageId)
-    elseif Group ~= "" then
-      send_msg(Group,"done",MessageId,replymarkup)
+  elseif replymarkup ~= "" or msg_type == 'callback' then
+    if msg_type ~= 'callback' then
+        text = "done"
+    end
+    if Group ~= "" then
+      send_msg(Group,text,MessageId,replymarkup,msg_type)
     else
-      send_msg(SendTo,"done",MessageId,replymarkup)
+      send_msg(SendTo,text,MessageId,replymarkup,msg_type)
     end
   end
   return found
@@ -408,16 +411,44 @@ function url_encode(str)
 end
 
 --~ added replymarkup to allow for custom keyboard
-function send_msg(SendTo, Message, MessageId, replymarkup)
-  if replymarkup == nil or replymarkup == "" then
-    print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
-    response, status = geturl(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+function send_msg(SendTo, Message, MessageId, replymarkup, msg_type)
+  msg_type = msg_type or ""
+  print_to_log(1,"msg_type:"..msg_type)
+  print_to_log(1,"replymarkup:"..replymarkup)
+  if msg_type == "callback" then
+    if replymarkup == nil or replymarkup == "" then
+      replymarkup = "&reply_markup="
+    else
+      replymarkup = '&reply_markup='..url_encode(replymarkup)
+    end
+    if Message == 'remove' then
+      print_to_log(1,telegram_url..'deleteMessage?chat_id='..SendTo..'&message_id='..MessageId)
+      response, status = geturl(telegram_url..'deleteMessage?chat_id='..SendTo..'&message_id='..MessageId)
+    else
+      print_to_log(1,telegram_url..'editMessageText?chat_id='..SendTo..'&message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
+      response, status = geturl(telegram_url..'editMessageText?chat_id='..SendTo..'&message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
+    -- rebuild new message with inlinemenu when the old message can't be updated
+    end
+    if status == 400 and string.find(response, "Message can't be edited") then
+      print_to_log(3,status..'<== ',response)
+      print_to_log(3,'==> /sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..Message..replymarkup)
+      response, status = geturl(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
+    end
   else
-    print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
-    response, status = geturl(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
+    -- channel messages on support inline menus
+    if msg_type == "channel" then
+      replymarkup = ""
+    end
+    if replymarkup == nil or replymarkup == "" then
+      print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+      response, status = geturl(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
+    else
+      print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
+      response, status = geturl(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
+    end
+    print_to_log(0,'Message sent',status)
+    return
   end
-  print_to_log(0,'Message sent',status)
-  return
 end
 
 function id_check(SendTo)
@@ -452,13 +483,15 @@ function on_msg_receive (msg)
     grp_from = msg.chat.id
     msg_from = msg.from.id
     msg_id = msg.message_id
-    channelmsg = false
+    msg_type = ""
     if msg.chat.type == "channel" then
-      channelmsg = true
+      msg_type = "channel"
+    elseif msg.message ~= nil and msg.message.chat.id ~= nil then
+      msg_type = "callback"
     end
     if msg.text then   -- check if message is text
       ReceivedText = msg.text
-      if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from), msg_id, channelmsg) == 1 then
+      if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from), msg_id, msg_type) == 1 then
         print_to_log(0,"Succesfully handled incoming request")
       else
         print_to_log(0,"Invalid command received")
@@ -478,7 +511,7 @@ function on_msg_receive (msg)
         filelink = result["file_path"]
         print_to_log(1,"filelink:",filelink)
         ReceivedText="voice "..filelink
-        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from), msg_id, channelmsg) == 1 then
+        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from), msg_id, msg_type) == 1 then
           print_to_log(0,"Succesfully handled incoming voice request")
         else
           print_to_log(0,"Voice file received but voice.sh or lua not found to process it. skipping the message.")
@@ -496,7 +529,7 @@ function on_msg_receive (msg)
         filelink = result["file_path"]
         print_to_log(1,"filelink:",filelink)
         ReceivedText="video "..filelink
-        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from), msg_id, channelmsg) == 1 then
+        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from), msg_id, msg_type) == 1 then
           print_to_log(0,"Succesfully handled incoming video request")
         else
           print_to_log(0,"Video file received but video_note.sh or lua not found to process it. Skipping the message.")
@@ -596,9 +629,17 @@ while file_exists(dtgbot_pid) do
         set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
         -- get message from Json result
         msg = tt['message']
-        -- checking for channel message
-        if tt['channel_post'] ~= nil then
-          print_to_log(3,'<== received channel message, reformating result to be able to process.')
+        if tt['callback_query'] ~= nil then
+          -- checking for callback_query message from inline keyboard.
+          print_to_log(3,'<== Received callback_query, reformating result to be able to process.')
+          msg = tt['callback_query']
+          msg.chat = {}
+          msg.chat.id = msg.message.chat.id
+          msg.message_id = msg.message.message_id
+          msg.text = msg.data
+        elseif tt['channel_post'] ~= nil then
+          -- checking for channel message.
+          print_to_log(3,'<== Received channel message, reformating result to be able to process.')
           msg = tt['channel_post']
           msg.from = {}
           msg.from.id = msg.chat.id
