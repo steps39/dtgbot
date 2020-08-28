@@ -1,5 +1,5 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.8 20200826
+-- Version 0.81 20200828
 -- Automation bot framework for telegram to control Domoticz
 -- dtgbot.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
@@ -347,10 +347,6 @@ function HandleCommand(cmd, SendTo, Group, MessageId, msg_type)
     end
     if command_dispatch then
       status, text, replymarkup = command_dispatch.handler(parsed_command,SendTo,MessageId,savereplymarkup);
-      if ((replymarkup or "") == "remove") then
-        savereplymarkup = ''
-        replymarkup = ''
-      end
       found=1
     else
       text = ""
@@ -371,6 +367,8 @@ function HandleCommand(cmd, SendTo, Group, MessageId, msg_type)
     if replymarkup == nil or replymarkup == "" then
       -- restore the menu supplied replymarkup in case the shelled LUA didn't provide one
       replymarkup = savereplymarkup
+    elseif (replymarkup == "remove") then
+      replymarkup = ''
     end
     if found==0 then
       text = "command <"..tostring(parsed_command[2]).."> not found";
@@ -387,7 +385,8 @@ function HandleCommand(cmd, SendTo, Group, MessageId, msg_type)
       end
       text = string.sub(text,4000,-1)
     end
-  elseif replymarkup ~= "" or msg_type == 'callback' then
+  elseif replymarkup ~= savereplymarkup or msg_type == 'callback' then
+    -- don't default to a text message for Callback calls
     if msg_type ~= 'callback' then
         text = "done"
     end
@@ -413,6 +412,7 @@ end
 --~ added replymarkup to allow for custom keyboard
 function send_msg(SendTo, Message, MessageId, replymarkup, msg_type)
   msg_type = msg_type or ""
+  replymarkup = replymarkup or ""
   print_to_log(1,"msg_type:"..msg_type)
   print_to_log(1,"replymarkup:"..replymarkup)
   if msg_type == "callback" then
