@@ -1,5 +1,5 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.81 20200828
+-- Version 0.811 20201119
 -- Automation bot framework for telegram to control Domoticz
 -- dtgbot.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
@@ -329,8 +329,8 @@ function HandleCommand(cmd, SendTo, Group, MessageId, msg_type)
   -- End change for menu.lua option
   ---------------------------------------------------------------------------
 
-  --~	added "-_"to allowed characters a command/word
-  for w in string.gmatch(cmd, "([%w-_]+)") do
+  --changed from [%w-_] to allow non-asci characters in a command/word
+  for w in string.gmatch(cmd, "([^ ]+)") do
     table.insert(parsed_command, w)
   end
   if command_prefix ~= "" then
