@@ -5,7 +5,7 @@
 --  - all static actions defined in DTGMENU.CFG. Open the file for descript of the details.
 --
 -- programmer: Jos van der Zande
--- version: 0.1.171231
+-- Version 0.811 20201119
 -- =====================================================================================================================
 -----------------------------------------------------------------------------------------------------------------------
 -- these are the different formats of reply_markup. looksimple but needed a lot of testing before it worked :)
@@ -672,7 +672,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   end
   --~	split the commandline into parameters
   local dtgmenu_cli={}
-  for w in string.gmatch(menu_cli[2], "([%w-_?%%++><&-**]+)") do
+  for w in string.gmatch(menu_cli[2], "([^ ]+)") do
     table.insert(dtgmenu_cli, w)
   end
   --
