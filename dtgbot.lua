@@ -1,5 +1,5 @@
 -- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.811 20201119
+-- Version 0.812 20201120
 -- Automation bot framework for telegram to control Domoticz
 -- dtgbot.lua does not require any customisation (see below)
 -- and does not require any telegram client to be installed
@@ -347,6 +347,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, msg_type)
     end
     if command_dispatch then
       status, text, replymarkup = command_dispatch.handler(parsed_command,SendTo,MessageId,savereplymarkup);
+      text = text or ""
       found=1
     else
       text = ""
@@ -358,7 +359,19 @@ function HandleCommand(cmd, SendTo, Group, MessageId, msg_type)
         print_to_log(0,"checking line ".. line)
         if(line:match(cmda)) then
           print_to_log(0,line)
-          os.execute(BotBashScriptPath  .. line .. ' ' .. SendTo .. ' ' .. stuff)
+          -- run bash script and collect returned text.
+          local handle = io.popen(BotBashScriptPath  .. line .. ' ' .. SendTo .. ' ' .. stuff)
+          text = handle:read("*a")
+          handle:close()
+          -- ensure the text isn't nil
+          text = text or ""
+          -- remove ending CR LF
+          text = text:gsub("[\n\r]$", "")
+          print_to_log(0,"returned text="..text)
+          -- default to "done"when no text is returned as it use to be.
+          if text == "" then
+            text = "done."
+          end
           found=1
         end
       end
@@ -386,7 +399,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, msg_type)
       text = string.sub(text,4000,-1)
     end
   elseif replymarkup ~= savereplymarkup or msg_type == 'callback' then
-    -- don't default to a text message for Callback calls
+    -- Set msg text for normal messages to send the replymarkup
     if msg_type ~= 'callback' then
         text = "done"
     end
