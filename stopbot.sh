@@ -5,7 +5,7 @@
 
 echo "$(date +%x) $(date +%X)  Stopping"  >> /var/tmp/dtgloop.txt
 sudo service dtgbot stop
-# allow any comman being process to finish
+# allow any command being process to finish
 sleep 5
 # kill all remaining processes
 sudo pkill -f dtgbot/dtgbot.lua

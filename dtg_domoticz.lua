@@ -316,7 +316,7 @@ function sSwitchName(DeviceName, DeviceType, SwitchType,idx,state)
     elseif string.lower(string.sub(state,1,9)) == "set level" then
       t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd=Set%20Level&level="..string.sub(state,11)
     else
-      return "state must be on, off or Set Level!";
+      return "state must be on, off or set level!";
     end
     print_to_log(3,"JSON request <"..t..">");
     jresponse, status = http.request(t)
