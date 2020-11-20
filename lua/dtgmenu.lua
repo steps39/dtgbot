@@ -5,7 +5,7 @@
 --  - all static actions defined in DTGMENU.CFG. Open the file for descript of the details.
 --
 -- programmer: Jos van der Zande
--- Version 0.811 20201119
+-- Version 0.812 20201120
 -- =====================================================================================================================
 -----------------------------------------------------------------------------------------------------------------------
 -- these are the different formats of reply_markup. looksimple but needed a lot of testing before it worked :)
@@ -753,7 +753,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
       response="DTGMENU is now enabled. send DTGMENU again to stop the menus."
     elseif Menuval == "On" then
       -- reset menu to main menu in case dtgmenu command is send
-      response=dtgmenu_lang[menu_language].text["main"]
+      response=translate_desc("main",menu_language,"Select the submenu.")
       replymarkup = makereplymenu(SendTo, "mainmenu")
     end
       status=1
@@ -768,7 +768,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   if cmdisaction == false and(lcommand == "menu" or lcommand == "start") then
     -- ensure the menu is always rebuild for Menu or Start
     LastCommand[SendTo]["replymarkup"]=""
-    response=dtgmenu_lang[menu_language].text["main"]
+    response=translate_desc("main",menu_language,"Select the submenu.")
     replymarkup = makereplymenu(SendTo, "mainmenu")
     status=1
     LastCommand[SendTo]["submenu"] = ""
@@ -849,20 +849,26 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   if cmdisbutton then
     submenu    = LastCommand[SendTo]["submenu"]
     devicename = command  -- use command as that should only contain the values of the first param
-    realdevicename = dtgmenu_submenus[submenu].buttons[devicename].Name
-    Type       = dtgmenu_submenus[submenu].buttons[devicename].Type
-    idx        = dtgmenu_submenus[submenu].buttons[devicename].idx
-    DeviceType = dtgmenu_submenus[submenu].buttons[devicename].DeviceType
-    SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
-    MaxDimLevel= dtgmenu_submenus[submenu].buttons[devicename].MaxDimLevel
-    dstatus    = dtgmenu_submenus[submenu].buttons[devicename].status
-    print_to_log(1,' => devicename :',devicename)
-    print_to_log(1,' => realdevicename :',realdevicename)
-    print_to_log(1,' => idx:',idx)
-    print_to_log(1,' => Type :',Type)
-    print_to_log(1,' => DeviceType :',DeviceType)
-    print_to_log(1,' => SwitchType :',SwitchType)
-    print_to_log(1,' => MaxDimLevel:',MaxDimLevel)
+    if dtgmenu_submenus[submenu] == nil then
+      print_to_log(1,'Error not found  => submenu :',submenu)
+    elseif dtgmenu_submenus[submenu].buttons[devicename] == nil then
+      print_to_log(1,'Error not found  => devicename :',devicename)
+    else
+      realdevicename = dtgmenu_submenus[submenu].buttons[devicename].Name or "?"
+      Type       = dtgmenu_submenus[submenu].buttons[devicename].Type or "?"
+      idx        = dtgmenu_submenus[submenu].buttons[devicename].idx or "?"
+      DeviceType = dtgmenu_submenus[submenu].buttons[devicename].DeviceType or "?"
+      SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType or "?"
+      MaxDimLevel= dtgmenu_submenus[submenu].buttons[devicename].MaxDimLevel or "?"
+      dstatus    = dtgmenu_submenus[submenu].buttons[devicename].status or "?"
+      print_to_log(1,' => devicename :',devicename)
+      print_to_log(1,' => realdevicename :',realdevicename)
+      print_to_log(1,' => idx:',idx)
+      print_to_log(1,' => Type :',Type)
+      print_to_log(1,' => DeviceType :',DeviceType)
+      print_to_log(1,' => SwitchType :',SwitchType)
+      print_to_log(1,' => MaxDimLevel:',MaxDimLevel)
+    end
     if DeviceType ~= "command" then
       dummy,dummy,dummy,dummy,dummy,dummy,dstatus,LevelNames,LevelInt = devinfo_from_name(idx,realdevicename,DeviceType)
       print_to_log(1,' => dstatus    :',dstatus)
@@ -916,7 +922,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
         replymarkup='{"force_reply":true}'
         LastCommand[SendTo]["replymarkup"] = replymarkup
         status = 1
-        response=dtgmenu_lang[menu_language].text["Specifyvalue"]
+        response=translate_desc(language,"Specifyvalue")
         print_to_log(0,"==<1 found regular lua command that need Param ")
 
         -- no prompt defined so simply return to dtgbot with status 0 so it will be performed and reset the keyboard to just MENU
@@ -967,9 +973,9 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     if rdevicename ~= "" then
       LastCommand[SendTo]["device"] = rdevicename
       print_to_log(1," -- Changed to devicelevel due to showactions defined for device "..rdevicename )
-      response=dtgmenu_lang[menu_language].text["SelectOptionwo"] .. " " .. rdevicename
+      response=translate_desc(language,"SelectOptionwo") .. " " .. rdevicename
     else
-      response= submenu .. ":" .. dtgmenu_lang[menu_language].text["Select"]
+      response= submenu .. ":" .. translate_desc("Select",language,"Select option.")
     end
     status=1
     print_to_log(0,"==< show options in submenu.")
@@ -991,17 +997,17 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     local found=0
     if DeviceType == "scenes" then
       if Type == "Group" then
-        response = dtgmenu_lang[menu_language].text["SelectGroup"]
+        response = translate_desc(language,"SelectGroup")
         print_to_log(0,"==< Show group options menu plus other devices in submenu.")
       else
-        response = dtgmenu_lang[menu_language].text["SelectScene"]
+        response = translate_desc(language,"SelectScene")
         print_to_log(0,"==< Show scene options menu plus other devices in submenu.")
       end
 --~     elseif Type == "Temp" or Type == "Temp + Humidity" or Type == "Wind" or Type == "Rain" then
     elseif dtgbot_type_status[Type] ~= nil and dtgbot_type_status[Type].DisplayActions == false then
       -- when temp device is selected them just return with resetting keyboard and ask to select device.
       status=1
-      response=dtgmenu_lang[menu_language].text["Select"]
+      response=translate_desc("Select",language,"Select option.")
       print_to_log(1,"==< Don't do anything as a temp device was selected.")
     elseif DeviceType == "devices" then
       -- Only show current status in the text when not shown on the action options
@@ -1017,14 +1023,14 @@ function dtgmenu_module.handler(menu_cli,SendTo)
         if SwitchType == "Selector" then
           switchstatus = getSelectorStatusLabel(LevelNames,LevelInt)
         end
-        response = dtgmenu_lang[menu_language].text["SelectOptionwo"]
+        response = translate_desc(language,"SelectOptionwo")
       else
         switchstatus = dstatus
-        response = dtgmenu_lang[menu_language].text["SelectOption"] .. " " .. switchstatus
+        response = translate_desc(language,"SelectOption") .. " " .. switchstatus
       end
       print_to_log(0,"==< Show device options menu plus other devices in submenu.")
     else
-      response = dtgmenu_lang[menu_language].text["Select"]
+      response = translate_desc("Select",language,"Select option.")
       print_to_log(0,"==< Show options menu plus other devices in submenu.")
     end
     table.save(LastCommand,"LastCommand")
@@ -1042,7 +1048,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
     if commandline == "?" then
       replymarkup='{"force_reply":true}'
       LastCommand[SendTo]["replymarkup"] = replymarkup
-      response=dtgmenu_lang[menu_language].text["Specifyvalue"]
+      response=translate_desc(language,"Specifyvalue")
       print_to_log(0,"==< "..response)
       status=1
       return status, response, replymarkup, commandline;
@@ -1101,7 +1107,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   elseif commandline == "?" then
     replymarkup='{"force_reply":true}'
     LastCommand[SendTo]["replymarkup"] = replymarkup
-    response=dtgmenu_lang[menu_language].text["Specifyvalue"]
+    response=translate_desc(language,"Specifyvalue")
     print_to_log(0,"==<"..response)
     status=1
     return status, response, replymarkup, commandline;
@@ -1109,7 +1115,7 @@ function dtgmenu_module.handler(menu_cli,SendTo)
   -- Unknown Action
   -------------------------------------------------
   else
-    response = dtgmenu_lang[menu_language].text["UnknownChoice"] .. action
+    response = translate_desc(language,"UnknownChoice") .. action
   end
   status=1
 

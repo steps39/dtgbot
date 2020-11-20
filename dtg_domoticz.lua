@@ -321,12 +321,7 @@ function sSwitchName(DeviceName, DeviceType, SwitchType,idx,state)
     print_to_log(3,"JSON request <"..t..">");
     jresponse, status = http.request(t)
     print_to_log(3,"JSON feedback: ", jresponse)
-    if (dtgmenu_lang[language] == nil or dtgmenu_lang[language].text["Switched"] == nil) then
-      response = "Switched" 
-    else
-      response = dtgmenu_lang[language].text["Switched"] 
-    end
-    response = response .. ' ' ..(DeviceName or "?")..' => '..(state or "?")
+    response = translate_desc(language,"Switched") .. ' ' ..(DeviceName or "?")..' => '..(state or "?")
   end
   print_to_log(0,"   -< sSwitchName:",DeviceName,idx, status,response)
   return response, status
@@ -356,4 +351,17 @@ function domoticz_language()
   else
     return 'en'
   end
+end
+
+-- get translation
+function translate_desc(language,input,default)
+  local response =  default or "?unknown?"
+  if (dtgmenu_lang[language] == nil) then
+    print_to_log(0,"  - Language not defined in config", language)
+  elseif (dtgmenu_lang[language].text[input] == nil) then
+    print_to_log(0,"  - Language keyword not defined in config:", language, input)
+  else
+    response = dtgmenu_lang[language].text[input]
+  end
+  return response
 end
