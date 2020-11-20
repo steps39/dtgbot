@@ -355,7 +355,9 @@ end
 
 -- get translation
 function translate_desc(language,input,default)
-  local response =  default or "?unknown?"
+  language = language or "en"
+  input = input or "?"
+  local response =  default or input
   if (dtgmenu_lang[language] == nil) then
     print_to_log(0,"  - Language not defined in config", language)
   elseif (dtgmenu_lang[language].text[input] == nil) then
