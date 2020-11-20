@@ -326,7 +326,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, msg_type)
     print_to_log(0,"dtgbot:continue regular processing. cmd =>",cmd)
   end
   ---------------------------------------------------------------------------
-  -- End change for menu.lua option
+  -- End change for dtgmenu.lua option
   ---------------------------------------------------------------------------
 
   --changed from [%w-_] to allow non-asci characters in a command/word
@@ -365,6 +365,8 @@ function HandleCommand(cmd, SendTo, Group, MessageId, msg_type)
           handle:close()
           -- ensure the text isn't nil
           text = text or ""
+          -- only get the last 200 characters to avoid generating many messages when something is wrong
+          text = text:sub(-200)
           -- remove ending CR LF
           text = text:gsub("[\n\r]$", "")
           print_to_log(0,"returned text="..text)
