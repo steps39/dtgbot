@@ -289,8 +289,8 @@ function HandleCommand(cmd, SendTo, Group, MessageId, MsgType)
     parsed_command = {}
   end
   local found=0
-  --~	added "-_"to allowed characters a command/word
-  for w in string.gmatch(cmd, "([%w-_?%%++><&-**]+)") do
+  --changed from [%w-_] to allow non-asci characters in a command/word
+  for w in string.gmatch(cmd, "([^ ]+)") do
     table.insert(parsed_command, w)
   end
   if command_prefix ~= "" then
