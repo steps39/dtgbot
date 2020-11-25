@@ -335,7 +335,7 @@ function SwitchID(DeviceName, idx, DeviceType, state, SendTo)
         print_to_log (1,"JSON request <"..t..">");
         jresponse, status = http.request(t)
         print_to_log(1,"raw jason", jresponse)
-        response = 'Switched '..DeviceName..' '..command
+        response = 'Switched '..DeviceName..' '..state
   return response
 end
 
@@ -357,12 +357,12 @@ function sSwitchName(DeviceName, DeviceType, SwitchType,idx,state)
     elseif string.lower(string.sub(state,1,9)) == "set level" then
       t = server_url.."/json.htm?type=command&param=switch"..subgroup.."&idx="..idx.."&switchcmd=Set%20Level&level="..string.sub(state,11)
     else
-      return "state must be on, off or Set Level!";
+      return "state must be on, off or set level!";
     end
     print_to_log(3,"JSON request <"..t..">");
     jresponse, status = http.request(t)
     print_to_log(3,"JSON feedback: ", jresponse)
-    response = dtgmenu_lang[language].text["Switched"] .. ' ' ..DeviceName..' => '..state
+    response = translate_desc(language,"Switched") .. ' ' ..(DeviceName or "?")..' => '..(state or "?")
   end
   print_to_log(0,"   -< sSwitchName:",DeviceName,idx, status,response)
   return response, status
@@ -392,4 +392,19 @@ function domoticz_language()
   else
     return 'en'
   end
+end
+
+-- get translation
+function translate_desc(language,input,default)
+  language = language or "en"
+  input = input or "?"
+  local response =  default or input
+  if (dtgmenu_lang[language] == nil) then
+    print_to_log(0,"  - Language not defined in config", language)
+  elseif (dtgmenu_lang[language].text[input] == nil) then
+    print_to_log(0,"  - Language keyword not defined in config:", language, input)
+  else
+    response = dtgmenu_lang[language].text[input]
+  end
+  return response
 end
