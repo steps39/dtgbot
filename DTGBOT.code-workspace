@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"lua.format.lineWidth": 400,
+		"Lua.completion.callSnippet": "Both",
+		"Lua.runtime.version": "Lua 5.2",
+		"Lua.workspace.ignoreSubmodules": false,
+		"Lua.diagnostics.globals": [
+			"LastCommand","Available_Commands"
+		]
+	}
+}
