@@ -20,22 +20,22 @@ function list_module.handler(parsed_cli)
 		match_type = "";
 	end
 
-	jresponse, status = http.request(server_url.."/json.htm?type=devices")
-	decoded_response = JSON:decode(jresponse)
+	jresponse, status = HTTP.request(Domoticz_Url.."/json.htm?type=devices")
+	decoded_response = JSON.decode(jresponse)
 	for k,record in pairs(decoded_response) do
-		print_to_log(k, type(record))
+		Print_to_Log(k, type(record))
 		if type(record) == "table" then
 			for k1, v1 in pairs(record) do
 				if string.find(string.lower(v1.Type), match_type) then
-					response = response..list_device_attr(v1, mode).."\n";
+					response = response..List_Device_Attr(v1, mode).."\n";
 				end
---				print_to_log(k1, v1)
+--				Print_to_Log(k1, v1)
 			end
 		else
-			print_to_log(record)
+			Print_to_Log(record)
 		end
 	end
-  print_to_log(response)
+  Print_to_Log(response)
 	return status, response;
 end
 

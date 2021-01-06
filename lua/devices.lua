@@ -4,35 +4,36 @@ local http = require "socket.http";
 
 function DevicesScenes(DeviceType, qualifier)
   local response = "", ItemNumber, result, decoded_response, record, k;
-        print_to_log(qualifier)
-  if qualifier ~= nil then   
+  if qualifier ~= nil then
     response = 'All '..DeviceType..' starting with '..qualifier
     qaulifier = string.lower(qualifier)
     quallength = string.len(qualifier)
   else
     response = 'All available '..DeviceType
   end
-  decoded_response = device_list(DeviceType)
+  decoded_response = Domo_Device_List(DeviceType)
   result = decoded_response["result"]
   StoredType = DeviceType
   StoredList = {}
   ItemNumber = 0
-  for k,record in pairs(result) do
-    if type(record) == "table" then
-      DeviceName = record['Name']
-      -- Don't bother to store Unknown devices
-      if DeviceName ~= "Unknown" then 
-        if qualifier ~= nil then   
-          if qualifier == string.lower(string.sub(DeviceName,1,quallength)) then
-            ItemNumber = ItemNumber + 1
-            table.insert(StoredList, DeviceName)
-          end
-        else
-          ItemNumber = ItemNumber + 1
-          table.insert(StoredList, DeviceName)
-        end
-      end
-    end
+  if result ~= nil then
+	  for k,record in pairs(result) do
+		if type(record) == "table" then
+		  DeviceName = record['Name']
+		  -- Don't bother to store Unknown devices
+		  if DeviceName ~= "Unknown" then
+			if qualifier ~= nil then
+			  if qualifier == string.lower(string.sub(DeviceName,1,quallength)) then
+				ItemNumber = ItemNumber + 1
+				table.insert(StoredList, DeviceName)
+			  end
+			else
+			  ItemNumber = ItemNumber + 1
+			  table.insert(StoredList, DeviceName)
+			end
+		  end
+		end
+	  end
   end
   table.sort(StoredList)
   if #StoredList ~= 0 then

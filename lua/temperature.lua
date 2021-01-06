@@ -3,7 +3,7 @@ local http = require "socket.http";
 --JSON = assert(loadfile "JSON.lua")() -- one-time load of the routines
 
 function get_temperature(DeviceName)
-  idx = idx_from_name(DeviceName,'devices')
+  idx = Domo_Idx_From_Name(DeviceName,'devices')
   if idx == nil then
     return DeviceName, -999, -999, -999, 0
   end
@@ -11,10 +11,10 @@ function get_temperature(DeviceName)
   Humidity = -999
   Pressure = -999
 -- Determine temperature
-  t = server_url.."/json.htm?type=devices&rid=" .. idx
+  t = Domoticz_Url.."/json.htm?type=devices&rid=" .. idx
   print ("JSON request <"..t..">");
-  jresponse, status = http.request(t)
-  decoded_response = JSON:decode(jresponse)
+  jresponse, status = HTTP.request(t)
+  decoded_response = JSON.decode(jresponse)
   result = decoded_response["result"]
   record = result[1]
   DeviceType = record["Type"]
@@ -73,7 +73,7 @@ function temperature_module.handler(parsed_cli)
   local t, response, status, decoded_response
   response = ''
   if string.lower(parsed_cli[2]) == 'temperature' then
-    DeviceName = form_device_name(parsed_cli)
+    DeviceName = Form_Device_name(parsed_cli)
     if DeviceName == nil then
       print('No Temperature Device Name given')
       return 1,'No Temperature Device Name given'
@@ -82,7 +82,7 @@ function temperature_module.handler(parsed_cli)
 
   elseif string.lower(parsed_cli[2]) == 'tempall' then
     -- get all devices with temp info
-    Deviceslist = device_list("devices&used=true&filter=temp")
+    Deviceslist = Domo_Device_List("devices&used=true&filter=temp")
     result = Deviceslist["result"]
     status=""
     for k,record in pairs(result) do
@@ -104,22 +104,22 @@ function temperature_module.handler(parsed_cli)
         else
           status = tostring(record.Status)
         end
-        print_to_log(1," !!!! found temp device",record.Name,record.Type,status)
+        Print_to_Log(1," !!!! found temp device",record.Name,record.Type,status)
       end
       response = response .. record.Name .. ":" .. status .. '\n'
     end
   else
     -- Get list of all user variables
-    idx = idx_from_variable_name('DevicesWithTemperatures')
+    idx = Domo_Idx_From_Variable_Name('DevicesWithTemperatures')
     if idx == 0 then
       print('User Variable DevicesWithTemperatures not set in Domoticz')
       return 1, 'User Variable DevicesWithTemperatures not set in Domoticz'
     end
     -- Get user variable DevicesWithTemperature
-    DevicesWithTemperatures = get_variable_value(idx)
+    DevicesWithTemperatures = Domo_Get_Variable_Value(idx)
     print(DevicesWithTemperatures)
     -- Retrieve the names
-    DeviceNames = get_names_from_variable(DevicesWithTemperatures)
+    DeviceNames = Domo_Get_Names_From_Variable(DevicesWithTemperatures)
     -- Loop round each of the devices with temperature
     if DeviceNames ~= nil then
       response = ''

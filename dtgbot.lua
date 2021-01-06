@@ -1,672 +1,218 @@
--- ~/tg/scripts/generic/domoticz2telegram.lua
--- Version 0.81 20200828
--- Automation bot framework for telegram to control Domoticz
--- dtgbot.lua does not require any customisation (see below)
--- and does not require any telegram client to be installed
--- all communication is via authenticated https
--- Extra functions can be added by replicating list.lua,
--- replacing list with the name of your new command see list.lua
--- Based on test.lua from telegram-cli from
--- Adapted to abstract functions into external files using
--- the framework of the XMPP bot, so allowing functions to
--- shared between the two bots.
+--[[
+  Version 0.9 20201210
+  Automation bot framework for telegram to control Domoticz
+  dtgbot.lua does not require any customisation (see below)
+  and does not require any telegram client to be installed
+  all communication is via authenticated https
+  Extra functions can be added by replicating list.lua,
+  replacing list with the name of your new command see list.lua
+  Based on test.lua from telegram-cli from
+  Adapted to abstract functions into external files using
+  the framework of the XMPP bot, so allowing functions to
+  shared between the two bots.
+]]
 -- -------------------------------------------------------
-
--- print to log with time and date
-function print_to_log(loglevel, logmessage, ...)
-  -- when only one parameter is provided => set the loglevel to 0 and assume the parameter is the messagetext
-  if tonumber(loglevel) == nil or logmessage == nil then
-    logmessage = loglevel
-    loglevel=0
-  end
-  if loglevel <= dtgbotLogLevel then
-    logcount = #{...}
-    if logcount > 0 then
-      for i, v in pairs({...}) do
-        logmessage = logmessage ..' ('..tostring(i)..') '..tostring(v)
-      end
-      logmessage=tostring(logmessage):gsub(" (.+) nil","")
-    end
-    print(os.date("%Y-%m-%d %H:%M:%S")..' - '..tostring(logmessage))
-  end
-end
--- print Telegram exchange to a separate debug log
-function print_to_debuglog(loglevel, logmessage, ...)
-  -- when only one parameter is provided => set the loglevel to 0 and assume the parameter is the messagetext
-  if tonumber(loglevel) == nil or logmessage == nil then
-    logmessage = loglevel
-    loglevel=0
-  end
-  if loglevel <= dtgbotLogLevel then
-    file = io.open(os.getenv("BotLuaLog").."_Telegram_debug.log", "a")
-    logcount = #{...}
-    if logcount > 0 then
-      for i, v in pairs({...}) do
-        logmessage = logmessage ..' ('..tostring(i)..') '..tostring(v)
-      end
-      logmessage=tostring(logmessage):gsub(" (.+) nil","")
-    end
-    file:write(os.date("%M:%S")..' '..tostring(logmessage).."\r\n")
-    file:close()
-  end
-end
----------------------------------------------------------
--- new geturl to set protocol
-function geturl(url)
-  local resp = {}
-  local r, c, h, s = https.request{
-     url = url,
-     sink = ltn12.sink.table(resp),
-     protocol = "tlsv1_2"
-  }
-  returncode=c
-  response = ""
-  for i = 1, #resp do
-    response = response .. resp[i]
-  end
-  return response, returncode
-end
-
-function domoticzdata(envvar)
-  -- loads get environment variable and prints in log
-  localvar = os.getenv(envvar)
-  if localvar ~= nil then
-    print_to_log(0,envvar..": "..localvar)
-  else
-    print_to_log(0,envvar.." not found check /etc/profile.d/DomoticzData.sh")
-  end
-  return localvar
-end
-
-function checkpath(envpath)
-  if string.sub(envpath,-1,-1) ~= "/" then
-    envpath = envpath .. "/"
-  end
-  return envpath
-end
-
 -- set default loglevel which will be retrieve later from the domoticz user variable TelegramBotLoglevel
-dtgbotLogLevel=0
-
--- loglevel 0 - Always shown
--- loglevel 1 - only shown when TelegramBotLoglevel >= 1
-
--- All these values are set in /etc/profile.d/DomoticzData.sh
-DomoticzIP = domoticzdata("DomoticzIP")
-DomoticzPort = domoticzdata("DomoticzPort")
-BotHomePath = domoticzdata("BotHomePath")
-TempFileDir = domoticzdata("TempFileDir")
-BotLuaScriptPath = domoticzdata("BotLuaScriptPath")
-BotBashScriptPath = domoticzdata("BotBashScriptPath")
-TelegramBotToken = domoticzdata("TelegramBotToken")
-TBOName = domoticzdata("TelegramBotOffset")
--- -------------------------------------------------------
-
--- Constants derived from environment variables
-server_url = "http://"..DomoticzIP..":"..DomoticzPort
-telegram_url = "https://api.telegram.org/bot"..TelegramBotToken.."/"
-UserScriptPath = BotBashScriptPath
-
--- Check paths end in / and add if not present
-BotHomePath=checkpath(BotHomePath)
-BotLuaScriptPath=checkpath(BotLuaScriptPath)
-BotBashScriptPath=checkpath(BotBashScriptPath)
-
-support = assert(loadfile(BotHomePath.."dtg_domoticz.lua"))();
--- Should end up a library - require("dtg_domoticz.lua")
-
-print_to_log ("-----------------------------------------")
-print_to_log ("Starting Telegram api Bot message handler")
-print_to_log ("-----------------------------------------")
-
--- Array to store device list rapid access via index number
-StoredType = "None"
-StoredList = {}
-
--- Table to store functions for commands plus descriptions used by help function
-commands = {};
-
--- Load necessary Lua libraries
-http = require "socket.http";
-socket = require "socket";
-https = require "ssl.https";
-JSON = require "JSON";
-mime = require("mime")
-
-function file_exists(name)
-   local f=io.open(name,"r")
-   if f~=nil then io.close(f) return true else return false end
+-- the first digit sets the DTGBOT loglevel - default 0
+-- the seconf digit sets the DTGMENU loglevel - default 0
+DtgBotLogLevel = 1
+Telegram_Longpoll_TimeOut = 30 -- used to set the max wait time for both the longpoll and the HTTPS
+-----------------------------------------------------------
+-- Function to handle the HardErrors
+--   returns the error and callstack in 2 parameter table
+function ErrorHandler(x)
+  return {x, debug.traceback()}
 end
 
--- Load the configuration file this file contains the list of commands
--- used to define the external files with the command function to load.
-local config=""
-if (file_exists(BotHomePath.."dtgbot-user.cfg")) then
-  config = assert(loadfile(BotHomePath.."dtgbot-user.cfg"))();
-  print_to_log ("Using DTGBOT config file:"..BotHomePath.."dtgbot-user.cfg")
-else
-  config = assert(loadfile(BotHomePath.."dtgbot.cfg"))();
-  print_to_log ("Using DTGBOT config file:"..BotHomePath.."dtgbot.cfg")
-end
---Not quite sure what this is here for
-started = 1
+-- ###################################################################
+-- Initialization process
+-- ###################################################################
+local return_status, result =
+  xpcall(
+  function()
+    --------------------------------------------------------------------------------
+    -- get the current script directory from commandline
+    local str = debug.getinfo(1, "S").source:sub(2)
+    -- and default to current (./) in case not retrieved
+    ScriptDirectory = (str:match("(.*[/\\])") or "./")
+    --  and add to the packages search path
+    package.path = ScriptDirectory .. "?.lua;" .. ScriptDirectory .. "?.cfg;" .. package.path
+    --------------------------------------------------------------------------------
+    -- Load required files
+    HTTP = require "socket.http" --lua-sockets
+    SOCKET = require "socket" --lua-sockets
+    HTTPS = require "ssl.https" --lua-sockets
+    JSON = require "json" -- lua-sec
+    MIME = require("mime") -- ???
+    --------------------------------------------------------------------------------
+    -- dtgbot Lua libraries
+    --------------------------------------------------------------------------------
+    -- Load All general Main functions
+    require("dtg_main_functions")
+    require("dtg_domoticz")
 
-function ok_cb(extra, success, result)
-end
+    -- All these values are set in /etc/profile.d/DomoticzData.sh
+    TelegramBotToken = DomoticzData("TelegramBotToken")
+    DomoticzIP = DomoticzData("DomoticzIP")
+    DomoticzPort = DomoticzData("DomoticzPort")
+    TempFileDir = DomoticzData("TempFileDir")
+    BotHomePath = ScriptDirectory ---  Obsolete? -> DomoticzData("BotHomePath")
+    BotLuaScriptPath = AddEndingSlash(DomoticzData("BotLuaScriptPath"))
+    BotBashScriptPath = AddEndingSlash(DomoticzData("BotBashScriptPath"))
+    MenuMessagesMaxShown = MenuMessagesMaxShown or 0
 
-function vardump(value, depth, key)
-  local linePrefix = ""
-  local spaces = ""
-
-  if key ~= nil then
-    linePrefix = "["..key.."] = "
-  end
-
-  if depth == nil then
-    depth = 0
-  else
-    depth = depth + 1
-    for i=1, depth do spaces = spaces .. "  " end
-  end
-
-  if type(value) == 'table' then
-    mTable = getmetatable(value)
-    if mTable == nil then
-      print_to_log(1,spaces ..linePrefix.."(table) ")
+    -- get any persistent variable values
+    Persistent = TableLoadFromFile("dtgbot_persistent") or {}
+    --------------------------------------------------------------------------------
+    -- Load the configuration file this file contains the list of commands
+    -- used to define the external files with the command function to load.
+    --------------------------------------------------------------------------------
+    if (FileExists(ScriptDirectory .. "dtgbot-user.cfg")) then
+      assert(loadfile(ScriptDirectory .. "dtgbot-user.cfg"))()
+      Print_to_Log(0, "Using DTGBOT config file:" .. ScriptDirectory .. "dtgbot-user.cfg")
     else
-      print_to_log(1,spaces .."(metatable) ")
-      value = mTable
+      assert(loadfile(ScriptDirectory .. "dtgbot.cfg"))()
+      Print_to_Log(0, "Using DTGBOT config file:" .. ScriptDirectory .. "dtgbot.cfg")
     end
-    for tableKey, tableValue in pairs(value) do
-      vardump(tableValue, depth, tableKey)
-    end
-  elseif type(value)	== 'function' or
-  type(value)	== 'thread' or
-  type(value)	== 'userdata' or
-  value		== nil
-  then
-    print_to_log(1,spaces..tostring(value))
-  else
-    print_to_log(1,spaces..linePrefix.."("..type(value)..") "..tostring(value))
-  end
-end
 
--- Original XMPP function to list device properties
-function list_device_attr(dev, mode)
-  local result = "";
-  local exclude_flag;
-  -- Don't dump these fields as they are boring. Name data and idx appear anyway to exclude them
-  local exclude_fields = {"Name", "Data", "idx", "SignalLevel", "CustomImage", "Favorite", "HardwareID", "HardwareName", "HaveDimmer", "HaveGroupCmd", "HaveTimeout", "Image", "IsSubDevice", "Notifications", "PlanID", "Protected", "ShowNotifications", "StrParam1", "StrParam2", "SubType", "SwitchType", "SwitchTypeVal", "Timers", "TypeImg", "Unit", "Used", "UsedByCamera", "XOffset", "YOffset"};
-  result = "<"..dev.Name..">, Data: "..dev.Data..", Idx: ".. dev.idx;
-  if mode == "full" then
-    for k,v in pairs(dev) do
-      exclude_flag = 0;
-      for i, k1 in ipairs(exclude_fields) do
-        if k1 == k then
-          exclude_flag = 1;
-          break;
+    -- Array to store device list rapid access via index number
+    StoredType = "None"
+    StoredList = {}
+
+    -- Table to store functions for commands plus descriptions used by help function
+    Available_Commands = {}
+
+    -- Constants derived from environment variables
+    Domoticz_Url = "http://" .. DomoticzIP .. ":" .. DomoticzPort
+    Telegram_Url = "https://api.telegram.org/bot" .. TelegramBotToken .. "/"
+    UserScriptPath = BotBashScriptPath
+  end,
+  ErrorHandler
+)
+if not return_status then
+  -- Terminate the process as the Initialisation part needs to be successfull for dtgbot to work.
+  -- Try to log the hard error to logfile when function is available.
+  -- Then end with an Hard Error.
+  print("\n### Initialialisation process Failed:\nError-->" .. (result[1] or "") .. (result[2] or ""))
+  error("Terminate DTGBOT as the initialisation failed, which frst needs to be fixed.")
+end
+-- ###################################################################
+-- Main process start
+-- ###################################################################
+local return_status, result =
+  xpcall(
+  function()
+    Print_to_Log(0, "------------------------------------------------------")
+    Print_to_Log(0, "### Starting dtgbot - Telegram api Bot message handler")
+    Print_to_Log(0, "------------------------------------------------------")
+
+    -- initialise tables
+    DtgBot_Initialise()
+
+    -- Get the updates
+    local telegram_connected = false
+    -- initialise to 0 to get the first new message
+    local status = 999
+    local response = ""
+    local decoded_response
+    local reloadmodules = false
+    -- ===========================================================================================================
+    -- closed loop to retrieve Telegram messages while service is running
+    -- ===========================================================================================================
+    Print_to_Log(0, "-------------------------------------------")
+    Print_to_Log(0, "### Starting longpoll with Telegram servers")
+    Print_to_Log(0, "-------------------------------------------")
+    while FileExists(dtgbot_pid) do
+      -- loop till messages is received
+      while true do
+        -- Update monitorfile each loop
+        os.execute("echo " .. os.date("%Y-%m-%d %H:%M:%S") .. " > " .. TempFileDir .. "/dtgloop.txt")
+        -----------------------------------------------------------------------------------------------------------
+        --> Start LongPoll to Telegram wrapper in it's own error checking routine
+        local return_status, result =
+          xpcall(
+          function()
+            local url = Sprintf("%sgetUpdates?timeout=%s&limit=1&offset=%s", Telegram_Url, (Telegram_Longpoll_TimeOut or "30"), TelegramBotOffset)
+            Print_to_Log(1, url)
+            response, status = GetUrl(url)
+          end,
+          ErrorHandler
+        )
+        if not return_status then
+          (Print_to_Log or print)("\n### Get Telegram Failed, we will just retry:\nError-->" .. (result[1] or ""))
+          os.execute("sleep 2")
+          status = 999
+        else
+          Print_to_Log(1, Sprintf("Longpoll ended with status:%s response:%s", status, result))
         end
-      end
-      if exclude_flag == 0 then
-        result = result..k.."="..tostring(v)..", ";
-      else
-        exclude_flag = 0;
-      end
-    end
-  end
-  return result;
-end
-
--- initialise room, device, scene and variable list from Domoticz
-function dtgbot_initialise()
-  Variablelist = variable_list_names_idxs()
-  Devicelist = device_list_names_idxs("devices")
-  Scenelist, Sceneproperties = device_list_names_idxs("scenes")
-  Roomlist = device_list_names_idxs("plans")
-
--- Get language from Domoticz
-	language = domoticz_language()
-
--- get the required loglevel
-  dtgbotLogLevelidx = idx_from_variable_name("TelegramBotLoglevel")
-  if dtgbotLogLevelidx ~= nil then
-    dtgbotLogLevel = tonumber(get_variable_value(dtgbotLogLevelidx))
-    if dtgbotLogLevel == nil then
-      dtgbotLogLevel=0
-    end
-  end
-
-  print_to_log(0,' dtgbotLogLevel set to: '..tostring(dtgbotLogLevel))
-
-  print_to_log(0,"Loading command modules...")
-  for i, m in ipairs(command_modules) do
-    print_to_log(0,"Loading module <"..m..">");
-    t = assert(loadfile(BotLuaScriptPath..m..".lua"))();
-    cl = t:get_commands();
-    for c, r in pairs(cl) do
-      print_to_log(0,"found command <"..c..">");
-      commands[c] = r;
-      print_to_log(2,commands[c].handler);
-    end
-  end
-
-  -- Initialise and populate dtgmenu tables in case the menu is switched on
-  Menuidx = idx_from_variable_name("TelegramBotMenu")
-  if Menuidx ~= nil then
-    Menuval = get_variable_value(Menuidx)
-    if Menuval == "On" then
-      -- initialise
-      -- define the menu table and initialize the table first time
-      PopulateMenuTab(1,"")
-    end
-  end
-
-  return
-end
-
-dtgbot_initialise()
-
-function timedifference(s)
-  year = string.sub(s, 1, 4)
-  month = string.sub(s, 6, 7)
-  day = string.sub(s, 9, 10)
-  hour = string.sub(s, 12, 13)
-  minutes = string.sub(s, 15, 16)
-  seconds = string.sub(s, 18, 19)
-  t1 = os.time()
-  t2 = os.time{year=year, month=month, day=day, hour=hour, min=minutes, sec=seconds}
-  difference = os.difftime (t1, t2)
-  return difference
-end
-
-function HandleCommand(cmd, SendTo, Group, MessageId, msg_type)
-  msg_type = msg_type or ""
-  print_to_log(0,"Handle command function started with " .. cmd .. " and " .. SendTo .. "  Group:"..Group.."   msg_type:"..msg_type )
-  --- parse the command
-  if command_prefix == "" then
-    -- Command prefix is not needed, as can be enforced by Telegram api directly
-    parsed_command = {"Stuff"}  -- to make compatible with Hangbot with password
-  else
-    parsed_command = {}
-  end
-  -- strip the beginning / from any command
---~   print(cmd)
---~   cmd = cmd:gsub("/.*","%1")
---~   print(cmd)
-  local found=0
-
-  ---------------------------------------------------------------------------
-  -- Change for menu.lua option
-  -- When LastCommand starts with menu then assume the rest is for menu.lua
-  ---------------------------------------------------------------------------
-  if Menuval == "On" and msg_type ~= 'channel' then
-    print_to_log(0,"dtgbot: Start DTGMENU ...", cmd)
-    local menu_cli = {}
-    table.insert(menu_cli, "")  -- make it compatible
-    table.insert(menu_cli, cmd)
-    -- send whole cmd line instead of first word
-    command_dispatch = commands["dtgmenu"];
-    status, text, replymarkup, cmd = command_dispatch.handler(menu_cli,SendTo);
-    if status ~= 0 then
-      -- stop the process when status is not 0
-      if text ~= "" then
-        while string.len(text)>0 do
-          if Group ~= "" then
-            send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup)
-          else
-            send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup)
+        --< End LongPoll to Telegram wrapper
+        -------------------------------------------------------------------------------------
+        if status == 200 then
+          if not telegram_connected then
+            Print_to_Log(0, "### In contact with Telegram servers")
+            telegram_connected = true
           end
-          text = string.sub(text,4000,-1)
-        end
-      end
-      print_to_log(0,"dtgbot: dtgmenu ended and text send ...return:"..status)
-      -- no need to process anything further
-      return 1
-    end
-    print_to_log(0,"dtgbot:continue regular processing. cmd =>",cmd)
-  end
-  ---------------------------------------------------------------------------
-  -- End change for menu.lua option
-  ---------------------------------------------------------------------------
-
-  --~	added "-_"to allowed characters a command/word
-  for w in string.gmatch(cmd, "([%w-_]+)") do
-    table.insert(parsed_command, w)
-  end
-  if command_prefix ~= "" then
-    if parsed_command[1] ~= command_prefix then -- command prefix has not been found so ignore message
-      return 1 -- not a command so successful but nothing done
-    end
-  end
-
-  if(parsed_command[2]~=nil) then
-    command_dispatch = commands[string.lower(parsed_command[2])];
-    local savereplymarkup = replymarkup
-    if msg_type == "callback" then
-      savereplymarkup = JSON:encode(msg.message.reply_markup or "")
-    end
-    if command_dispatch then
-      status, text, replymarkup = command_dispatch.handler(parsed_command,SendTo,MessageId,savereplymarkup);
-      found=1
-    else
-      text = ""
-      local f = io.popen("ls " .. BotBashScriptPath)
-      cmda = string.lower(tostring(parsed_command[2]))
-      len_parsed_command = #parsed_command
-      stuff = string.sub(cmd, string.len(cmda)+1)
-      for line in f:lines() do
-        print_to_log(0,"checking line ".. line)
-        if(line:match(cmda)) then
-          print_to_log(0,line)
-          os.execute(BotBashScriptPath  .. line .. ' ' .. SendTo .. ' ' .. stuff)
-          found=1
-        end
-      end
-    end
---~ replymarkup
-    if replymarkup == nil or replymarkup == "" then
-      -- restore the menu supplied replymarkup in case the shelled LUA didn't provide one
-      replymarkup = savereplymarkup
-    elseif (replymarkup == "remove") then
-      replymarkup = ''
-    end
-    if found==0 then
-      text = "command <"..tostring(parsed_command[2]).."> not found";
-    end
-  else
-    text ='No command found'
-  end
-  if text ~= "" then
-    while string.len(text)>0 do
-      if Group ~= "" then
-        send_msg(Group,string.sub(text,1,4000),MessageId,replymarkup,msg_type)
-      else
-        send_msg(SendTo,string.sub(text,1,4000),MessageId,replymarkup,msg_type)
-      end
-      text = string.sub(text,4000,-1)
-    end
-  elseif replymarkup ~= savereplymarkup or msg_type == 'callback' then
-    -- don't default to a text message for Callback calls
-    if msg_type ~= 'callback' then
-        text = "done"
-    end
-    if Group ~= "" then
-      send_msg(Group,text,MessageId,replymarkup,msg_type)
-    else
-      send_msg(SendTo,text,MessageId,replymarkup,msg_type)
-    end
-  end
-  return found
-end
-
-function url_encode(str)
-  if (str) then
-    str = string.gsub (str, "\n", "\r\n")
-    str = string.gsub (str, "([^%w %-%_%.%~])",
-      function (c) return string.format ("%%%02X", string.byte(c)) end)
-    str = string.gsub (str, " ", "+")
-  end
-  return str
-end
-
---~ added replymarkup to allow for custom keyboard
-function send_msg(SendTo, Message, MessageId, replymarkup, msg_type)
-  msg_type = msg_type or ""
-  replymarkup = replymarkup or ""
-  print_to_log(1,"msg_type:"..msg_type)
-  print_to_log(1,"replymarkup:"..replymarkup)
-  if msg_type == "callback" then
-    if replymarkup == nil or replymarkup == "" then
-      replymarkup = "&reply_markup="
-    else
-      replymarkup = '&reply_markup='..url_encode(replymarkup)
-    end
-    if Message == 'remove' then
-      print_to_log(1,telegram_url..'deleteMessage?chat_id='..SendTo..'&message_id='..MessageId)
-      response, status = geturl(telegram_url..'deleteMessage?chat_id='..SendTo..'&message_id='..MessageId)
-    else
-      print_to_log(1,telegram_url..'editMessageText?chat_id='..SendTo..'&message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
-      response, status = geturl(telegram_url..'editMessageText?chat_id='..SendTo..'&message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
-    -- rebuild new message with inlinemenu when the old message can't be updated
-    end
-    if status == 400 and string.find(response, "Message can't be edited") then
-      print_to_log(3,status..'<== ',response)
-      print_to_log(3,'==> /sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..Message..replymarkup)
-      response, status = geturl(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..replymarkup)
-    end
-  else
-    -- channel messages on support inline menus
-    if msg_type == "channel" then
-      replymarkup = ""
-    end
-    if replymarkup == nil or replymarkup == "" then
-      print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
-      response, status = geturl(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message))
-    else
-      print_to_log(1,telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
-      response, status = geturl(telegram_url..'sendMessage?chat_id='..SendTo..'&reply_to_message_id='..MessageId..'&text='..url_encode(Message)..'&reply_markup='..url_encode(replymarkup))
-    end
-    print_to_log(0,'Message sent',status)
-    return
-  end
-end
-
-function id_check(SendTo)
-  --Check if whitelist empty then let any message through
-  if WhiteList == nil then
-    return true
-  else
-    SendTo = tostring(SendTo)
-    --Check id against whitelist
-    for i = 1, #WhiteList do
-      print_to_log(0,'WhiteList: '..WhiteList[i])
-      if SendTo == WhiteList[i] then
-        return true
-      end
-    end
-    -- Checked WhiteList no match
-    print_to_log(0,'Not on WhiteList: '..SendTo)
-    return false
-  end
-end
-
-function on_msg_receive (msg)
-  if started == 0 then
-    return
-  end
-  if msg.out then
-    return
-  end
-
---Check to see if id is whitelisted, if not record in log and exit
-  if id_check(msg.from.id) then
-    grp_from = msg.chat.id
-    msg_from = msg.from.id
-    msg_id = msg.message_id
-    msg_type = ""
-    if msg.chat.type == "channel" then
-      msg_type = "channel"
-    elseif msg.message ~= nil and msg.message.chat.id ~= nil then
-      msg_type = "callback"
-    end
-    if msg.text then   -- check if message is text
-      ReceivedText = msg.text
-      if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from), msg_id, msg_type) == 1 then
-        print_to_log(0,"Succesfully handled incoming request")
-      else
-        print_to_log(0,"Invalid command received")
-        print_to_log(0,msg_from)
-        send_msg(msg_from,'⚡️ INVALID COMMAND ⚡️',msg_id)
-        --      os.execute("sleep 5")
-        --      Help(tostring (msg_from))
-      end
-    -- check for received voicefiles
-    elseif msg.voice then   -- check if message is voicefile
-      print_to_log(0,"msg.voice.file_id:",msg.voice.file_id)
-      responsev, statusv = geturl(telegram_url..'getFile?file_id='..msg.voice.file_id)
-      if statusv == 200 then
-        print_to_log(1,"responsev:",responsev)
-        decoded_responsev = JSON:decode(responsev)
-        result = decoded_responsev["result"]
-        filelink = result["file_path"]
-        print_to_log(1,"filelink:",filelink)
-        ReceivedText="voice "..filelink
-        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from), msg_id, msg_type) == 1 then
-          print_to_log(0,"Succesfully handled incoming voice request")
+          Print_to_Log(1, "Telegram response", response)
+          -- check if there is a message or just a timeout with empty response
+          decoded_response = JSON.decode(response or {result = {}})
+          if decoded_response["result"][1] ~= nil and decoded_response["result"][1]["update_id"] ~= nil then
+            -- contains data so exit while to continue to process
+            break
+          end
+          io.write(".")
         else
-          print_to_log(0,"Voice file received but voice.sh or lua not found to process it. skipping the message.")
-          print_to_log(0,msg_from)
-          send_msg(msg_from,'⚡️ INVALID COMMAND ⚡️',msg_id)
+          -- status <> 200 ==> error?
+          io.write("!")
+          if telegram_connected then
+            Print_to_Log(0, Sprintf("\n### Lost contact with Telegram servers, received Non 200 status:%s", status))
+            telegram_connected = false
+          end
+          -- pause a little on failure
+          os.execute("sleep 2")
+          response = ""
         end
+        io.flush()
       end
-    elseif msg.video_note then   -- check if message is videofile
-      print_to_log(0,"msg.video_note.file_id:",msg.video_note.file_id)
-      responsev, statusv = geturl(telegram_url..'getFile?file_id='..msg.video_note.file_id)
-      if statusv == 200 then
-        print_to_log(1,"responsev:",responsev)
-        decoded_responsev = JSON:decode(responsev)
-        result = decoded_responsev["result"]
-        filelink = result["file_path"]
-        print_to_log(1,"filelink:",filelink)
-        ReceivedText="video "..filelink
-        if HandleCommand(ReceivedText, tostring(msg_from), tostring(grp_from), msg_id, msg_type) == 1 then
-          print_to_log(0,"Succesfully handled incoming video request")
+      io.write("\n")
+      -------------------------------------------------------------------------------------
+      --> Get current update_id and set +1 for the next one to get.
+      local tt = decoded_response["result"][1] or {}
+      Print_to_Log(1, "update_id ", tt.update_id)
+      -- set next msgid we want to receive
+      TelegramBotOffset = tt.update_id + 1
+      Print_to_Log(1, "TelegramBotOffset " .. TelegramBotOffset)
+      -- reload modules in case a command failure happened so you can update the modules without a dtgbot restart
+      if reloadmodules then
+        Available_Commands = {}
+        Load_LUA_Modules()
+        reloadmodules = false
+      end
+
+      -->> Start processing message and capture any errors to avoid hardcrash
+      Print_to_Log(0, Sprintf("=> Start Msg process for update_id %s", tt.update_id))
+      local result_status, result, result_err = xpcall(PreProcess_Received_Message, ErrorHandler, tt)
+      if not result_status then
+        -- HardError encountered so reporting the information
+        -- reload LUA modules so they can be updated without restarting the service
+        Print_to_Log(0, Sprintf("<- !!! Msg process hard failed: \nError:%s\n%s", result[1], result[2]))
+        reloadmodules = true
+      else
+        -- No Hard Errors, so check for second retuned param which is used for internal errors
+        if (result_err or "") ~= "" then
+          Print_to_Log(0, Sprintf("<- !!! Msg process failed:%s %s", result, result_err))
+          reloadmodules = true
         else
-          print_to_log(0,"Video file received but video_note.sh or lua not found to process it. Skipping the message.")
-          print_to_log(0,msg_from)
-          send_msg(msg_from,'⚡️ INVALID COMMAND ⚡️',msg_id)
+          Print_to_Log(0, Sprintf("<= Msg processed: %s", result))
         end
       end
+      -- save the persistent variables afer each message processed
+      Save_Persistent_Vars()
+      --<< End processing message
     end
-  else
-    print_to_log(0,'id '..msg_from..' not on white list, command ignored')
-    send_msg(msg_from,'⚡️ ID Not Recognised - Command Ignored ⚡️',msg_id)
-  end
---  mark_read(msg_from)
+    Print_to_Log(0, dtgbot_pid .. " does not exist, so exiting")
+  end,
+  ErrorHandler
+)
+if not return_status then
+  (Print_to_Log or error)("\n### Main process Failed:\nError-->" .. (result[1] or "") .. (result[2] or ""))
 end
-
---function on_our_id (id)
---  our_id = id
---end
-
-function on_secret_chat_created (peer)
-  --vardump (peer)
-end
-
-function on_user_update (user)
-  --vardump (user)
-end
-
-function on_chat_update (user)
-  --vardump (user)
-end
-
-function on_get_difference_end ()
-end
-
-function on_binlog_replay_end ()
-  started = 1
-end
-
--- get the require loglevel
-dtgbotLogLevelidx = idx_from_variable_name("TelegramBotLoglevel")
-if dtgbotLogLevelidx ~= nil then
-  dtgbotLogLevel = tonumber(get_variable_value(dtgbotLogLevelidx))
-  if dtgbotLogLevel == nil then
-    dtgbotLogLevel=0
-  end
-end
-print_to_log(0,' dtgbotLogLevel set to: '..tostring(dtgbotLogLevel))
-
--- Retrieve id white list
-WLidx = idx_from_variable_name(WLName)
-if WLidx == nil then
-  print_to_log(0,WLName..' user variable does not exist in Domoticz')
-  print_to_log(0,'So will allow any id to use the bot')
-else
-  print_to_log(0,'WLidx '..WLidx)
-  WLString = get_variable_value(WLidx)
-  print_to_log(0,'WLString: '..WLString)
-  WhiteList = get_names_from_variable(WLString)
-end
-
--- Get the updates
-print_to_log(0,'Getting '..TBOName..' the previous Telegram bot message offset from Domoticz')
-TBOidx = idx_from_variable_name(TBOName)
-if TBOidx == nil then
-  print_to_log(0,TBOName..' user variable does not exist in Domoticz so can not continue')
-  os.exit()
-else
-  print_to_log(1,'TBOidx '..TBOidx)
-end
-TelegramBotOffset=get_variable_value(TBOidx)
-print_to_log(1,'TBO '..TelegramBotOffset)
-print_to_log(1,telegram_url)
-telegram_connected = false
---Update monitorfile before loop
-os.execute("echo " .. os.date("%Y-%m-%d %H:%M:%S") .. " >> " .. TempFileDir .. "/dtgloop.txt")
-while file_exists(dtgbot_pid) do
-  response, status = geturl(telegram_url..'getUpdates?timeout=60&limit=1&offset='..TelegramBotOffset)
-  if status == 200 then
-    if not telegram_connected then
-      print_to_log(0,'')
-      print_to_log(0,'### In contact with Telegram servers')
-      telegram_connected = true
-    end
-    if response ~= nil then
-      io.write('.')
-      print_to_log(1,"")
-      print_to_log(1,response)
-      decoded_response = JSON:decode(response)
-      result_table = decoded_response['result']
-      tc = #result_table
-      for i = 1, tc do
-        print_to_log(1,'Message: '..i)
-        tt = table.remove(result_table,1)
-        print_to_log(1,'update_id ',tt.update_id)
-        TelegramBotOffset = tt.update_id + 1
-        print_to_log(1,'TelegramBotOffset '..TelegramBotOffset)
-        set_variable_value(TBOidx,TBOName,0,TelegramBotOffset)
-        -- get message from Json result
-        msg = tt['message']
-        if tt['callback_query'] ~= nil then
-          -- checking for callback_query message from inline keyboard.
-          print_to_log(3,'<== Received callback_query, reformating result to be able to process.')
-          msg = tt['callback_query']
-          msg.chat = {}
-          msg.chat.id = msg.message.chat.id
-          msg.message_id = msg.message.message_id
-          msg.text = msg.data
-        elseif tt['channel_post'] ~= nil then
-          -- checking for channel message.
-          print_to_log(3,'<== Received channel message, reformating result to be able to process.')
-          msg = tt['channel_post']
-          msg.from = {}
-          msg.from.id = msg.chat.id
-        end
-        -- processing message
-        -- Offset updated before processing in case of crash allows clean restart
-        if (msg ~= nil and (msg.text ~= nil or msg.voice ~= nil or msg.video_note ~= nil)) then
-            print_to_log(1,msg.text)
-            on_msg_receive(msg)
-        end
-      end
-    else
-      io.write('X')
-      print_to_log(2,'')
-      print_to_log(2,'Updates retrieved',status)
-    end
-  else
-    io.write('?')
-    if telegram_connected then
-      print_to_log(0,'')
-      print_to_log(0,'### Lost contact with Telegram servers, received Non 200 status - returned - ',status)
-      telegram_connected = false
-    end
-    -- sleep a little to slow donw the loop
-    os.execute("sleep 5")
-  end
-  --Update monitorfile each loop
-  os.execute("echo " .. os.date("%Y-%m-%d %H:%M:%S") .. " >> " .. TempFileDir .. "/dtgloop.txt")
-end
-print_to_log(0,dtgbot_pid..' does not exist, so exiting')

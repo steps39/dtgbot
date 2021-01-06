@@ -14,7 +14,7 @@ function nflick_module.handler(parsed_cli)
                 if tonumber(parsed_cli[3]) ~= nil then
 			idx = tonumber(parsed_cli[3]);
                 else
-                   	idx = idx_from_name(parsed_cli[3],"devices")
+                   	idx = Domo_Idx_From_Name(parsed_cli[3],"devices")
                 end
 		if parsed_cli[4] then
 			state = parsed_cli[4];
@@ -33,17 +33,17 @@ function nflick_module.handler(parsed_cli)
 	end
 
 	print("in flick_handler!");
-	t = server_url.."/json.htm?type=command&param=switchlight&idx="..idx.."&switchcmd="..state.."&level=0";
+	t = Domoticz_Url.."/json.htm?type=command&param=switchlight&idx="..idx.."&switchcmd="..state.."&level=0";
 	print ("JSON request <"..t..">");
-	jresponse, status = http.request(t)
+	jresponse, status = HTTP.request(t)
 	print("raw jason", jresponse)
-	decoded_response = JSON:decode(jresponse)
+	decoded_response = JSON.decode(jresponse)
 	for k,record in pairs(decoded_response) do
 		print(k, type(record))
 		if type(record) == "table" then
 			for k1, v1 in pairs(record) do
 				if string.find(string.lower(v1.Type), match_type) then
-					response = response..list_device_attr(v1, mode).."\n";
+					response = response..List_Device_Attr(v1, mode).."\n";
 				end
 				print(k1, v1)
 			end

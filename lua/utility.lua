@@ -8,7 +8,7 @@ function utility_module.handler(parsed_cli)
 
   command = parsed_cli[2]
   if string.lower(command) == 'refresh' then
-    dtgbot_initialise()
+    DtgBot_Initialise()
     return status, 'Global device, scene and room variables updated from Domoticz and modules code reloaded';
   else
     return status, 'Wrong command'

@@ -1,0 +1,46 @@
+
+dtgbot.lua:
+- No hardcrash will happen anymore after it gets into the telegram reading loop. They are all captured and logged.
+- Any lua module that contains an error at load time will now be skipped and errors logged.
+- All errors are logged to a file from the script.
+- It Will also send a message back to the sender when a LUA command "hardcrashed", stating as such and point to the logfile details.
+- Added timeout to urlget() to hopefully avoid hangs when connection fails: https://github.com/diegonehab/luasocket/blob/master/src/http.lua#L119
+- Split off the functions from dtgbot.lua to dtg_main_functions.lua to organize the Main script for error detection.
+- Wrapped all codeblocks in dtgbot.lua in an xpcall() to be able to log any issue to the log file for that codeblock.
+- Re-instated the optional / infront of each command so you can make commands clickable in Telegram text.
+  Like /start at the beginnging of a session.
+- Added MenuMessagesMaxShown=[x] to dtgbot[_user].cfg, when set, will clean all older messages than the last x commands and their reply.
+- Added internal commands: (appropriate commandnames tbd ...  suggestions welcome!)
+   - "_reloadconfig"  will reload all settings from dgtbot.cfg and domoticz tables & LUA Modules without restarting service.
+         So this allows you to set eg: TelegramBotLoglevel in domoticz and do this command to make it active.
+   - "_reloadmodules" Will reload all LUA modules without restarting the service.
+   - "_cleanall"      Remove all DTGBOT messages, only when MenuMessagesMaxShown is set greater than 0 in dtgbot[_user].cfg
+- changed the integration of dtgmenu and made it much simpler.
+
+dtgmenu:
+- changed the integration and made it much simpler.
+- now only activated by the menu command which is remembered in a persistent variable file
+
+help.lua
+- updated with the new internal commands
+
+Service/DTGBOT: Changed so the restart is immediately and working.
+restartbot.sh : Changed so the restart is immediately and working.
+
+- not using these Domoticz variables anymore:
+   - TelegramBotOffset (Not needed as the first call will be with 0 and subsequest calls with the received msgid+1)
+   - TelegramBotMenu. Now only activated/deactivated by commands.
+
+Questions:
+- Removed Unused function:
+   dtg_main_functions.lua-> function VarDumpToLog()
+                        TimeDiff()
+   dtgbot.lua:
+                        function on_secret_chat_created (peer)
+                        function on_user_update (user)
+                        function on_chat_update (user)
+                        function on_get_difference_end ()
+                        function on_binlog_replay_end ()
+
+General:
+ The code is developed in VSCode and formatted with the vscode-lua extension.
