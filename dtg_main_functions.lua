@@ -796,9 +796,11 @@ function Telegram_CleanMessages(From_Id, nsmsgid, nrmsgid, handled_by, remAll)
   handled_by = handled_by or ""
   MenuMessagesMaxShown = tonumber(MenuMessagesMaxShown)
   -- do not save or delete messages when MenuMessagesMaxShown = 0
-  Print_to_Log(0, Sprintf("===CleanMessage handled_by:%s remAll=%s", handled_by, remAll))
+  Print_to_Log(1, Sprintf("===CleanMessage handled_by:%s remAll=%s", handled_by, remAll))
   if ((MenuMessagesMaxShown or 0) == 0 and handled_by == "menu") or ((OtherMessagesMaxShown or 0) == 0 and handled_by ~= "menu") then
-    Print_to_Log(0, Sprintf("---CleanMessage handled_by:%s", handled_by))
+    if handled_by ~= "" then
+      Print_to_Log(0, Sprintf("---CleanMessage handled_by:%s", handled_by))
+    end
     return
   end
   MsgInfo = TableLoadFromFile("dtgbot_msginfo")
