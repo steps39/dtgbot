@@ -1,5 +1,5 @@
 --[[
--- Version 0.900 20210106
+-- Version 0.900 20210113
   functions for the main dtgbot.au3 script
 ]]
 
@@ -290,7 +290,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     if (not found) and Persistent.UseDTGMenu == 0 and chat_type ~= "channel" then
       Print_to_Log(0, Sprintf("-> forward to dtgmenu as last resort :%s", cmd))
       command_dispatch = Available_Commands["dtgmenu"] or {handler = {}}
-      found, text, replymarkup = command_dispatch.handler(parsed_command, SendTo)
+      found, text, replymarkup = command_dispatch.handler(parsed_command, SendTo, cmd)
     end
   end
   --~ replymarkup

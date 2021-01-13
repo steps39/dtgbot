@@ -5,7 +5,7 @@
 --  - all static actions defined in DTGMENU.CFG. Open the file for descript of the details.
 --
 -- programmer: Jos van der Zande
--- Version 0.900 20210106
+-- Version 0.900 20210113
 -- =====================================================================================================================
 -----------------------------------------------------------------------------------------------------------------------
 -- these are the different formats of reply_markup. looksimple but needed a lot of testing before it worked :)
@@ -578,6 +578,7 @@ function dtgmenu_module.handler(menu_cli, SendTo, commandline)
   Print_to_Log(1, " => SendTo:", SendTo)
   local command = tostring(menu_cli[2])
   local lcommand = string.lower(command)
+  commandline = commandline or ""
   local lcommandline = string.lower(commandline)
   local param1 = ""
   -- Retrieve the first parameter after the command in case provided.

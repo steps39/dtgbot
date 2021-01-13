@@ -1,5 +1,5 @@
 --[[
-  Version 0.9 20201210
+  Version 0.9 20210113
   Automation bot framework for telegram to control Domoticz
   dtgbot.lua does not require any customisation (see below)
   and does not require any telegram client to be installed
@@ -16,7 +16,7 @@
 -- the first digit sets the DTGBOT loglevel - default 0
 -- the seconf digit sets the DTGMENU loglevel - default 0
 DtgBotLogLevel = 1
-Telegram_Longpoll_TimeOut = 30 -- used to set the max wait time for both the longpoll and the HTTPS
+Telegram_Longpoll_TimeOut = 50 -- used to set the max wait time for both the longpoll and the HTTPS
 -----------------------------------------------------------
 -- Function to handle the HardErrors
 --   returns the error and callstack in 2 parameter table
