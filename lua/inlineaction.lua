@@ -29,13 +29,13 @@ local http = require "socket.http"
 --JSON = assert(loadfile "JSON.lua")() -- one-time load of the routines
 
 -- process the received command by DTGBOT
-local function perform_action(parsed_cli,SendTo,MessageId, org_replymarkup)
-  local DeviceName=""
-  local action=""
+local function perform_action(parsed_cli, SendTo, MessageId, org_replymarkup)
+  local DeviceName = ""
+  local action = ""
   local status, response, replymarkup
   -- loop through the parsed commandline information
-  for x,param in pairs(parsed_cli) do
-    Print_to_Log(2,"command parameter "..x.."="..param)
+  for x, param in pairs(parsed_cli) do
+    Print_to_Log(2, "command parameter " .. x .. "=" .. param)
     if x == 1 then
       -- "stuff" Used for other purposes
     elseif x == 2 then
@@ -66,26 +66,26 @@ local function perform_action(parsed_cli,SendTo,MessageId, org_replymarkup)
     if silent then
       response = ""
     end
-    return 1,response,replymarkup
+    return 1, response, replymarkup
   end
   -- remove message and keyboard when remove is defined as action
   if action == "remove" then
     response = "remove"
     replymarkup = "remove"
-    return 1,response,replymarkup
+    return 1, response, replymarkup
   end
   -- process the action
   response = ""
-  replymarkup = org_replymarkup   -- set markup to the same as the original
+  replymarkup = org_replymarkup -- set markup to the same as the original
   status = 1
-  Print_to_Log(1,"SendTo:"..SendTo)
-  Print_to_Log(1,"MessageId:"..MessageId)
-  Print_to_Log(1,"DeviceName:"..DeviceName)
-  Print_to_Log(1,"action:"..action)
+  Print_to_Log(1, "SendTo:" .. SendTo)
+  Print_to_Log(1, "MessageId:" .. MessageId)
+  Print_to_Log(1, "DeviceName:" .. DeviceName)
+  Print_to_Log(1, "action:" .. action)
   if silent then
     Print_to_Log(1, "/silent active")
   end
-  -- Check if DeviceName is a known domoticz device
+    -- Check if DeviceName is a known domoticz device
   switchtype = "light"
   DeviceID = Domo_Idx_From_Name(DeviceName, "devices")
   if DeviceID == nil then
@@ -96,7 +96,7 @@ local function perform_action(parsed_cli,SendTo,MessageId, org_replymarkup)
   -- process the action when either a device or a scene
   if DeviceID ~= nil then
     -- Now switch the device or scene when it exists
-    response = Domo_sSwitchName(DeviceName, switchtype, switchtype,DeviceID,action)
+    response = Domo_sSwitchName(DeviceName, switchtype, switchtype, DeviceID, action)
     Print_to_Log(0, "perform action on Device " .. DeviceName .. "=>" .. action .. "  response:" .. response)
   else
     response = "" .. DeviceName .. " is unknown."
@@ -107,16 +107,16 @@ local function perform_action(parsed_cli,SendTo,MessageId, org_replymarkup)
     replymarkup = ""
   end
   --
-  return status,response,replymarkup
+  return status, response, replymarkup
 end
 
-function inlineaction.handler(parsed_cli,SendTo,MessageId)
-	return perform_action(parsed_cli,SendTo,MessageId)
+function inlineaction.handler(parsed_cli, SendTo, MessageId)
+  return perform_action(parsed_cli, SendTo, MessageId)
 end
 
 local inlineaction_commands = {
   ["inlineaction"] = {handler = inlineaction.handler, description = "inline action - handle actions from inline-keyboard"}
-      }
+}
 
 function inlineaction.get_commands()
   return inlineaction_commands

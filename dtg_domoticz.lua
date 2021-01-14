@@ -1,8 +1,21 @@
 --[[
-  Version 0.9 20210106
+  Version 0.9 20210114
   A set of support functions currently aimed at dtgbot,
   but probably more general
 ]]
+
+function Check_Json_Result(jresponse)
+  -- check if json call returned status ok
+  local jsonok = false
+  if jresponse ~= nil then
+    local decoded_response = JSON.decode(jresponse)
+    if decoded_response.status ~= nil and decoded_response.status:lower() == "ok" then
+      jsonok = true
+    end
+  end
+  return jsonok
+end
+
 function Form_Device_name(parsed_cli)
   -- joins together parameters after the command name to form the full "device name"
   Print_to_Log(0, parsed_cli[2])
@@ -340,14 +353,20 @@ function Domo_SwitchID(DeviceName, idx, DeviceType, state, SendTo)
   end
   t = Domoticz_Url .. "/json.htm?type=command&param=switch" .. DeviceType .. "&idx=" .. idx .. "&switchcmd=" .. state
   Print_to_Log(1, "JSON request <" .. t .. ">")
-  jresponse, status = HTTP.request(t)
+  local jresponse, status = HTTP.request(t)
+  local response
   Print_to_Log(1, "raw jason", jresponse)
-  response = "Switched " .. DeviceName .. " " .. state
+  if Check_Json_Result(jresponse) then
+    response = "Switched " .. DeviceName .. " " .. state
+  else
+    response = "Failed to switch " .. DeviceName .. " to " .. state
+  end
   return response
 end
 
 function Domo_sSwitchName(DeviceName, DeviceType, SwitchType, idx, state)
   local status
+  local response
   if idx == nil then
     response = "Device " .. DeviceName .. "  not found."
   else
@@ -367,10 +386,14 @@ function Domo_sSwitchName(DeviceName, DeviceType, SwitchType, idx, state)
       return "state must be on, off or set level!"
     end
     Print_to_Log(3, "JSON request <" .. t .. ">")
-    jresponse, status = HTTP.request(t)
+    local jresponse, status = HTTP.request(t)
     Print_to_Log(3, "JSON feedback: ", jresponse)
-    response = DTGMenu_translate_desc(Language, "Switched") .. " " .. (DeviceName or "?") .. " => " .. (state or "?")
-  end
+    if Check_Json_Result(jresponse) then
+      response = DTGMenu_translate_desc(Language, "Switched") .. " " .. (DeviceName or "?") .. " => " .. (state or "?")
+    else
+      response = "Failed to switch " .. (DeviceName or "?") .. " to " .. (state or "?")
+    end
+    end
   Print_to_Log(0, "   -< Domo_sSwitchName:", DeviceName, idx, status, response)
   return response, status
 end
