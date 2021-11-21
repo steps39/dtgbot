@@ -3,7 +3,6 @@ This branch is the version of DTGBOT with much more errorchecking to increase st
 It is still under development....
 
 # Setup
-  JSON:
     Debian:
       JSON: sudo apt install lua-json
       HTTPS:sudo apt install lua-socket
