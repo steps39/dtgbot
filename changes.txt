@@ -26,6 +26,8 @@ help.lua
 
 Service/DTGBOT: Changed so the restart is immediately and working.
 restartbot.sh : Changed so the restart is immediately and working.
+systemd support added
+
 
 - not using these Domoticz variables anymore:
    - TelegramBotOffset (Not needed as the first call will be with 0 and subsequest calls with the received msgid+1)
