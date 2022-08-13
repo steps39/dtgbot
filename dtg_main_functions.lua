@@ -41,7 +41,24 @@ function DtgBot_Initialise()
     WhiteList = Domo_Get_Names_From_Variable(WLString)
   end
 
-  return
+  -- Retrieve id Menu white list
+  MenuWLidx = Domo_Idx_From_Variable_Name(MenuWLName)
+  MenuWhiteList = {}
+  if MenuWLidx == nil then
+    Print_to_Log(1, MenuWLName .. " user variable does not exist in Domoticz")
+    Print_to_Log(1, "So everybody will see all available rooms in DOmoticz!")
+  else
+    Print_to_Log(1, "-> Get Menu Whitelist per SendTo and/or Default(0) from Domoticz")
+    MenuWhiteListin = Domo_Get_Variable_Value(MenuWLidx).."|"
+    for iSendTo, iWhiteList in MenuWhiteListin:gmatch("(%d+)[:=]([^|]+)") do
+      MenuWhiteList[iSendTo] = {}
+      Print_to_Log(1,">",iSendTo or "nil", iWhiteList or "nil")
+      for iMenu in iWhiteList:gmatch("%s*(%d+)%s*,?") do
+        MenuWhiteList[iSendTo][tostring(iMenu)] = 1
+        Print_to_Log(1,"   ",#MenuWhiteList[iSendTo],iSendTo or "nil", iMenu or "nil")
+      end
+    end
+  end
 end
 -- ===========================================================================================================
 -- Main Functions to Process Received Message
@@ -266,7 +283,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
       for line in f:lines() do
         Print_to_Log(1, "checking line " .. line)
         if (line:match(cmda)) then
-          Print_to_Log(0, Sprintf("->run bash command %s", line))
+          Print_to_Log(0, Sprintf("->run bash command %s %s %s", line, SendTo, params))
           -- run bash script and collect returned text.
           local handle = io.popen(BotBashScriptPath .. line .. " " .. SendTo .. " " .. params)
           text = handle:read("*a")

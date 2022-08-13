@@ -5,7 +5,7 @@
 --  - all static actions defined in DTGMENU.CFG. Open the file for descript of the details.
 --
 -- programmer: Jos van der Zande
--- Version 0.900 20210113
+-- Version 0.901 20220912
 -- =====================================================================================================================
 -----------------------------------------------------------------------------------------------------------------------
 -- these are the different formats of reply_markup. looksimple but needed a lot of testing before it worked :)
@@ -113,7 +113,6 @@ end
 -- END Functions to SORT the TABLE
 -------------------------------------------------------------------------------
 
-
 -------------------------------------------------------------------------------
 -- Start Function to set the new devicestatus. needs changing moving to on
 -- Jos: Maybe we should create a general lua library because this does more than On/Off
@@ -158,11 +157,34 @@ function makereplymenu(SendTo, Level, submenu, devicename)
   local l3menu = ""
   --~   Sort & Loop through the compiled options returned by PopulateMenuTab
   for i, get in orderedPairs(dtgmenu_submenus) do
-    -- ==== Build mainmenu - level 1 which is the bottom part of the menu, showing the Rooms and static definitins
+    -- ==== Build mainmenu - level 1 which is the bottom part of the menu, showing the Rooms and static definitions
     -- Avoid adding start and menu as these are handled separately.
     if i ~= "menu" and i ~= "start" then
       if get.whitelist == "" or ChkInTable(get.whitelist, SendTo) then
-        l1menu = l1menu .. i .. "|"
+        -- test if anything is specifically defined for this user in Telegram-RoomsShowninMenu`
+        Print_to_Log(3, " MenuWhiteList check ", MenuWhiteList[SendTo] or " SendTo not defined", MenuWhiteList[0] or " Default not defined")
+        --
+        if get.RoomNumber then
+          -- Check WHitelist for the Sender's id
+          if MenuWhiteList[SendTo] then
+            Print_to_Log(1, SendTo.." in MenuWhiteList Check room:"..(get.RoomNumber).."|", MenuWhiteList[SendTo][get.RoomNumber] or " -> not there" )
+            if MenuWhiteList[SendTo][get.RoomNumber] then
+              l1menu = l1menu .. i .. "|"
+            end
+            -- esle check for the standard/default menus to be shown
+          elseif MenuWhiteList['0'] then
+            Print_to_Log(1, "0 in MenuWhiteList Check room:"..(get.RoomNumber).."|", MenuWhiteList['0'][get.RoomNumber] or " -> not there" )
+            if MenuWhiteList['0'] and MenuWhiteList['0'][get.RoomNumber] then
+              l1menu = l1menu .. i .. "|"
+            end
+          else
+            Print_to_Log(1, SendTo.." No 0/SendTo in list -> add to menu: ")
+            l1menu = l1menu .. i .. "|"
+          end
+        else
+          Print_to_Log(1, SendTo.." No Roomnumber -> add to menu: ")
+          l1menu = l1menu .. i .. "|"
+        end
       end
     end
   end
@@ -363,16 +385,17 @@ function PopulateMenuTab(iLevel, iSubmenu)
         Print_to_Log(1, " static ->", submenu, button, DeviceName, idx, DeviceType, Type, SwitchType, MaxDimLevel, status)
       end
     end
-    -- Save the subment entry with optionally all its devices/sceens
+    -- Save the submenu entry with optionally all its devices/sceens
     dtgmenu_submenus[submenu] = {
       whitelist = get.whitelist,
+      RoomNumber = get.RoomNumber,
       showdevstatus = get.showdevstatus,
       Menuwidth = get.Menuwidth,
       buttons = buttons
     }
     --Group change     end
   end
-  -- Add the room/plan menu's after the statis is populated
+  -- Add the room/plan menu's after the static is populated
   MakeRoomMenus(iLevel, iSubmenu)
   Print_to_Log(1, "####  End populating Menu Array")
   return
@@ -383,6 +406,7 @@ function MakeRoomMenus(iLevel, iSubmenu)
   iSubmenu = tostring(iSubmenu)
   Print_to_Log(1, "Creating Room Menus:", iLevel, iSubmenu)
   room_number = 0
+
   ------------------------------------
   -- process all Rooms
   ------------------------------------
@@ -401,8 +425,8 @@ function MakeRoomMenus(iLevel, iSubmenu)
     Devsinplan = Domo_Device_List("command&param=getplandevices&idx=" .. room_number)
     DIPresult = Devsinplan["result"]
     if DIPresult ~= nil then
-      Print_to_Log(1, "For room " .. room_name .. " got some devices and/or scenes")
-      dtgmenu_submenus[rbutton] = {whitelist = "", showdevstatus = "y", buttons = {}}
+      Print_to_Log(1, "For room " .. room_name .. "/".. room_number .." got some devices and/or scenes")
+      dtgmenu_submenus[rbutton] = {RoomNumber = room_number, whitelist = "", showdevstatus = "y", buttons = {}}
       -----------------------------------------------------------
       -- process all found entries in the plan record
       -----------------------------------------------------------
@@ -441,13 +465,14 @@ function MakeRoomMenus(iLevel, iSubmenu)
           end
           -- fill the button table records with all required fields
           buttons[button] = {}
+          -- Retrieve id white list
           buttons[button].whitelist = "" -- Not implemented for Dynamic menu: Whitelist number(s) for this device, blank is ALL
           if LevelNames == "" or LevelNames == nil then
             buttons[button].actions = "" -- Not implemented for Dynamic menu: Hardcoded Actions for the device
           else
             buttons[button].actions = LevelNames:gsub("|", ",")
           end
-          buttons[button].prompt = false -- Not implemented for Dynamic menu: Prompt TG cleint for the variable text
+          buttons[button].prompt = false -- Not implemented for Dynamic menu: Prompt TG client for the variable text
           buttons[button].showactions = false -- Not implemented for Dynamic menu: Show Device action menu right away when its menu is selected
           buttons[button].Name = DeviceName -- Original devicename needed to be able to perform the "Set new status" commands
           buttons[button].idx = idx
@@ -462,7 +487,7 @@ function MakeRoomMenus(iLevel, iSubmenu)
     end
     --Group change    end
     -- Save the Room entry with optionally all its devices/sceens
-    dtgmenu_submenus[rbutton] = {whitelist = "", showdevstatus = "y", buttons = buttons}
+    dtgmenu_submenus[rbutton] = {RoomNumber = room_number, whitelist = "", showdevstatus = "y", buttons = buttons}
   end
 end
 --
@@ -648,7 +673,6 @@ function dtgmenu_module.handler(menu_cli, SendTo, commandline)
     end
     return true, response, replymarkup
   end
-
   -------------------------------------------------
   -- process prompt input for "command" Type
   -------------------------------------------------
@@ -844,7 +868,6 @@ function dtgmenu_module.handler(menu_cli, SendTo, commandline)
     return true, response, replymarkup
   end
 
-
   -------------------------------------------------------
   -- process device button pressed on one of the submenus
   -------------------------------------------------------
@@ -895,7 +918,6 @@ function dtgmenu_module.handler(menu_cli, SendTo, commandline)
     Persistent.Lastcommand = LastCommand
     return true, response, replymarkup
   end
-
 
   -------------------------------------------------
   -- process action button pressed

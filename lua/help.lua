@@ -4,11 +4,12 @@ local http = require "socket.http";
 
 --- the handler for the list commands. a module can have more than one handler. in this case the same handler handles two commands
 function help_module.handler(parsed_cli)
-	local response = "", status;
+  local response = ""
+  local status;
 
-  command = parsed_cli[3]
+  local command = parsed_cli[3]
   if (command ~= "" and command ~= nil) then
-    command_dispatch = Available_Commands[string.lower(command)];
+   	command_dispatch = Available_Commands[string.lower(command)];
     if command_dispatch then
       response = command_dispatch.description;
     else
@@ -34,16 +35,16 @@ function help_module.handler(parsed_cli)
   HelpText = HelpText..'⚠️ Available Shell commands ⚠️ \n'
   for line in Functions:lines() do
     Print_to_Log(1,line)
-    DotPos=string.find(line, "%.")
+    DotPos=string.find(line, "%.") or 0
     HelpText = HelpText .. "-" .. "/"..string.sub(line,0,DotPos-1).."\n"
   end
 	return status, HelpText;
 end
 
 local help_commands = {
-			["help"] = {handler=help_module.handler, description="help - list all help information"},
-			["start"] = {handler=help_module.handler, description="start - list all help information"}
-        }
+		["help"] = {handler=help_module.handler, description="help - list all help information"},
+		["start"] = {handler=help_module.handler, description="start - list all help information"}
+  }
 
 function help_module.get_commands()
 	return help_commands;

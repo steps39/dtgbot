@@ -14,7 +14,7 @@
 -- -------------------------------------------------------
 -- set default loglevel which will be retrieve later from the domoticz user variable TelegramBotLoglevel
 -- the first digit sets the DTGBOT loglevel - default 0
--- the seconf digit sets the DTGMENU loglevel - default 0
+-- the second digit sets the DTGMENU loglevel - default 0
 DtgBotLogLevel = 1
 Telegram_Longpoll_TimeOut = 50 -- used to set the max wait time for both the longpoll and the HTTPS
 -----------------------------------------------------------
@@ -42,7 +42,7 @@ local return_status, result =
     HTTP = require "socket.http" --lua-sockets
     SOCKET = require "socket" --lua-sockets
     HTTPS = require "ssl.https" --lua-sockets
-    JSON = require "json" -- lua-sec
+    JSON = require "json" -- lua-json
     MIME = require("mime") -- ???
     --------------------------------------------------------------------------------
     -- dtgbot Lua libraries
@@ -122,7 +122,8 @@ local return_status, result =
     Print_to_Log(0, "-------------------------------------------")
     Print_to_Log(0, "### Starting longpoll with Telegram servers")
     Print_to_Log(0, "-------------------------------------------")
-    while FileExists(dtgbot_pid) do
+
+    while true do
       -- loop till messages is received
       while true do
         -- Update monitorfile each loop
@@ -209,7 +210,7 @@ local return_status, result =
       Save_Persistent_Vars()
       --<< End processing message
     end
-    Print_to_Log(0, dtgbot_pid .. " does not exist, so exiting")
+    Print_to_Log(0, " ---- exiting ----------")
   end,
   ErrorHandler
 )

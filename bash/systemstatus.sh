@@ -3,28 +3,25 @@
 
 # Settings
 SendMsgTo=$1
-TmpFileName=$TempFileDir'SystemStatus.txt'
 
-#Send sensor values with telegram
-#$TelegramScript msg $SendMsgTo "Please wait, gathering data..."
-#curl 'https://api.telegram.org/bot'$TelegramBotToken'/sendMessage?chat_id='$SendMsgTo'&text=Please%20wait%20gathering%20data'
-curl --data 'chat_id='$SendMsgTo --data-urlencode 'text=Please wait, gathering data...' 'https://api.telegram.org/bot'$TelegramBotToken'/sendMessage'
+#Send start of gathering msg to telegram
+Result=`curl --data 'chat_id='$SendMsgTo --data-urlencode 'text=Please wait, gathering data...' 'https://api.telegram.org/bot'$TelegramBotToken'/sendMessage' 2>/dev/null`
 
 ##############################################################################
 ResultString="-CPU temperature: "
-ResultString+=`curl 'http://'$DomoticzIP':'$DomoticzPort'/json.htm?type=devices&rid=1' 2>/dev/null | jq -r .result[]."Temp"`
+ResultString+=`curl 'http://'$DomoticzIP':'$DomoticzPort'/json.htm?type=devices&rid=15' 2>/dev/null | jq -r .result[]."Temp"`
 ResultString+="°C\n"
 
 ResultString+="-CPU Usage: "
-ResultString+=`curl 'http://'$DomoticzIP':'$DomoticzPort'/json.htm?type=devices&rid=386' 2>/dev/null | jq -r .result[]."Data"`
+ResultString+=`curl 'http://'$DomoticzIP':'$DomoticzPort'/json.htm?type=devices&rid=16' 2>/dev/null | jq -r .result[]."Data"`
 ResultString+="\n"
 
 ResultString+="-Memory Usage: "
-ResultString+=`curl 'http://'$DomoticzIP':'$DomoticzPort'/json.htm?type=devices&rid=385' 2>/dev/null | jq -r .result[]."Data"`
+ResultString+=`curl 'http://'$DomoticzIP':'$DomoticzPort'/json.htm?type=devices&rid=12' 2>/dev/null | jq -r .result[]."Data"`
 ResultString+="\n"
 
 ResultString+="-SD usage: "
-ResultString+=`curl 'http://'$DomoticzIP':'$DomoticzPort'/json.htm?type=devices&rid=388' 2>/dev/null | jq -r .result[]."Data"`
+ResultString+=`curl 'http://'$DomoticzIP':'$DomoticzPort'/json.htm?type=devices&rid=13' 2>/dev/null | jq -r .result[]."Data"`
 ResultString+="\n"
 
 Updates=`sudo aptitude search '~U' | wc -l`
@@ -33,40 +30,32 @@ if [[ $Updates -ge 1 ]] ; then
    ResultString+=$Updates
    ResultString+="\n"
 fi
-InstalledVersion=`curl "http://"$DomoticzIP":"$DomoticzPort"/json.htm?type=command&param=checkforupdate&forced=true" 2>/dev/null | jq -r ."ActVersion"`
-UpdateVersion=`curl "http://"$DomoticzIP":"$DomoticzPort"/json.htm?type=command&param=checkforupdate&forced=true" 2>/dev/null | jq -r ."Revision"`
-if [[ $InstalledVersion -lt $UpdateVersion ]] ; then
-   ResultString+="-Domoticz update available! (version "
-   ResultString+=$UpdateVersion
-   ResultString+=") "
-   ResultString+="\n"
+CheckforUpdate=`curl -s -i -H "Accept: application/json" "http://"$DomoticzIP":"$DomoticzPort"/json.htm?type=command&param=checkforupdate&forced=true"`
+InstalledVersion=`curl -s -i -H "Accept: application/json" "http://$DomoticzIP:$DomoticzPort/json.htm?type=command&param=getversion"`
+#echo "CheckforUpdate:$CheckforUpdate\n"
+HaveUpdate=`echo -ne "$CheckforUpdate"|grep "\"HaveUpdate\" :" `
+Version=`echo -ne "$InstalledVersion"|grep "\"version\" :" `
+Revision=`echo -ne "$InstalledVersion"|grep "\"Revision\" :" `
+HaveUpdate=`echo $HaveUpdate | awk -F: '{print $2, $3}' | sed 's/\"//g' | sed 's/,//'`
+Version=`echo $Version | awk -F: '{print $2, $3}' | sed 's/\"//g' | sed 's/,//'`
+Revision=`echo $Revision | awk -F: '{print $2, $3}' | sed 's/\"//g' | sed 's/,//'`
+
+#echo "HaveUpdate:$HaveUpdate\n"
+#echo "Version:$Version\n"
+#echo "Revision:$Revision\n"
+
+if [[ "$HaveUpdate" -eq "true" ]] ; then
+   ResultString+="-Domoticz update available! current version $Version build $Revision\n"
 fi
 ##############################################################################
-#InstalledFW=`curl "http://"$DomoticzIP":"$DomoticzPort"/json.htm?type=hardware&filter=idx=1" 2>/dev/null | jq -r .result[].Mode2 | grep -v "^0"`
-InstalledFW=` curl "http://"$DomoticzIP":"$DomoticzPort"/json.htm?type=hardware&filter=idx=1" 2>/dev/null | jq -r '.result[] | select(.Name=="RFXCOM")| .Mode2'`
-echo $InstalledFW
-if [ "$InstalledFW" -ge 0 -a "$InstalledFW" -le 99 ]; then
-   grepvar="8" #Type1 firmware
-   LatestFW=`curl -s "http://blog.rfxcom.com/?feed=rss2" | grep -m 1 "firmware version" | sed "s/.*[^0-9]\([0-9][0-9]\)[^0-9].*/\1/"`
-fi
-if [ "$InstalledFW" -ge 100 -a "$InstalledFW" -le 199 ]; then
-   grepvar="1" #Type2 firmware
-   LatestFW=`curl -s "http://blog.rfxcom.com/?feed=rss2" | grep -m 1 "firmware version" | sed "s/.*[^0-9]\([0-9][0-9][0-9]\)[^0-9].*[^0-9][0-9][0-9][0-9][^0-9].*/\1/"`
-fi
-if [ "$InstalledFW" -ge 200 -a "$InstalledFW" -le 299 ]; then
-   grepvar="2" #EXT firmware
-   LatestFW=`curl -s "http://blog.rfxcom.com/?feed=rss2" | grep -m 1 "firmware version" | sed "s/.*[^0-9][0-9][0-9][0-9][^0-9].*[^0-9]\([0-9][0-9][0-9]\)[^0-9].*/\1/"`
-fi
+InstalledFW=`curl "http://"$DomoticzIP":"$DomoticzPort"/json.htm?type=hardware&filter=idx=1" 2>/dev/null | jq -r '.result[] | select(.Name=="RFXCOM")| .version'`
+InstalledFW=`echo $InstalledFW | sed "s/.*\/\([0-9]*\)[^0-9]*/\1/"`
+LatestFW=`curl -s "http://blog.rfxcom.com/?feed=rss2" | grep -m 1 "firmware version" | sed "s/.*version \(.*\)<\/t.*/\1/"`
 
 if [[ $InstalledFW -lt $LatestFW ]] ; then
-    ResultString+="-RFXtrx update available! (version "
-   ResultString+=$LatestFW
-   ResultString+=") "
+   ResultString+="-RFXtrx update available: $LatestFW"
+   ResultString+=" installed: $InstalledFW"
    ResultString+="\n"
 fi
 ##############################################################################
-echo -e $ResultString > $TmpFileName
-ResultString=`cat $TmpFileName`
-#$TelegramScript send_text $SendMsgTo $TmpFileName
-#curl 'https://api.telegram.org/bot'$TelegramBotToken'/sendMessage?chat_id='$SendMsgTo'&text='"$ResultString"
-curl --data 'chat_id='$SendMsgTo --data-urlencode 'text='"$ResultString" 'https://api.telegram.org/bot'$TelegramBotToken'/sendMessage'
+echo -ne "$ResultString"

@@ -2,7 +2,9 @@ local devices_module = {};
 local http = require "socket.http";
 --JSON = assert(loadfile "JSON.lua")() -- one-time load of the routines
 
-function DevicesScenes(DeviceType, qualifier)
+function DevicesScenes(DeviceType, qualifier, state)
+  state = state or ""
+  switchstatus = ""
   local response = "", ItemNumber, result, decoded_response, record, k;
   if qualifier ~= nil then
     response = 'All '..DeviceType..' starting with '..qualifier
@@ -24,8 +26,24 @@ function DevicesScenes(DeviceType, qualifier)
 		  if DeviceName ~= "Unknown" then
 			if qualifier ~= nil then
 			  if qualifier == string.lower(string.sub(DeviceName,1,quallength)) then
-				ItemNumber = ItemNumber + 1
-				table.insert(StoredList, DeviceName)
+          ItemNumber = ItemNumber + 1
+          if state ~= "" then
+            -- get dev status
+            didx, dDeviceName, dDeviceType, dType, dSwitchType, dMaxDimLevel, switchstatus, LevelNames, LevelInt = Domo_Devinfo_From_Name(0,DeviceName)
+            if ChkEmpty(switchstatus) then
+              switchstatus = ""
+            else
+              if dSwitchType == "Selector" then
+                switchstatus = " - " .. getSelectorStatusLabel(get.actions, LevelInt)
+              else
+                --~ 							Print_to_Log(0,switchstatus)
+                switchstatus = tostring(switchstatus)
+                switchstatus = switchstatus:gsub("Set Level: ", "")
+                switchstatus = "->" .. switchstatus
+              end
+            end
+          end
+          table.insert(StoredList, DeviceName .. switchstatus)
 			  end
 			else
 			  ItemNumber = ItemNumber + 1
@@ -48,7 +66,7 @@ end
 
 function devices_module.handler(parsed_cli)
 	local response = ""
-        response = DevicesScenes(string.lower(parsed_cli[2]),parsed_cli[3])
+        response = DevicesScenes(string.lower(parsed_cli[2]),parsed_cli[3], parsed_cli[4])
 	return status, response;
 end
 

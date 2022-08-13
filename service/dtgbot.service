@@ -1,0 +1,14 @@
+[Unit]
+      Description=Telegram Bot for Domoticz
+	  After=domoticz.service
+[Service]
+      ## remove the # to run as pi else it will use root
+      #User=pi
+      #Group=users
+      ExecStart=sh /home/pi/dtgbot/systemd-dtgbot.sh
+      WorkingDirectory=/home/pi/dtgbot
+      Restart=on-failure
+      RestartSec=10
+      ExecStartPost=/bin/sh -c "echo $MAINPID > /run/dtgbot.pid"
+[Install]
+      WantedBy=multi-user.target
