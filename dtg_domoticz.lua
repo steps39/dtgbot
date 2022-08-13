@@ -393,7 +393,7 @@ function Domo_sSwitchName(DeviceName, DeviceType, SwitchType, idx, state)
     else
       response = "Failed to switch " .. (DeviceName or "?") .. " to " .. (state or "?")
     end
-    end
+  end
   Print_to_Log(0, "   -< Domo_sSwitchName:", DeviceName, idx, status, response)
   return response, status
 end

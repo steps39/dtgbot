@@ -308,9 +308,9 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     end
   end
   --~ replymarkup
-  if replymarkup == nil or replymarkup == "" and savereplymarkup then
+  if (replymarkup == nil or replymarkup == "") and savereplymarkup then
     -- restore the menu supplied replymarkup in case the shelled LUA didn't provide one
-    replymarkup = savereplymarkup
+    replymarkup = savereplymarkup or ""
     Print_to_Log(1, "restored previous replymarkup:" .. replymarkup)
   elseif (replymarkup == "remove") then
     replymarkup = ""

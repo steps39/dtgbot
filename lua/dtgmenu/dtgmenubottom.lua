@@ -45,7 +45,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
         Print_to_Log(3, " MenuWhiteList check ", MenuWhiteList[SendTo] or " SendTo not defined", MenuWhiteList[0] or " Default not defined")
         --
         if get.RoomNumber then
-          -- Check WHitelist for the Sender's id
+          -- Check Whitelist for the Sender's id
           if MenuWhiteList[SendTo] then
             Print_to_Log(1, SendTo.." in MenuWhiteList Check room:"..(get.RoomNumber).."|", MenuWhiteList[SendTo][get.RoomNumber] or " -> not there" )
             if MenuWhiteList[SendTo][get.RoomNumber] then

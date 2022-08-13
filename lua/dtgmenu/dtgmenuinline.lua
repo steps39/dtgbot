@@ -138,9 +138,35 @@ function makereplymenu(SendTo, Level, submenu, devicename)
       -- Avoid adding start and menu as these are handled separately.
       if i ~= "menu" and i ~= "start" then
         if get.whitelist == "" or ChkInTable(get.whitelist,SendTo) then
-          -- buildmenuitem(menuitem,prefix,Callback,width,t)
+
+          -- test if anything is specifically defined for this user in Telegram-RoomsShowninMenu`
+          Print_to_Log(3, ">> inline MenuWhiteList check ", MenuWhiteList[SendTo] or " SendTo not defined", MenuWhiteList[0] or " Default not defined")
+          --
           t,newbutton = buildmenuitem(i,"menu",i, SubMenuwidth,t)
-          l1menu=l1menu .. newbutton
+
+          if newbutton then
+            if get.RoomNumber then
+              -- Check Whitelist for the Sender's id
+              if MenuWhiteList[SendTo] then
+                Print_to_Log(1, SendTo.." in MenuWhiteList Check room:"..(get.RoomNumber).."|", MenuWhiteList[SendTo][get.RoomNumber] or " -> not there" )
+                if MenuWhiteList[SendTo][get.RoomNumber] then
+                  l1menu=l1menu .. newbutton
+                end
+                -- esle check for the standard/default menus to be shown
+              elseif MenuWhiteList['0'] then
+                Print_to_Log(1, "0 in MenuWhiteList Check room:"..(get.RoomNumber).."|", MenuWhiteList['0'][get.RoomNumber] or " -> not there" )
+                if MenuWhiteList['0'] and MenuWhiteList['0'][get.RoomNumber] then
+                  l1menu=l1menu .. newbutton
+                end
+              else
+                Print_to_Log(1, SendTo.." No 0/SendTo in list -> add to menu: ")
+                l1menu=l1menu .. newbutton
+              end
+            else
+              Print_to_Log(1, SendTo.." No Roomnumber -> add to menu: ")
+              l1menu=l1menu .. newbutton
+            end
+          end
         end
       end
     end
