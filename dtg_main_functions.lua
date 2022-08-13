@@ -226,6 +226,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
       handled_by = "menu"
     end
   end
+  local savereplymarkup = replymarkup
   ---------------------------------------------------------------------------
   -- End integration for dtgmenu.lua option
   ---------------------------------------------------------------------------
@@ -261,10 +262,6 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
   elseif not found then
     -- check for loaded LUA modules
     command_dispatch = Available_Commands[string.lower(parsed_command[2])]
-    local savereplymarkup = replymarkup
-    --if chat_type == "callback" then
-    --  savereplymarkup = JSON.encode(msg.message.reply_markup or "")
-    --end
     if command_dispatch then
       Print_to_Log(Sprintf("->run lua command %s", string.lower(parsed_command[2])))
       status, text, replymarkup = command_dispatch.handler(parsed_command, SendTo, MessageId, savereplymarkup)
@@ -311,9 +308,10 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     end
   end
   --~ replymarkup
-  if replymarkup == nil or replymarkup == "" then
+  if replymarkup == nil or replymarkup == "" and savereplymarkup then
     -- restore the menu supplied replymarkup in case the shelled LUA didn't provide one
     replymarkup = savereplymarkup
+    Print_to_Log(1, "restored previous replymarkup:" .. replymarkup)
   elseif (replymarkup == "remove") then
     replymarkup = ""
   end
@@ -337,7 +335,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     end
   elseif replymarkup ~= savereplymarkup or chat_type == "callback" then
     -- Set msg text for normal messages to send the replymarkup
-    if chat_type ~= "callback" then
+    if chat_type ~= "callback" or text == "" then
       text = "done"
     end
     if Group ~= "" then
@@ -401,11 +399,11 @@ function Print_to_Log(loglevel, logmessage, ...)
         if type(v) == "table" then
           for i2, v2 in pairs({...}) do
             if type(v2) ~= "table" then
-              logmessage = logmessage .. " [" .. i2 .. "] " .. v2
+              logmessage = logmessage .. " [" .. i2 .. "] " .. (tostring(v2) or "nil")
             end
           end
         else
-          logmessage = logmessage .. " (" .. i .. ") " .. v
+          logmessage = logmessage .. " (" .. i .. ") " .. (tostring(v) or "nil")
         end
       end
       --logmessage = logmessage:gsub(" (.+) nil", "")   --  Not sure why we added this ??
