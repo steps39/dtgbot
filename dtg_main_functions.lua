@@ -210,6 +210,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
       end
     end
     table.insert(parsed_command, w)
+    Print_to_Log(2, Sprintf(" - parsed_command[%s]  %s", #parsed_command, w))
   end
   -- return when no command
   if (parsed_command[2] == nil) then
@@ -218,12 +219,26 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
   ---------------------------------------------------------------------------
   -- Start integration for dtgmenu.lua option
   ---------------------------------------------------------------------------
-  if Persistent.UseDTGMenu == 1 and chat_type ~= "channel" then
-    Print_to_Log(0, Sprintf("-> forward to dtgmenu :%s", cmd))
+  if (Persistent.UseDTGMenu == 1
+      or string.lower(parsed_command[2]) == "dtgmenu"
+      or string.lower(parsed_command[2]) == "menu")
+    and chat_type ~= "channel" then
+    Print_to_Log(0, Sprintf("-> forward to dtgmenu :%s  %s", cmd, parsed_command[2]))
     command_dispatch = Available_Commands["dtgmenu"] or {handler = {}}
     found, text, replymarkup = command_dispatch.handler(parsed_command, SendTo, cmd)
     if found then
       handled_by = "menu"
+    elseif UseInlineMenu and parsed_command[2] == "menu" then
+      -- remove the 2 layer inline menu commands 
+      for i = 2, #parsed_command-2, 1 do
+        Print_to_Log(1,parsed_command[i] or "nil",parsed_command[i+2] or "nil" )
+        if not parsed_command[i+2] or parsed_command[i+2] == "" then
+          parsed_command[i] = ""
+          break
+        end
+        parsed_command[i] = parsed_command[i+2]
+        parsed_command[i+2] = ""
+      end
     end
   end
   local savereplymarkup = replymarkup
@@ -288,6 +303,11 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     end
     command_dispatch = Available_Commands["dtgmenu"] or {handler = {}}
     status, text, replymarkup = command_dispatch.handler(tcommand, SendTo, icmdline)
+    -- reset vars
+    Persistent.UseDTGMenu=0
+    Persistent.iLastcommand=""
+    chat_type=""
+
     -- send telegram msg
     if Group ~= "" then
       Telegram_SendMessage(Group, "removed keyboard", iMessageId, replymarkup, "callback", handled_by)
@@ -299,30 +319,41 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     UseInlineMenu = not UseInlineMenu
     ----------------------------------
     -- Reset handler
+    --Available_Commands["menu"] = nil
+    --Available_Commands["dtgmenu"] = nil
+    --Load_LUA_Module("dtgmenu")
     if UseInlineMenu then
       Print_to_Log(1, "Set Handler to DTGil.handler")
       Available_Commands["menu"] = {handler = DTGil.handler, description = "Will start menu functionality."}
       Available_Commands["dtgmenu"] = {handler = DTGil.handler, description = "Will start menu functionality."}
+      --dtgmenu_commands = {["menu"] = {handler = DTGil.handler, description = "Will start menu functionality."},
+      --                 ["dtgmenu"] = {handler = DTGil.handler, description = "Will start menu functionality."}
+      --}
       replymarkup = '{"remove_keyboard":true}'
     else
       Print_to_Log(1, "Set Handler to DTGbo.handler")
       Available_Commands["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
       Available_Commands["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
+      --dtgmenu_commands = {["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."},
+      --                 ["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
+      --}
     end
     ----------------------------------
     -- show Keyboard
-    tcommand={"menu","menu","menu",""}
+    local tcommand={"menu","menu","menu",""}
     command_dispatch = Available_Commands["dtgmenu"] or {handler = {}}
     found, text, replymarkup = command_dispatch.handler(tcommand, SendTo, "menu")
+
     Print_to_Log("-> end  _ToggleKeyboard process.")
     found = true
 
   elseif not found then
     -- check for loaded LUA modules
+    Print_to_Log(Sprintf("Not found as Menu or Fixed command so try Lua or Bash options for %s", string.lower(parsed_command[2])))
     command_dispatch = Available_Commands[string.lower(parsed_command[2])]
     if command_dispatch then
       Print_to_Log(Sprintf("->run lua command %s", string.lower(parsed_command[2])))
-      status, text, replymarkup = command_dispatch.handler(parsed_command, SendTo, MessageId, savereplymarkup)
+      found, text, replymarkup = command_dispatch.handler(parsed_command, SendTo, MessageId, savereplymarkup)
       text = text or ""
       found = true
       if found and string.lower(parsed_command[2]) == "menu" then
@@ -876,7 +907,7 @@ function Telegram_SendMessage(SendTo, Message, MessageId, replymarkup, chat_type
         Telegram_CleanMessages(SendTo, decoded_response.result.message_id, MessageId, handled_by, false)
         Print_to_Log(1, Sprintf("Persistent.UseDTGMenu=%s", Persistent.UseDTGMenu))
         Print_to_Log(1, Sprintf("Persistent.Lastcommand=%s", Persistent.Lastcommand))
-        if Persistent.iUseDTGMenu == 1 and Persistent.iLastcommand == "menu" then
+        if Persistent.UseDTGMenu == 1 and Persistent.iLastcommand == "menu" then
           Persistent.LastInlinemessage_id = decoded_response.result.message_id
           Print_to_Log(1, Sprintf("save Persistent.LastInlinemessage_id=%s", Persistent.LastInlinemessage_id))
           Persistent.iLastcommand = ""

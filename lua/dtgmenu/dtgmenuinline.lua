@@ -310,7 +310,7 @@ function dtgmenuinline.handler(menu_cli,SendTo)
     response=dtgmenu_lang[menu_language].text["main"]
     replymarkup = dtgmenuinline.makereplymenu(SendTo, "mainmenu")
     status=1
-    Persistent.iUseDTGMenu = 1
+    Persistent.UseDTGMenu = 1
     Persistent.iLastcommand = "menu"
     Print_to_Log(0,"==< Show main menu")
     return status, response, replymarkup, commandline
@@ -385,13 +385,12 @@ function dtgmenuinline.handler(menu_cli,SendTo)
   -- process Type="command" (none devices/scenes
   -------------------------------------------------
   if Type == "command" then
-    if cmdisaction
-    or (cmdisbutton
-    and ChkEmpty(dtgmenu_submenus[submenu].buttons[devicename].actions)) then
+    if cmdisaction or (cmdisbutton and ChkEmpty(dtgmenu_submenus[submenu].buttons[devicename].actions)) then
       status=0
       replymarkup, rdevicename = dtgmenuinline.makereplymenu(SendTo,"submenu",submenu)
       Print_to_Log(0,"==<1 found regular lua command. -> hand back to dtgbot to run",commandlinex,parsed_command[2])
-      return status, "", replymarkup, parsed_command
+      Persistent.Lastcommand = parsed_command[2]
+      return false, "", replymarkup
     end
   end
   -------------------------------------------------
