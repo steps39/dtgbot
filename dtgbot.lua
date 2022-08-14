@@ -36,7 +36,7 @@ local return_status, result =
     -- and default to current (./) in case not retrieved
     ScriptDirectory = (str:match("(.*[/\\])") or "./")
     --  and add to the packages search path
-    package.path = ScriptDirectory .. "?.lua;" .. ScriptDirectory .. "?.cfg;" .. package.path
+    package.path =  ScriptDirectory .. "?.lua;" .. ScriptDirectory .. "?.cfg;" .. ScriptDirectory .. "lua/dtgmenu/?.lua;" .. package.path
     --------------------------------------------------------------------------------
     -- Load required files
     HTTP = require "socket.http" --lua-sockets

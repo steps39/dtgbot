@@ -39,6 +39,8 @@ else
 end
 
 local http = require "socket.http"
+DTGil = require("dtgmenuinline")
+DTGbo = require("dtgmenubottom")
 
 -- definition used by DTGBOT
 DTGMenu_Modules = {}  -- global!
@@ -269,6 +271,7 @@ function ChkInTable(itab, idev)
   Print_to_Log(2, "-< ChkInTable not found: " .. idev, cnt, itab)
   return false, 0
 end
+
 -- SCAN through provided delimited string for the second parameter
 function getSelectorStatusLabel(itab, ival)
   Print_to_Log(2, " getSelectorStatusLabel: ", ival, itab)
@@ -291,6 +294,64 @@ function getSelectorStatusLabel(itab, ival)
   Print_to_Log(1, "-< getSelectorStatusLabel not found: " .. ival, cnt, itab)
   return ""
 end
+
+-----------------------------------------------
+-- this function will rebuild the dtgmenu_submenus table each time it is called.
+-- It will first read through the static menu items defined in DTGMENU.CRG in table static_dtgmenu_submenus
+-- It will then call the MakeRoomMenus() function to add the dynamic options from Domoticz Room configuration
+function PopulateMenuTab(iLevel, iSubmenu)
+  buttonnbr = 0
+  Print_to_Log(1, Sprintf("####  Start populating Menu Array.  ilevel:%s  iSubmenu:$s", iLevel, iSubmenu))
+  -- reset menu table and rebuild
+  dtgmenu_submenus = {}
+
+  Print_to_Log(1, "Submenu table including buttons defined in menu.cfg:", iLevel, iSubmenu)
+  for submenu, get in pairs(static_dtgmenu_submenus) do
+    Print_to_Log(1, "=>", submenu, get.whitelist, get.showdevstatus, get.Menuwidth)
+    if static_dtgmenu_submenus[submenu].buttons ~= nil then
+      buttons = {}
+      --Group change      if iLevel ~= "mainmenu" and iSubmenu == submenu then
+      for button, dev in pairs(static_dtgmenu_submenus[submenu].buttons) do
+        -- Get device/scene details
+        idx, DeviceName, DeviceType, Type, SwitchType, MaxDimLevel, status = Domo_Devinfo_From_Name(9999, button, "anything")
+        -- fill the button table records with all required fields
+        -- Remove any spaces from the device name and replace them by underscore.
+        button = string.gsub(button, "%s+", "_")
+        -- Add * infront of button name when Scene or Group
+        if DeviceType == "scenes" then
+          button = "*" .. button
+        end
+        buttons[button] = {}
+        buttons[button].whitelist = dev.whitelist -- specific for the static config: Whitelist number(s) for this device, blank is ALL
+        buttons[button].actions = dev.actions -- specific for the static config: Hardcoded Actions for the device
+        buttons[button].prompt = dev.prompt -- specific for the static config: Prompt TG cleint for the variable text
+        buttons[button].showactions = dev.showactions -- specific for the static config: Show Device action menu right away when its menu is selected
+        buttons[button].Name = DeviceName
+        buttons[button].idx = idx
+        buttons[button].DeviceType = DeviceType
+        buttons[button].SwitchType = SwitchType
+        buttons[button].Type = Type
+        buttons[button].MaxDimLevel = MaxDimLevel -- Level required to calculate the percentage for devices that do not use 100 for 100%
+        buttons[button].status = status
+        Print_to_Log(1, " static ->", submenu, button, DeviceName, idx, DeviceType, Type, SwitchType, MaxDimLevel, status)
+      end
+    end
+    -- Save the submenu entry with optionally all its devices/sceens
+    dtgmenu_submenus[submenu] = {
+      whitelist = get.whitelist,
+      RoomNumber = get.RoomNumber,
+      showdevstatus = get.showdevstatus,
+      Menuwidth = get.Menuwidth,
+      buttons = buttons
+    }
+    --Group change     end
+  end
+  -- Add the room/plan menu's after the static is populated
+  MakeRoomMenus(iLevel, iSubmenu)
+  Print_to_Log(1, "####  End populating Menu Array")
+  return
+end
+
 --
 -- Simple check function whether the input field is nil or empty ("")
 function ChkEmpty(itxt)
@@ -299,17 +360,10 @@ function ChkEmpty(itxt)
   end
   return false
 end
-
-if UseInlineMenu then
-  Print_to_Log(1, "load lua/dtgmenuinline.lua")
-  dofile(BotHomePath .. "lua/dtgmenu/dtgmenuinline.lua")
-else
-  Print_to_Log(1, "load lua/dtgmenubottom.lua")
-  dofile(BotHomePath .. "lua/dtgmenu/dtgmenubottom.lua")
-end
 -----------------------------------------------
 --- END Misc Function to support the process
 -----------------------------------------------
+
 function DTGMenu_Modules.get_commands()
   return dtgmenu_commands
 end
@@ -317,6 +371,18 @@ end
 -- define the menu table and initialize the table first time
 Menuidx = 0
 dtgmenu_submenus = {}
---~ PopulateMenuTab(1,"")  -- now done in refresh
+
+-- Set the appropriate handler to use for the keyboard
+if UseInlineMenu then
+  Print_to_Log(1, "Set Handler to DTGil.handler")
+  dtgmenu_commands = {["menu"] = {handler = DTGil.handler, description = "Will start menu functionality."},
+                   ["dtgmenu"] = {handler = DTGil.handler, description = "Will start menu functionality."}
+  }
+else
+  Print_to_Log(1, "Set Handler to DTGbo.handler")
+  dtgmenu_commands = {["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."},
+                   ["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
+  }
+end
 
 return DTGMenu_Modules

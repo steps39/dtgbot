@@ -234,11 +234,18 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
   -- first check for some internal dtgbot commands
   -- command reload modules will reload all LUA modules without having to restart the Service
   if string.lower(parsed_command[2]) == "_reloadmodules" then
+    Print_to_Log("-> Start _reloadmodules process.")
     text = "modules reloaded"
     found = true
     Available_Commands = {}
+    -- ensure the require packages for dtgmenu are removed
+    package.loaded["dtgmenubottom"] = nil
+    package.loaded["dtgmenuinline"] = nil
+   -- Now reload the modules
     Load_LUA_Modules()
+
   elseif string.lower(parsed_command[2]) == "_reloadconfig" then
+    Print_to_Log("-> Start _reloadconfig process.")
     if (FileExists(ScriptDirectory .. "dtgbot-user.cfg")) then
       assert(loadfile(ScriptDirectory .. "dtgbot-user.cfg"))()
       Print_to_Log(0, "Using DTGBOT config file:" .. ScriptDirectory .. "dtgbot-user.cfg")
@@ -250,15 +257,66 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     -- reset these tables to start with a clean slate
     LastCommand = {}
     Available_Commands = {}
-    -- also reload the modules
+    -- ensure the require packages for dtgmenu are removed
+    package.loaded["dtgmenubottom"] = nil
+    package.loaded["dtgmenuinline"] = nil
+   -- Now reload the modules
     Load_LUA_Modules()
+    -- command_dispatch = Available_Commands["dtgmenu"] or {handler = {}}
     -- return message
     found = true
-    text = "config reloaded"
+    text = "Config and Modules reloaded"
+
   elseif string.lower(parsed_command[2]) == "_cleanall" then
+    Print_to_Log("-> Start _cleanall process.")
     Telegram_CleanMessages(SendTo, MessageId, 0, "", true)
-    found = 1
+    found = true
     text = ""
+
+  elseif string.lower(parsed_command[2]) == "_togglekeyboard" then
+    Print_to_Log("-> Start _ToggleKeyboard process.")
+    ----------------------------------
+    -- start disabled current keyboard
+    local tcommand={"","Exit_Menu","Exit_Menu",""}
+    local icmdline = "Exit_Menu"
+    local iMessageId = MessageId
+    if UseInlineMenu then
+      tcommand={"menu exit","menu","exit",""}
+      icmdline = ""
+      Print_to_Log(1, Sprintf("Persistent.LastInlinemessage_id=%s", Persistent.LastInlinemessage_id or "nil"))
+      iMessageId = Persistent.LastInlinemessage_id or MessageId
+    end
+    command_dispatch = Available_Commands["dtgmenu"] or {handler = {}}
+    status, text, replymarkup = command_dispatch.handler(tcommand, SendTo, icmdline)
+    -- send telegram msg
+    if Group ~= "" then
+      Telegram_SendMessage(Group, "removed keyboard", iMessageId, replymarkup, "callback", handled_by)
+    else
+      Telegram_SendMessage(SendTo, "removed keyboard", iMessageId, replymarkup, "callback", handled_by)
+    end
+  ----------------------------------
+    -- toggle setting
+    UseInlineMenu = not UseInlineMenu
+    ----------------------------------
+    -- Reset handler
+    if UseInlineMenu then
+      Print_to_Log(1, "Set Handler to DTGil.handler")
+      Available_Commands["menu"] = {handler = DTGil.handler, description = "Will start menu functionality."}
+      Available_Commands["dtgmenu"] = {handler = DTGil.handler, description = "Will start menu functionality."}
+      replymarkup = '{"remove_keyboard":true}'
+    else
+      Print_to_Log(1, "Set Handler to DTGbo.handler")
+      Available_Commands["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
+      Available_Commands["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
+    end
+    ----------------------------------
+    -- show Keyboard
+    tcommand={"menu","menu","menu",""}
+    command_dispatch = Available_Commands["dtgmenu"] or {handler = {}}
+    found, text, replymarkup = command_dispatch.handler(tcommand, SendTo, "menu")
+    Print_to_Log("-> end  _ToggleKeyboard process.")
+    found = true
+
   elseif not found then
     -- check for loaded LUA modules
     command_dispatch = Available_Commands[string.lower(parsed_command[2])]
@@ -409,8 +467,24 @@ function Print_to_Log(loglevel, logmessage, ...)
       --logmessage = logmessage:gsub(" (.+) nil", "")   --  Not sure why we added this ??
       logmessage = logmessage:gsub("[\r\n]", "")
     end
+
+    local lvl2 = ""
+    local lvl3 = ""
+    if loglevel > 8 then
+      -- Add stack info
+      lvl2 = "-> * "
+      if debug.getinfo(2) and debug.getinfo(2).name then
+        --lvl2 = "->"..string.format("%-15s",debug.getinfo(2).name) .. ""
+        lvl2 = "->"..debug.getinfo(2).name .. " "
+      end
+      lvl3 = "-> * "
+      if debug.getinfo(3) and debug.getinfo(3).name then
+        --lvl3 = "->"..string.format("%-15s",debug.getinfo(3).name) .. ""
+        lvl3 = "->"..debug.getinfo(3).name .. " "
+      end
+    end
     -- print message to console
-    print(Sprintf("%s:%s %s", os.date("%Y-%m-%d %H:%M:%S"), msgprev, logmessage))
+    print(Sprintf("%s %s: %s %s", os.date("%Y-%m-%d %H:%M:%S"), lvl3 .. lvl2, msgprev, logmessage))
   end
 end
 
@@ -756,6 +830,7 @@ end
 function Telegram_SendMessage(SendTo, Message, MessageId, replymarkup, chat_type, handled_by)
   chat_type = chat_type or ""
   replymarkup = replymarkup or ""
+  Message = Message or ""
   Print_to_Log(1, "chat_type:" .. chat_type)
   Print_to_Log(1, "replymarkup:" .. replymarkup)
   local response, status
@@ -799,6 +874,13 @@ function Telegram_SendMessage(SendTo, Message, MessageId, replymarkup, chat_type
       local decoded_response = JSON.decode(response or {result = {}})
       if decoded_response.result ~= nil and decoded_response.result.message_id ~= nil then
         Telegram_CleanMessages(SendTo, decoded_response.result.message_id, MessageId, handled_by, false)
+        Print_to_Log(1, Sprintf("Persistent.UseDTGMenu=%s", Persistent.UseDTGMenu))
+        Print_to_Log(1, Sprintf("Persistent.Lastcommand=%s", Persistent.Lastcommand))
+        if Persistent.iUseDTGMenu == 1 and Persistent.iLastcommand == "menu" then
+          Persistent.LastInlinemessage_id = decoded_response.result.message_id
+          Print_to_Log(1, Sprintf("save Persistent.LastInlinemessage_id=%s", Persistent.LastInlinemessage_id))
+          Persistent.iLastcommand = ""
+        end
       end
     end
     return

@@ -1,3 +1,4 @@
+local dtgmenuinline =  {}
 -- =====================================================================================================================
 -- =====================================================================================================================
 -- DTGBOTMENU functions for inline-Keyboard style
@@ -8,7 +9,7 @@
 --- START Build the reply_markup functions.
 --  this function will build the requested menu layout and calls the function to retrieve the devices/scenes  details.
 -------------------------------------------------------------------------------
-function makereplymenu(SendTo, Level, submenu, devicename)
+function dtgmenuinline.makereplymenu(SendTo, Level, submenu, devicename)
   -- These are the possible menu level's ..
   -- mainmenu   -> will show all first level static and dynamic (rooms) options
   -- submenu    -> will show the second level menu for the select option on the main menu
@@ -67,7 +68,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
               end
             end
             -- add to the total menu string for later processing
-            t,newbutton = buildmenuitem(string.sub(i,1,(ButtonTextwidth or 20)-string.len(switchstatus))..switchstatus,"menu",submenu .. " " .. i, DevMwitdh,t)
+            t,newbutton = dtgmenuinline.buildmenuitem(string.sub(i,1,(ButtonTextwidth or 20)-string.len(switchstatus))..switchstatus,"menu",submenu .. " " .. i, DevMwitdh,t)
             l2menu=l2menu .. newbutton
             -- show the actions menu immediately for this devices since that is requested in the config
             -- this can avoid having the press 2 button before getting to the actions menu
@@ -118,7 +119,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
   -- Add level 3 first if needed
   ------------------------------
   if l3menu ~= "" then
-    replymarkup = replymarkup .. buildmenu(l3menu,ActMenuwidth,"menu " .. submenu .. " ".. devicename) .. ","
+    replymarkup = replymarkup .. dtgmenuinline.buildmenu(l3menu,ActMenuwidth,"menu " .. submenu .. " ".. devicename) .. ","
   end
   ------------------------------
   -- Add level 2 next if needed
@@ -142,7 +143,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
           -- test if anything is specifically defined for this user in Telegram-RoomsShowninMenu`
           Print_to_Log(3, ">> inline MenuWhiteList check ", MenuWhiteList[SendTo] or " SendTo not defined", MenuWhiteList[0] or " Default not defined")
           --
-          t,newbutton = buildmenuitem(i,"menu",i, SubMenuwidth,t)
+          t,newbutton = dtgmenuinline.buildmenuitem(i,"menu",i, SubMenuwidth,t)
 
           if newbutton then
             if get.RoomNumber then
@@ -172,9 +173,9 @@ function makereplymenu(SendTo, Level, submenu, devicename)
     end
   end
   -- add Menu & Exit
-  t,newbutton = buildmenuitem("Menu","menu","menu",SubMenuwidth,t)
+  t,newbutton = dtgmenuinline.buildmenuitem("Menu","menu","menu",SubMenuwidth,t)
   l1menu=l1menu .. newbutton
-  t,newbutton = buildmenuitem("Exit","menu","exit",SubMenuwidth,t)
+  t,newbutton = dtgmenuinline.buildmenuitem("Exit","menu","exit",SubMenuwidth,t)
   l1menu=l1menu .. newbutton
   l1menu=l1menu .. ']'
   replymarkup = replymarkup .. l1menu .. ']'
@@ -187,7 +188,7 @@ function makereplymenu(SendTo, Level, submenu, devicename)
   return replymarkup, devicename
 end
 -- convert the provided menu options into a proper format for the replymenu
-function buildmenu(menuitems,width,prefix)
+function dtgmenuinline.buildmenu(menuitems,width,prefix)
   local replymenu=""
   local t=0
   Print_to_Log(2,"      process buildmenu:",menuitems," w:",width)
@@ -210,7 +211,7 @@ function buildmenu(menuitems,width,prefix)
   return replymenu
 end
 -- convert the provided menu options into a proper format for the replymenu
-function buildmenuitem(menuitem,prefix,Callback,width,t)
+function dtgmenuinline.buildmenuitem(menuitem,prefix,Callback,width,t)
   local replymenu=""
   Print_to_Log(2,"       process buildmenuitem:",menuitem,prefix,Callback," w:"..(width or "nil")," t:"..(t or "nil"))
   if t == width then
@@ -230,64 +231,11 @@ end
 -----------------------------------------------
 --- END Build the reply_markup functions.
 -----------------------------------------------
-
------------------------------------------------
---- START population the table which runs at each menu update -> makereplymenu
------------------------------------------------
---
--- this function will rebuild the dtgmenu_submenus table each time it is called.
--- It will first read through the static menu items defined in DTGMENU.CRG in table static_dtgmenu_submenus
--- It will then call the MakeRoomMenus() function to add the dynamic options from Domoticz Room configuration
-function PopulateMenuTab(iLevel,iSubmenu)
-  buttonnbr = 0
-  Print_to_Log(1,"####  Start populating menuarray")
-  -- reset menu table and rebuild
-  dtgmenu_submenus = {}
-
-  Print_to_Log(1,"   Submenu table including buttons defined in menu.cfg:",iLevel,iSubmenu)
-  for submenu,get in pairs(static_dtgmenu_submenus) do
-    Print_to_Log(1,"=>",submenu, get.whitelist, get.showdevstatus,get.Menuwidth)
-    if static_dtgmenu_submenus[submenu].buttons ~= nil then
-      buttons = {}
---Group change      if iLevel ~= "mainmenu" and iSubmenu == submenu then
-        for button,dev in pairs(static_dtgmenu_submenus[submenu].buttons) do
-          -- Get device/scene details
-          idx,DeviceName,DeviceType,Type,SwitchType,MaxDimLevel,status = Domo_Devinfo_From_Name(9999,button,"anything")
-          -- fill the button table records with all required fields
-          -- Remove any spaces from the device name and replace them by underscore.
-          button = string.gsub(button,"%s+", "_")
-          -- Add * infront of button name when Scene or Group
-          if DeviceType == "scenes" then
-            button = "*"..button
-          end
-          buttons[button]={}
-          buttons[button].whitelist = dev.whitelist       -- specific for the static config: Whitelist number(s) for this device, blank is ALL
-          buttons[button].actions=dev.actions             -- specific for the static config: Hardcoded Actions for the device
-          buttons[button].showactions=dev.showactions     -- specific for the static config: Show Device action menu right away when its menu is selected
-          buttons[button].Name=DeviceName
-          buttons[button].idx=idx
-          buttons[button].DeviceType=DeviceType
-          buttons[button].SwitchType=SwitchType
-          buttons[button].Type=Type
-          buttons[button].MaxDimLevel=MaxDimLevel     -- Level required to calculate the percentage for devices that do not use 100 for 100%
-          buttons[button].status=status
-          Print_to_Log(1," static ->",submenu,button,DeviceName, idx,DeviceType,Type,SwitchType,MaxDimLevel,status)
-        end
-      end
-      -- Save the subment entry with optionally all its devices/sceens
-      dtgmenu_submenus[submenu] = {whitelist=get.whitelist,showdevstatus=get.showdevstatus,Menuwidth=get.Menuwidth,buttons=buttons}
---Group change     end
-  end
-  -- Add the room/plan menu's after the statis is populated
-  MakeRoomMenus(iLevel,iSubmenu)
-  Print_to_Log(1,"####  End populating menuarray")
-  return
-end
 --
 -----------------------------------------------
 --- START the main process handler
 -----------------------------------------------
-function DTGMenu_Modules.handler(menu_cli,SendTo)
+function dtgmenuinline.handler(menu_cli,SendTo)
   -- initialise the user table in case it runs the firsttime
   -- rebuilt the total commandline after dtgmenu
   local commandline = ""  -- need to rebuild the commndline for feedng back
@@ -307,7 +255,7 @@ function DTGMenu_Modules.handler(menu_cli,SendTo)
   commandline = string.sub(commandline,1,string.len(commandline)-1)
   local lcommandline = string.lower(commandline)
   --
-  Print_to_Log(0,"==> dtgmenu.lua process:" .. commandline)
+  Print_to_Log(0,"==> dtgmenuinline Handle -->" .. commandline)
   Print_to_Log(1," => SendTo:",SendTo)
   --
   local param1 = ""
@@ -360,8 +308,10 @@ function DTGMenu_Modules.handler(menu_cli,SendTo)
   -- Build main menu and return
   if param1 == "menu" or param1 == "start" then
     response=dtgmenu_lang[menu_language].text["main"]
-    replymarkup = makereplymenu(SendTo, "mainmenu")
+    replymarkup = dtgmenuinline.makereplymenu(SendTo, "mainmenu")
     status=1
+    Persistent.iUseDTGMenu = 1
+    Persistent.iLastcommand = "menu"
     Print_to_Log(0,"==< Show main menu")
     return status, response, replymarkup, commandline
   end
@@ -374,7 +324,7 @@ function DTGMenu_Modules.handler(menu_cli,SendTo)
     response=dtgmenu_lang[menu_language].text["exit"]
     replymarkup = ""
     status=1
-    Print_to_Log(0,"==< Exit main menu")
+    Print_to_Log(0,"==< Exit main inline menu")
     return status, response, replymarkup, commandline
   end
 
@@ -439,7 +389,7 @@ function DTGMenu_Modules.handler(menu_cli,SendTo)
     or (cmdisbutton
     and ChkEmpty(dtgmenu_submenus[submenu].buttons[devicename].actions)) then
       status=0
-      replymarkup, rdevicename = makereplymenu(SendTo,"submenu",submenu)
+      replymarkup, rdevicename = dtgmenuinline.makereplymenu(SendTo,"submenu",submenu)
       Print_to_Log(0,"==<1 found regular lua command. -> hand back to dtgbot to run",commandlinex,parsed_command[2])
       return status, "", replymarkup, parsed_command
     end
@@ -452,7 +402,7 @@ function DTGMenu_Modules.handler(menu_cli,SendTo)
     Print_to_Log(1,' - Showing Submenu as no device name specified. submenu: '..submenu)
     local rdevicename
     -- when showactions is defined for a device, the devicename will be returned
-    replymarkup, rdevicename = makereplymenu(SendTo,"submenu",submenu)
+    replymarkup, rdevicename = dtgmenuinline.makereplymenu(SendTo,"submenu",submenu)
     -- not an menu command received
     if rdevicename ~= "" then
       Print_to_Log(1," -- Changed to devicelevel due to showactions defined for device "..rdevicename )
@@ -471,7 +421,7 @@ function DTGMenu_Modules.handler(menu_cli,SendTo)
   status=1
   if cmdisbutton then
     -- create reply menu and update table with device details
-    replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename)
+    replymarkup = dtgmenuinline.makereplymenu(SendTo,"devicemenu",submenu,devicename)
     local switchstatus=""
     local found=0
     if DeviceType == "scenes" then
@@ -543,7 +493,7 @@ function DTGMenu_Modules.handler(menu_cli,SendTo)
     if sfound then
       Selector_Option=(Selector_Option)*10
       Print_to_Log(2,"    -> Selector Switch level found ", Selector_Option,LevelNames,action)
-      response=sSwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level "..Selector_Option)
+      response=Domo_sSwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level "..Selector_Option)
     else
       response= "Selector Option not found:"..action
     end
@@ -551,16 +501,16 @@ function DTGMenu_Modules.handler(menu_cli,SendTo)
   -- regular On/Off/Set Level
   -------------------------------------------------
   elseif ChkInTable(string.lower(dtgmenu_lang[menu_language].switch_options["Off"]),string.lower(action)) then
-    response= sSwitchName(realdevicename,DeviceType,SwitchType,idx,'Off')
+    response= Domo_sSwitchName(realdevicename,DeviceType,SwitchType,idx,'Off')
   elseif ChkInTable(string.lower(dtgmenu_lang[menu_language].switch_options["On"]),string.lower(action)) then
-    response= sSwitchName(realdevicename,DeviceType,SwitchType,idx,'On')
+    response= Domo_sSwitchName(realdevicename,DeviceType,SwitchType,idx,'On')
   elseif string.find(action, "%d") then  -- assume a percentage is specified.
     -- calculate the proper level to set the dimmer
     action = action:gsub("%%","") -- remove % sign
     rellev = tonumber(action)*MaxDimLevel/100  -- calculate the relative level
     rellev = tonumber(string.format("%.0f", rellev)) -- remove decimals
     action = tostring(rellev)
-    response= sSwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level " .. action)
+    response= Domo_sSwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level " .. action)
   elseif action == "+" or action == "-" then
     -- calculate the proper leve lto set the dimmer
     dstatus=status2number(dstatus)
@@ -571,7 +521,7 @@ function DTGMenu_Modules.handler(menu_cli,SendTo)
     rellev = MaxDimLevel/100*tonumber(action)  -- calculate the relative level
     rellev = tonumber(string.format("%.0f", rellev)) -- remove decimals
     action = tostring(rellev)
-    response=sSwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level " .. action)
+    response=Domo_sSwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level " .. action)
   -------------------------------------------------
   -- Unknown Action
   -------------------------------------------------
@@ -580,21 +530,11 @@ function DTGMenu_Modules.handler(menu_cli,SendTo)
   end
   status=1
 
-  replymarkup = makereplymenu(SendTo,"devicemenu",submenu,devicename)
+  replymarkup = dtgmenuinline.makereplymenu(SendTo,"devicemenu",submenu,devicename)
   Print_to_Log(0,"==< "..response)
   return status, response, replymarkup, commandline;
 end
 -----------------------------------------------
 --- END the main process handler
 -----------------------------------------------
-
-dtgmenu_commands = {
-  ["menu"] = {
-    handler = DTGMenu_Modules.handler,
-    description = "Will start menu functionality."
-  },
-  ["dtgmenu"] = {
-    handler = DTGMenu_Modules.handler,
-    description = "Will start menu functionality."
-  }
-}
+return dtgmenuinline

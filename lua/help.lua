@@ -21,6 +21,7 @@ function help_module.handler(parsed_cli)
   HelpText='(all command will also work without the /)\n'
   HelpText=HelpText..'⚠️ Internal commands: ⚠️\n'
   HelpText=HelpText..'Start Menu: /menu \n'
+  HelpText=HelpText..'Keyboard toggle: /_ToggleKeyboard \n'
   HelpText=HelpText..'Reload Config: /_reloadconfig \n'
   HelpText=HelpText..'Reload modules: /_reloadmodules \n\n'
   HelpText=HelpText..'⚠️ Available Lua commands ⚠️ \n'
