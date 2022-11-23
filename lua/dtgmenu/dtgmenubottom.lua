@@ -291,7 +291,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
   end
 
   -- Build main menu and return
-  if cmdisaction == false and (lcommand == "menu" or lcommand == "showmenu" or lcommand == "start") then
+  if cmdisaction == false and (lcommand == "dtgmenu" or lcommand == "menu" or lcommand == "showmenu" or lcommand == "start") then
     Persistent.UseDTGMenu = 1
     Print_to_Log(1, Sprintf("Persistent.UseDTGMenu=%s", Persistent.UseDTGMenu))
     -- ensure the menu is always rebuild for Menu or Start

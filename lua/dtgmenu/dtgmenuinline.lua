@@ -306,7 +306,8 @@ function dtgmenuinline.handler(menu_cli,SendTo)
   -- Process "start" or "menu" commands
   -------------------------------------------------
   -- Build main menu and return
-  if param1 == "menu" or param1 == "start" then
+  if param1 == "dtgmenu" or param1 == "menu" or param1 == "start"
+  or (cmdisbutton and (param2 == "dtgmenu" or param2 == "menu")) then
     response=dtgmenu_lang[menu_language].text["main"]
     replymarkup = dtgmenuinline.makereplymenu(SendTo, "mainmenu")
     status=1

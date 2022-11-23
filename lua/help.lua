@@ -26,7 +26,7 @@ function help_module.handler(parsed_cli)
   HelpText=HelpText..'Reload modules: /_reloadmodules \n\n'
   HelpText=HelpText..'⚠️ Available Lua commands ⚠️ \n'
   for i,help in pairs(Available_Commands) do
-    Print_to_Log(1,"add Lua >",i,help.description)
+    Print_to_Log(2,"add Lua >",i,help.description)
    --Telegram_SendMessage(SendTo,help,ok_cb,false)
     HelpText = HelpText.."/"..string.gmatch(help.description, "%S+")[[1]]..', '
   end
@@ -35,7 +35,7 @@ function help_module.handler(parsed_cli)
   local Functions = io.popen("ls " .. UserScriptPath)
   HelpText = HelpText..'⚠️ Available Shell commands ⚠️ \n'
   for line in Functions:lines() do
-    Print_to_Log(1,"add Bash >",line)
+    Print_to_Log(2,"add Bash >",line)
     DotPos=string.find(line, "%.") or 0
     HelpText = HelpText .. "-" .. "/"..string.sub(line,0,DotPos-1).."\n"
   end
