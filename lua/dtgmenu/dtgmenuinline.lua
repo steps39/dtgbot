@@ -120,12 +120,14 @@ function dtgmenuinline.makereplymenu(SendTo, Level, submenu, devicename)
   ------------------------------
   if l3menu ~= "" then
     replymarkup = replymarkup .. dtgmenuinline.buildmenu(l3menu,ActMenuwidth,"menu " .. submenu .. " ".. devicename) .. ","
+    Print_to_Log(3, ">> inline L3:", l3menu, "replymarkup:", replymarkup)
   end
   ------------------------------
   -- Add level 2 next if needed
   ------------------------------
   if l2menu ~= "" then
     replymarkup = replymarkup .. l2menu .. ","
+    Print_to_Log(3, ">> inline L2:", l2menu, "replymarkup:", replymarkup)
   end
   -------------------------------
   -- Add level 1 -- the main menu
@@ -143,28 +145,31 @@ function dtgmenuinline.makereplymenu(SendTo, Level, submenu, devicename)
           -- test if anything is specifically defined for this user in Telegram-RoomsShowninMenu`
           Print_to_Log(3, ">> inline MenuWhiteList check ", MenuWhiteList[SendTo] or " SendTo not defined", MenuWhiteList[0] or " Default not defined")
           --
-          t,newbutton = dtgmenuinline.buildmenuitem(i,"menu",i, SubMenuwidth,t)
-
-          if newbutton then
-            if get.RoomNumber then
-              -- Check Whitelist for the Sender's id
-              if MenuWhiteList[SendTo] then
-                Print_to_Log(1, SendTo.." in MenuWhiteList Check room:"..(get.RoomNumber).."|", MenuWhiteList[SendTo][get.RoomNumber] or " -> not there" )
-                if MenuWhiteList[SendTo][get.RoomNumber] then
-                  l1menu=l1menu .. newbutton
-                end
-                -- esle check for the standard/default menus to be shown
-              elseif MenuWhiteList['0'] then
-                Print_to_Log(1, "0 in MenuWhiteList Check room:"..(get.RoomNumber).."|", MenuWhiteList['0'][get.RoomNumber] or " -> not there" )
-                if MenuWhiteList['0'] and MenuWhiteList['0'][get.RoomNumber] then
-                  l1menu=l1menu .. newbutton
-                end
+          AllowButton=true
+          if get.RoomNumber then
+            if MenuWhiteList[SendTo] then
+              if MenuWhiteList[SendTo][get.RoomNumber] then
+                Print_to_Log(1, SendTo.." in MenuWhiteList Check room:"..(get.RoomNumber).." is Whitelisted -> add room button" )
               else
-                Print_to_Log(1, SendTo.." No 0/SendTo in list -> add to menu: ")
-                l1menu=l1menu .. newbutton
+                Print_to_Log(1, SendTo.." in MenuWhiteList Check room:"..(get.RoomNumber).." not Whitelisted!!.. Skip room button" )
+                AllowButton=false
               end
+            end
+          elseif MenuWhiteList['0'] then
+            if MenuWhiteList['0'] and MenuWhiteList['0'][get.RoomNumber] then
+              Print_to_Log(1, "0 in MenuWhiteList Check room:"..(get.RoomNumber).." is Whitelisted -> add room button" )
             else
-              Print_to_Log(1, SendTo.." No Roomnumber -> add to menu: ")
+              Print_to_Log(1, "0 in MenuWhiteList Check room:"..(get.RoomNumber).." not Whitelisted!!.. Skip room button" )
+              AllowButton=false
+            end
+          else
+            Print_to_Log(1, SendTo.." No 0/SendTo in list -> add to menu: ")
+          end
+          -- only add button when needed/allowed
+          if AllowButton then
+            t,newbutton = dtgmenuinline.buildmenuitem(i,"menu",i, SubMenuwidth,t)
+		        Print_to_Log(3, " -> t:", t, "newbutton:", newbutton)
+            if newbutton then
               l1menu=l1menu .. newbutton
             end
           end
@@ -183,6 +188,7 @@ function dtgmenuinline.makereplymenu(SendTo, Level, submenu, devicename)
 --~   replymarkup = replymarkup..',"resize_keyboard":true'
 --~   replymarkup = replymarkup..',"hide_keyboard":true,"selective":false'
   replymarkup = replymarkup .. '}'
+  Print_to_Log(3, ">> inline L1:", l1menu, "replymarkup:", replymarkup)
   Print_to_Log(0,"  -< replymarkup:"..replymarkup)
 -- save menus
   return replymarkup, devicename
@@ -238,14 +244,20 @@ end
 function dtgmenuinline.handler(menu_cli,SendTo)
   -- initialise the user table in case it runs the firsttime
   -- rebuilt the total commandline after dtgmenu
-  local commandline = ""  -- need to rebuild the commndline for feedng back
-  local commandlinex = ""  -- need to rebuild the commndline for feedng back
+  local commandline = ""  -- need to rebuild the commndline for feeding back
+  local commandlinex = ""  -- need to rebuild the commndline for feeding back
   local parsed_command = {} -- rebuild table without the dtgmenu command in case we need to hand it back as other command
+  local menucmd = false
   for nbr,param in pairs(menu_cli) do
-    Print_to_Log(2,"  param:",param)
+    Print_to_Log(2,"nbr:",nbr," param:",param)
+	-- check if
+	if nbr==2 and param=="menu" then
+	  menucmd=true
+	end
     if nbr > 2 then
       commandline = commandline .. param .. " "
     end
+	-- build commandline without menu to feedback when it is an LUA/BASH command defined in the Menu
     if nbr < 2 or nbr > 3 then
       table.insert(parsed_command, param)
       commandlinex = commandlinex .. param .. " "
@@ -257,6 +269,14 @@ function dtgmenuinline.handler(menu_cli,SendTo)
   --
   Print_to_Log(0,"==> dtgmenuinline Handle -->" .. commandline)
   Print_to_Log(1," => SendTo:",SendTo)
+
+  -- return when not a menu item and hand it back to be processed as regular command
+  if not menucmd then
+    status=0
+	Print_to_Log(0,"==<1 found regular lua command. -> hand back to dtgbot to run",commandlinex,parsed_command[2])
+	return false, "", ""
+  end
+
   --
   local param1 = ""
   local param2 = ""
@@ -265,6 +285,7 @@ function dtgmenuinline.handler(menu_cli,SendTo)
   local cmdisaction  = false
   local cmdisbutton  = false
   local cmdissubmenu = false
+
   -- get all parameters
   if menu_cli[3] ~= nil then
     param1  = tostring(menu_cli[3])

@@ -229,7 +229,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     if found then
       handled_by = "menu"
     elseif UseInlineMenu and parsed_command[2] == "menu" then
-      -- remove the 2 layer inline menu commands 
+      -- remove the 2 layer inline menu commands
       for i = 2, #parsed_command-2, 1 do
         Print_to_Log(1,parsed_command[i] or "nil",parsed_command[i+2] or "nil" )
         if not parsed_command[i+2] or parsed_command[i+2] == "" then
@@ -261,24 +261,28 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
 
   elseif string.lower(parsed_command[2]) == "_reloadconfig" then
     Print_to_Log("-> Start _reloadconfig process.")
-    if (FileExists(ScriptDirectory .. "dtgbot-user.cfg")) then
-      assert(loadfile(ScriptDirectory .. "dtgbot-user.cfg"))()
-      Print_to_Log(0, "Using DTGBOT config file:" .. ScriptDirectory .. "dtgbot-user.cfg")
-    else
-      assert(loadfile(ScriptDirectory .. "dtgbot.cfg"))()
-      Print_to_Log(0, "Using DTGBOT config file:" .. ScriptDirectory .. "dtgbot.cfg")
-    end
-    DtgBot_Initialise()
+--~ =========================================================
+--~ commented as this is handled by the reload of the modules
+--~ =========================================================
+--~ 	-- save current menu type
+--~ 	saveUseInlineMenu = UseInlineMenu
+--~     if (FileExists(ScriptDirectory .. "dtgbot-user.cfg")) then
+--~       assert(loadfile(ScriptDirectory .. "dtgbot-user.cfg"))()
+--~       Print_to_Log(0, "Using DTGBOT config file:" .. ScriptDirectory .. "dtgbot-user.cfg")
+--~     else
+--~       assert(loadfile(ScriptDirectory .. "dtgbot.cfg"))()
+--~       Print_to_Log(0, "Using DTGBOT config file:" .. ScriptDirectory .. "dtgbot.cfg")
+--~     end
+--~ 	-- override config with the last used menu type
+--~ 	UseInlineMenu=saveUseInlineMenu
     -- reset these tables to start with a clean slate
     LastCommand = {}
     Available_Commands = {}
     -- ensure the require packages for dtgmenu are removed
     package.loaded["dtgmenubottom"] = nil
     package.loaded["dtgmenuinline"] = nil
-   -- Now reload the modules
-    Load_LUA_Modules()
-    -- command_dispatch = Available_Commands["dtgmenu"] or {handler = {}}
-    -- return message
+	-- reinit dtgbot
+    DtgBot_Initialise()
     found = true
     text = "Config and Modules reloaded"
 
