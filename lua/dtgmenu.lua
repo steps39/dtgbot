@@ -30,12 +30,19 @@
 -- Include config
 --------------------------------------
 local config = ""
+-- save current menu type
+saveUseInlineMenu = UseInlineMenu
+
 if (FileExists(BotHomePath .. "dtgbot-user.cfg")) then
   config = assert(loadfile(BotHomePath .. "lua/dtgmenu-user.cfg"))()
   Print_to_Log("Using DTGMENU config file:" .. BotHomePath .. "lua/dtgmenu-user.cfg")
 else
   config = assert(loadfile(BotHomePath .. "lua/dtgmenu.cfg"))()
   Print_to_Log("Using DTGMENU config file:" .. BotHomePath .. "lua/dtgmenu.cfg")
+end
+-- override config with the last used menu type when set. This happens with reloadconfig or modules
+if saveUseInlineMenu then
+	UseInlineMenu=saveUseInlineMenu
 end
 
 local http = require "socket.http"

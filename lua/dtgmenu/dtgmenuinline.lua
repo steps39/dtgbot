@@ -149,26 +149,28 @@ function dtgmenuinline.makereplymenu(SendTo, Level, submenu, devicename)
           if get.RoomNumber then
             if MenuWhiteList[SendTo] then
               if MenuWhiteList[SendTo][get.RoomNumber] then
-                Print_to_Log(1, SendTo.." in MenuWhiteList Check room:"..(get.RoomNumber).." is Whitelisted -> add room button" )
+                Print_to_Log(1, SendTo.." in MenuWhiteList Check room:"..(get.RoomNumber).." is Whitelisted. -> add room button" )
               else
-                Print_to_Log(1, SendTo.." in MenuWhiteList Check room:"..(get.RoomNumber).." not Whitelisted!!.. Skip room button" )
+                Print_to_Log(1, SendTo.." in MenuWhiteList Check room:"..(get.RoomNumber).." not Whitelisted! -> skip room button" )
                 AllowButton=false
               end
-            end
-          elseif MenuWhiteList['0'] then
-            if MenuWhiteList['0'] and MenuWhiteList['0'][get.RoomNumber] then
-              Print_to_Log(1, "0 in MenuWhiteList Check room:"..(get.RoomNumber).." is Whitelisted -> add room button" )
+            elseif MenuWhiteList['0'] then
+              if MenuWhiteList['0'] and MenuWhiteList['0'][get.RoomNumber] then
+                Print_to_Log(1, "0 in MenuWhiteList Check room:"..(get.RoomNumber).." is Whitelisted. -> add room button" )
+              else
+                Print_to_Log(1, "0 in MenuWhiteList Check room:"..(get.RoomNumber).." not Whitelisted! -> skip room button" )
+                AllowButton=false
+              end
             else
-              Print_to_Log(1, "0 in MenuWhiteList Check room:"..(get.RoomNumber).." not Whitelisted!!.. Skip room button" )
-              AllowButton=false
+              Print_to_Log(1, SendTo.." No 0/SendTo in list -> add to menu: ")
             end
           else
-            Print_to_Log(1, SendTo.." No 0/SendTo in list -> add to menu: ")
+            Print_to_Log(1, " No Roomnumber -> add to menu: ")
           end
           -- only add button when needed/allowed
           if AllowButton then
             t,newbutton = dtgmenuinline.buildmenuitem(i,"menu",i, SubMenuwidth,t)
-		        Print_to_Log(3, " -> t:", t, "newbutton:", newbutton)
+            Print_to_Log(3, " -> t:", t, "newbutton:", newbutton)
             if newbutton then
               l1menu=l1menu .. newbutton
             end
@@ -250,14 +252,14 @@ function dtgmenuinline.handler(menu_cli,SendTo)
   local menucmd = false
   for nbr,param in pairs(menu_cli) do
     Print_to_Log(2,"nbr:",nbr," param:",param)
-	-- check if
-	if nbr==2 and param=="menu" then
-	  menucmd=true
-	end
+    -- check if
+    if nbr==2 and param=="menu" then
+      menucmd=true
+    end
     if nbr > 2 then
       commandline = commandline .. param .. " "
     end
-	-- build commandline without menu to feedback when it is an LUA/BASH command defined in the Menu
+    -- build commandline without menu to feedback when it is an LUA/BASH command defined in the Menu
     if nbr < 2 or nbr > 3 then
       table.insert(parsed_command, param)
       commandlinex = commandlinex .. param .. " "
@@ -273,8 +275,8 @@ function dtgmenuinline.handler(menu_cli,SendTo)
   -- return when not a menu item and hand it back to be processed as regular command
   if not menucmd then
     status=0
-	Print_to_Log(0,"==<1 found regular lua command. -> hand back to dtgbot to run",commandlinex,parsed_command[2])
-	return false, "", ""
+    Print_to_Log(0,"==<1 found regular lua command. -> hand back to dtgbot to run",commandlinex,parsed_command[2])
+    return false, "", ""
   end
 
   --
