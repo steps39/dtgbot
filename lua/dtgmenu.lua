@@ -1,6 +1,6 @@
 -- =====================================================================================================================
 -- =====================================================================================================================
--- Menu script which enables the option in TG BOT to use a reply keyboard to perform actions on:
+-- Menu script which enables the option in DTGBOT to use a reply keyboard to perform actions on:
 --  - all defined devices per defined ROOM in Domotics.
 --  - all static actions defined in DTGMENU.CFG. Open the file for descript of the details.
 --
@@ -41,6 +41,7 @@ else
   Print_to_Log("Using DTGMENU config file:" .. BotHomePath .. "lua/dtgmenu.cfg")
 end
 -- override config with the last used menu type when set. This happens with reloadconfig or modules
+
 if saveUseInlineMenu then
 	UseInlineMenu=saveUseInlineMenu
 end
@@ -59,10 +60,7 @@ if dtgmenu_lang[menu_language] == nil then
   menu_language = "en"
 end
 
--- table to save the last commands done via dtgmenu. this is saved and loaded from a file
-LastCommand = Persistent.LastCommand or {}
-
--------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 -- Start Functions to SORT the TABLE
 -- Copied from internet location: -- http://lua-users.org/wiki/SortedIteration
 -- These are used to sort the items on the menu alphabetically

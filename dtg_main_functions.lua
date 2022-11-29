@@ -187,6 +187,31 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
   local parsed_command = {}
   local text, command_dispatch, status, replymarkup
   local handled_by = "other"
+  -- set to last used Keyboard menu type
+  Persistent[SendTo] = Persistent[SendTo] or {}
+  if Persistent[SendTo].UseInlineMenu then
+    UseInlineMenu=Persistent[SendTo].UseInlineMenu=="true"
+  else
+    Persistent[SendTo].UseInlineMenu=tostring(UseInlineMenu)
+  end
+
+  if UseInlineMenu then
+    Print_to_Log(1, "Set Handler to DTGil.handler")
+    Available_Commands["menu"] = {handler = DTGil.handler, description = "Will start menu functionality."}
+    Available_Commands["dtgmenu"] = {handler = DTGil.handler, description = "Will start menu functionality."}
+    --dtgmenu_commands = {["menu"] = {handler = DTGil.handler, description = "Will start menu functionality."},
+    --                 ["dtgmenu"] = {handler = DTGil.handler, description = "Will start menu functionality."}
+    --}
+    replymarkup = '{"remove_keyboard":true}'
+  else
+    Print_to_Log(1, "Set Handler to DTGbo.handler")
+    Available_Commands["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
+    Available_Commands["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
+    --dtgmenu_commands = {["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."},
+    --                 ["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
+    --}
+  end
+
 
   Print_to_Log(0, Sprintf("dtgbot: HandleCommand=> cmd:%s  SendTo:%s  Group:%s  chat_type:%s ", cmd, SendTo, Group, chat_type))
   --- parse the command
@@ -276,12 +301,11 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
 --~ 	-- override config with the last used menu type
 --~ 	UseInlineMenu=saveUseInlineMenu
     -- reset these tables to start with a clean slate
-    LastCommand = {}
     Available_Commands = {}
     -- ensure the require packages for dtgmenu are removed
     package.loaded["dtgmenubottom"] = nil
     package.loaded["dtgmenuinline"] = nil
-	-- reinit dtgbot
+  -- reinit dtgbot
     DtgBot_Initialise()
     found = true
     text = "Config and Modules reloaded"
@@ -309,7 +333,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     status, text, replymarkup = command_dispatch.handler(tcommand, SendTo, icmdline)
     -- reset vars
     Persistent.UseDTGMenu=0
-    Persistent.iLastcommand=""
+    Persistent[SendTo].iLastcommand=""
     chat_type=""
 
     -- send telegram msg
@@ -321,6 +345,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
   ----------------------------------
     -- toggle setting
     UseInlineMenu = not UseInlineMenu
+    Persistent[SendTo].UseInlineMenu=tostring(UseInlineMenu)
     ----------------------------------
     -- Reset handler
     --Available_Commands["menu"] = nil
@@ -800,7 +825,7 @@ end
 -- allow for variables to be saved/restored
 function Save_Persistent_Vars()
   -- save all persistent variables to file
-  Print_to_Log(1, Sprintf("Persistent.UseDTGMenu=%s", Persistent.UseDTGMenu))
+  Print_to_Log(1, Sprintf("Save Persistent table %s", Persistent.UseDTGMenu))
   TableSaveToFile(Persistent or {}, "dtgbot_persistent")
 end
 
@@ -910,11 +935,11 @@ function Telegram_SendMessage(SendTo, Message, MessageId, replymarkup, chat_type
       if decoded_response.result ~= nil and decoded_response.result.message_id ~= nil then
         Telegram_CleanMessages(SendTo, decoded_response.result.message_id, MessageId, handled_by, false)
         Print_to_Log(1, Sprintf("Persistent.UseDTGMenu=%s", Persistent.UseDTGMenu))
-        Print_to_Log(1, Sprintf("Persistent.Lastcommand=%s", Persistent.Lastcommand))
-        if Persistent.UseDTGMenu == 1 and Persistent.iLastcommand == "menu" then
+        Print_to_Log(1, Sprintf("Persistent[SendTo].iLastcommand=%s", Persistent[SendTo].iLastcommand))
+        if Persistent.UseDTGMenu == 1 and Persistent[SendTo].iLastcommand == "menu" then
           Persistent.LastInlinemessage_id = decoded_response.result.message_id
           Print_to_Log(1, Sprintf("save Persistent.LastInlinemessage_id=%s", Persistent.LastInlinemessage_id))
-          Persistent.iLastcommand = ""
+          Persistent[SendTo].iLastcommand = ""
         end
       end
     end
