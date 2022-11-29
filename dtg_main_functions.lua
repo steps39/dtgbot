@@ -910,7 +910,7 @@ function Telegram_SendMessage(SendTo, Message, MessageId, replymarkup, chat_type
       if decoded_response.result ~= nil and decoded_response.result.message_id ~= nil then
         Telegram_CleanMessages(SendTo, decoded_response.result.message_id, MessageId, handled_by, false)
         Print_to_Log(1, Sprintf("Persistent.UseDTGMenu=%s", Persistent.UseDTGMenu))
-        Print_to_Log(1, Sprintf("Persistent.Lastcommand=%s", Persistent.Lastcommand))
+        Print_to_Log(1, Sprintf("Persistent.iLastcommand=%s", Persistent.iLastcommand))
         if Persistent.UseDTGMenu == 1 and Persistent.iLastcommand == "menu" then
           Persistent.LastInlinemessage_id = decoded_response.result.message_id
           Print_to_Log(1, Sprintf("save Persistent.LastInlinemessage_id=%s", Persistent.LastInlinemessage_id))

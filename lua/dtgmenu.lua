@@ -41,6 +41,7 @@ else
   Print_to_Log("Using DTGMENU config file:" .. BotHomePath .. "lua/dtgmenu.cfg")
 end
 -- override config with the last used menu type when set. This happens with reloadconfig or modules
+
 if saveUseInlineMenu then
 	UseInlineMenu=saveUseInlineMenu
 end

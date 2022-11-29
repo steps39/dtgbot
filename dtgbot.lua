@@ -44,6 +44,7 @@ local return_status, result =
     HTTPS = require "ssl.https" --lua-sockets
     JSON = require "json" -- lua-json
     MIME = require("mime") -- ???
+
     --------------------------------------------------------------------------------
     -- dtgbot Lua libraries
     --------------------------------------------------------------------------------
@@ -63,6 +64,7 @@ local return_status, result =
 
     -- get any persistent variable values
     Persistent = TableLoadFromFile("dtgbot_persistent") or {}
+	  Print_to_Log(0, "Persistent loaded")
     --------------------------------------------------------------------------------
     -- Load the configuration file this file contains the list of commands
     -- used to define the external files with the command function to load.

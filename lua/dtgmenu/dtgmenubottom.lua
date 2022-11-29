@@ -304,7 +304,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
     LastCommand[SendTo]["l3menu"] = ""
     Print_to_Log(1, "-< Show main menu")
     Persistent.Lastcommand = LastCommand
-    Save_Persistent_Vars()
+    -- already done in dtgbot??? Save_Persistent_Vars()
     return true, response, replymarkup
   end
   -- Hide main menu and return
