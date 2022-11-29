@@ -60,10 +60,7 @@ if dtgmenu_lang[menu_language] == nil then
   menu_language = "en"
 end
 
--- table to save the last commands done via dtgmenu. this is saved and loaded from a file
--- moved LastCommand = Persistent.LastCommand or {}
-
--------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 -- Start Functions to SORT the TABLE
 -- Copied from internet location: -- http://lua-users.org/wiki/SortedIteration
 -- These are used to sort the items on the menu alphabetically
