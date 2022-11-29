@@ -309,7 +309,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     status, text, replymarkup = command_dispatch.handler(tcommand, SendTo, icmdline)
     -- reset vars
     Persistent.UseDTGMenu=0
-    Persistent.iLastcommand=""
+    Persistent[SendTo].iLastcommand=""
     chat_type=""
 
     -- send telegram msg
@@ -800,7 +800,7 @@ end
 -- allow for variables to be saved/restored
 function Save_Persistent_Vars()
   -- save all persistent variables to file
-  Print_to_Log(1, Sprintf("Persistent.UseDTGMenu=%s", Persistent.UseDTGMenu))
+  Print_to_Log(1, Sprintf("Save Persistent table %s", Persistent.UseDTGMenu))
   TableSaveToFile(Persistent or {}, "dtgbot_persistent")
 end
 
@@ -910,11 +910,11 @@ function Telegram_SendMessage(SendTo, Message, MessageId, replymarkup, chat_type
       if decoded_response.result ~= nil and decoded_response.result.message_id ~= nil then
         Telegram_CleanMessages(SendTo, decoded_response.result.message_id, MessageId, handled_by, false)
         Print_to_Log(1, Sprintf("Persistent.UseDTGMenu=%s", Persistent.UseDTGMenu))
-        Print_to_Log(1, Sprintf("Persistent.iLastcommand=%s", Persistent.iLastcommand))
-        if Persistent.UseDTGMenu == 1 and Persistent.iLastcommand == "menu" then
+        Print_to_Log(1, Sprintf("Persistent[SendTo].iLastcommand=%s", Persistent[SendTo].iLastcommand))
+        if Persistent.UseDTGMenu == 1 and Persistent[SendTo].iLastcommand == "menu" then
           Persistent.LastInlinemessage_id = decoded_response.result.message_id
           Print_to_Log(1, Sprintf("save Persistent.LastInlinemessage_id=%s", Persistent.LastInlinemessage_id))
-          Persistent.iLastcommand = ""
+          Persistent[SendTo].iLastcommand = ""
         end
       end
     end

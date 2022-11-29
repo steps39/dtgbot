@@ -244,7 +244,15 @@ end
 --- START the main process handler
 -----------------------------------------------
 function dtgmenuinline.handler(menu_cli,SendTo)
+
   -- initialise the user table in case it runs the firsttime
+  if Persistent[SendTo] then
+    LastCommand = Persistent[SendTo]["LastCommand"] or {}
+  else
+    LastCommand = {}
+	Persistent[SendTo] = {}
+  end
+
   -- rebuilt the total commandline after dtgmenu
   local commandline = ""  -- need to rebuild the commndline for feeding back
   local commandlinex = ""  -- need to rebuild the commndline for feeding back
@@ -335,7 +343,7 @@ function dtgmenuinline.handler(menu_cli,SendTo)
     replymarkup = dtgmenuinline.makereplymenu(SendTo, "mainmenu")
     status=1
     Persistent.UseDTGMenu = 1
-    Persistent.iLastcommand = "menu"
+    Persistent[SendTo].iLastcommand = "menu"
     Print_to_Log(0,"==< Show main menu")
     return status, response, replymarkup, commandline
   end
@@ -413,7 +421,7 @@ function dtgmenuinline.handler(menu_cli,SendTo)
       status=0
       replymarkup, rdevicename = dtgmenuinline.makereplymenu(SendTo,"submenu",submenu)
       Print_to_Log(0,"==<1 found regular lua command. -> hand back to dtgbot to run",commandlinex,parsed_command[2])
-      Persistent.Lastcommand = parsed_command[2]
+      Persistent[SendTo]["Lastcommand"] = parsed_command[2]
       return false, "", replymarkup
     end
   end

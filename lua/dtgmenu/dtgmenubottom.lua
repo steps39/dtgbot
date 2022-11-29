@@ -4,7 +4,20 @@ local dtgmenubottom =  {}
 -- DTGBOTMENU functions for Keyboard at the bottom style
 -- programmer: Jos van der Zande
 -- =====================================================================================================================
-
+function dumpTable(table, depth)
+  if (depth > 200) then
+    print("Error: Depth > 200 in dumpTable()")
+    return
+  end
+  for k,v in pairs(table) do
+    if (type(v) == "table") then
+      print(string.rep("  ", depth)..k..":")
+      dumpTable(v, depth+1)
+    else
+      print(string.rep("  ", depth)..k..": ",v)
+    end
+  end
+end
 ------------------------------------------------------------------------------
 --- START Build the reply_markup functions.
 --  this function will build the requested menu layout and calls the function to retrieve the devices/scenes  details.
@@ -183,18 +196,18 @@ function dtgmenubottom.makereplymenu(SendTo, Level, submenu, devicename)
 
   -- save the full replymarkup and only send it again when it changed to minimize traffic to the TG client
   if not LastCommand[SendTo] then LastCommand[SendTo] = {} end
-  if LastCommand[SendTo]["replymarkup"] == replymarkup then
+  if LastCommand["replymarkup"] == replymarkup then
     Print_to_Log(1, "  -< replymarkup: No update needed")
     replymarkup = ""
   else
     Print_to_Log(1, "  -< replymarkup:" .. replymarkup)
-    LastCommand[SendTo]["replymarkup"] = replymarkup
+    LastCommand["replymarkup"] = replymarkup
   end
   -- save menus
-  LastCommand[SendTo]["l1menu"] = l1menu -- rooms or submenu items
-  LastCommand[SendTo]["l2menu"] = l2menu -- Devices scenes or commands
-  LastCommand[SendTo]["l3menu"] = l3menu -- actions
-  Persistent.LastCommand = Lastcommand
+  LastCommand["l1menu"] = l1menu -- rooms or submenu items
+  LastCommand["l2menu"] = l2menu -- Devices scenes or commands
+  LastCommand["l3menu"] = l3menu -- actions
+  Persistent[SendTo]["LastCommand"] = LastCommand
   return replymarkup, devicename
 end
 -- convert the provided menu options into a proper format for the replymenu
@@ -229,16 +242,23 @@ end
 function dtgmenubottom.handler(menu_cli, SendTo, commandline)
   -- handle incomming Telegram messages for DTGMENU Bottom
 
+  if Persistent[SendTo] then
+    LastCommand = Persistent[SendTo]["LastCommand"] or {}
+  else
+    LastCommand = {}
+	Persistent[SendTo] = {}
+  end
+
   -- initialise the user table in case it runs the firsttime
   if LastCommand[SendTo] == nil then
     LastCommand[SendTo] = {}
-    LastCommand[SendTo]["submenu"] = ""
-    LastCommand[SendTo]["device"] = ""
-    LastCommand[SendTo]["l1menu"] = ""
-    LastCommand[SendTo]["l2menu"] = ""
-    LastCommand[SendTo]["l3menu"] = ""
-    LastCommand[SendTo]["replymarkup"] = ""
-    LastCommand[SendTo]["prompt"] = 0
+    LastCommand["submenu"] = ""
+    LastCommand["device"] = ""
+    LastCommand["l1menu"] = ""
+    LastCommand["l2menu"] = ""
+    LastCommand["l3menu"] = ""
+    LastCommand["replymarkup"] = ""
+    LastCommand["prompt"] = 0
   end
   --
   Print_to_Log(-11, "==> dtgmenubottom Handle ->" .. menu_cli[2])
@@ -257,22 +277,22 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
   Print_to_Log(1, " => commandline  :", commandline)
   Print_to_Log(1, " => command      :", command)
   Print_to_Log(1, " => param1       :", param1)
-  Print_to_Log(1, " => Lastmenu submenu  :", LastCommand[SendTo]["l1menu"])
-  Print_to_Log(1, " => Lastmenu devs/cmds:", LastCommand[SendTo]["l2menu"])
-  Print_to_Log(1, " => Lastmenu actions  :", LastCommand[SendTo]["l3menu"])
-  Print_to_Log(1, " => Lastcmd prompt :", LastCommand[SendTo]["prompt"])
-  Print_to_Log(1, " => Lastcmd submenu:", LastCommand[SendTo]["submenu"])
-  Print_to_Log(1, " => Lastcmd device :", LastCommand[SendTo]["device"])
+  Print_to_Log(1, " => Lastmenu submenu  :", LastCommand["l1menu"])
+  Print_to_Log(1, " => Lastmenu devs/cmds:", LastCommand["l2menu"])
+  Print_to_Log(1, " => Lastmenu actions  :", LastCommand["l3menu"])
+  Print_to_Log(1, " => Lastcmd prompt :", LastCommand["prompt"])
+  Print_to_Log(1, " => Lastcmd submenu:", LastCommand["submenu"])
+  Print_to_Log(1, " => Lastcmd device :", LastCommand["device"])
 
   -------------------------------------------------
   -- set local variables
   -------------------------------------------------
   local lparam1 = string.lower(param1)
-  local cmdisaction = ChkInTable(LastCommand[SendTo]["l3menu"], commandline)
-  local cmdisbutton = ChkInTable(LastCommand[SendTo]["l2menu"], commandline)
-  local cmdissubmenu = ChkInTable(LastCommand[SendTo]["l1menu"], commandline)
+  local cmdisaction = ChkInTable(LastCommand["l3menu"], commandline)
+  local cmdisbutton = ChkInTable(LastCommand["l2menu"], commandline)
+  local cmdissubmenu = ChkInTable(LastCommand["l1menu"], commandline)
   -- When the command is not a button or submenu and the last Action options contained a "?" and the current command is numeric we assume this is a manual set percentage
-  if not (cmdisaction or cmdisbutton or cmdisbutton) and ChkInTable(LastCommand[SendTo]["l3menu"], "?") and string.find(command, "%d") then
+  if not (cmdisaction or cmdisbutton or cmdisbutton) and ChkInTable(LastCommand["l3menu"], "?") and string.find(command, "%d") then
     cmdisaction = true
   end
   Print_to_Log(1, " =>      cmdisaction :", tostring(cmdisaction))
@@ -286,6 +306,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
     response=dtgmenu_lang[menu_language].text["exit"]
     replymarkup = ""
     status=1
+    Persistent[SendTo]["LastCommand"] = nil
     Print_to_Log(0,"==< Exit main inline menu")
     return status, response, replymarkup, commandline
   end
@@ -295,30 +316,29 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
     Persistent.UseDTGMenu = 1
     Print_to_Log(1, Sprintf("Persistent.UseDTGMenu=%s", Persistent.UseDTGMenu))
     -- ensure the menu is always rebuild for Menu or Start
-    LastCommand[SendTo]["replymarkup"] = ""
+    LastCommand["replymarkup"] = ""
     local response = DTGMenu_translate_desc("main", menu_language, "Select the submenu.")
     replymarkup = dtgmenubottom.makereplymenu(SendTo, "mainmenu")
-    LastCommand[SendTo]["submenu"] = ""
-    LastCommand[SendTo]["device"] = ""
-    LastCommand[SendTo]["l2menu"] = ""
-    LastCommand[SendTo]["l3menu"] = ""
+    LastCommand["submenu"] = ""
+    LastCommand["device"] = ""
+    LastCommand["l2menu"] = ""
+    LastCommand["l3menu"] = ""
     Print_to_Log(1, "-< Show main menu")
-    Persistent.Lastcommand = LastCommand
-    -- already done in dtgbot??? Save_Persistent_Vars()
+    Persistent[SendTo]["LastCommand"] = LastCommand
     return true, response, replymarkup
   end
   -- Hide main menu and return
   if cmdisaction == false and (lcommand == "exit_menu") then
     -- ensure the menu is always rebuild for Menu or Start
     local response = DTGMenu_translate_desc("main", menu_language, "type /menu to show it again.")
-    LastCommand[SendTo]["replymarkup"] = ""
+    LastCommand["replymarkup"] = ""
     replymarkup = '{"remove_keyboard":true}'
-    LastCommand[SendTo]["submenu"] = ""
-    LastCommand[SendTo]["device"] = ""
-    LastCommand[SendTo]["l2menu"] = ""
-    LastCommand[SendTo]["l3menu"] = ""
+    LastCommand["submenu"] = ""
+    LastCommand["device"] = ""
+    LastCommand["l2menu"] = ""
+    LastCommand["l3menu"] = ""
     Print_to_Log(0, "-< hide main menu")
-    Persistent.LastCommand = Lastcommand
+    Persistent[SendTo]["LastCommand"] = LastCommand
     Persistent.UseDTGMenu = 0
     Print_to_Log(1, Sprintf("Persistent.iUseDTGMenu=%s", Persistent.UseDTGMenu))
     -- clean all messages but last when option MenuMessagesCleanOnExit is set true
@@ -332,20 +352,20 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
   -- process prompt input for "command" Type
   -------------------------------------------------
   -- When returning from a "prompt"action" then hand back to DTGBOT with previous command + param and reset keyboard to just MENU
-  if LastCommand[SendTo]["prompt"] == 1 then
+  if LastCommand["prompt"] == 1 then
     -- make small keyboard
     replymarkup = '{"keyboard":[["showmenu"]],"resize_keyboard":true}'
     response = ""
     -- add previous command to the current command
-    commandline = LastCommand[SendTo]["device"] .. " " .. commandline
-    LastCommand[SendTo]["submenu"] = ""
-    LastCommand[SendTo]["device"] = ""
-    LastCommand[SendTo]["l1menu"] = ""
-    LastCommand[SendTo]["l2menu"] = ""
-    LastCommand[SendTo]["l3menu"] = ""
-    LastCommand[SendTo]["prompt"] = 0
+    commandline = LastCommand["device"] .. " " .. commandline
+    LastCommand["submenu"] = ""
+    LastCommand["device"] = ""
+    LastCommand["l1menu"] = ""
+    LastCommand["l2menu"] = ""
+    LastCommand["l3menu"] = ""
+    LastCommand["prompt"] = 0
     Print_to_Log(11, "-< prompt and found regular lua command and param was given. -> hand back to dtgbot to run", menu_cli[2])
-    Persistent.Lastcommand = LastCommand
+    Persistent[SendTo]["LastCommand"] = LastCommand
     return true, response, replymarkup
   end
 
@@ -357,15 +377,15 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
     -- make small keyboard
     replymarkup = '{"keyboard":[["showmenu"]],"resize_keyboard":true}'
     response = ""
-    --    commandline = LastCommand[SendTo]["device"] .. " " .. commandline
-    LastCommand[SendTo]["submenu"] = ""
-    LastCommand[SendTo]["device"] = ""
-    LastCommand[SendTo]["l1menu"] = ""
-    LastCommand[SendTo]["l2menu"] = ""
-    LastCommand[SendTo]["l3menu"] = ""
-    LastCommand[SendTo]["prompt"] = 0
+    --    commandline = LastCommand["device"] .. " " .. commandline
+    LastCommand["submenu"] = ""
+    LastCommand["device"] = ""
+    LastCommand["l1menu"] = ""
+    LastCommand["l2menu"] = ""
+    LastCommand["l3menu"] = ""
+    LastCommand["prompt"] = 0
     Print_to_Log(-11, "-< Unknown as menu option so hand back to dtgbot to handle")
-    Persistent.Lastcommand = LastCommand
+    Persistent[SendTo]["LastCommand"] = LastCommand
     return false, response, replymarkup
   end
 
@@ -391,7 +411,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
   -- Set needed variable when the command is a known device menu button
   ----------------------------------------------------------------------
   if cmdisbutton then
-    submenu = LastCommand[SendTo]["submenu"]
+    submenu = LastCommand["submenu"]
     devicename = command -- use command as that should only contain the values of the first param
     if dtgmenu_submenus[submenu] == nil then
       Print_to_Log(1, "Error not found  => submenu :", submenu)
@@ -424,8 +444,8 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
   -- Set needed variables when the command is a known action menu button
   ----------------------------------------------------------------------
   if cmdisaction then
-    submenu = LastCommand[SendTo]["submenu"]
-    devicename = LastCommand[SendTo]["device"]
+    submenu = LastCommand["submenu"]
+    devicename = LastCommand["device"]
     realdevicename = dtgmenu_submenus[submenu].buttons[devicename].Name
     action = lcommand -- use lcommand as that should only contain the values of the first param
     Type = dtgmenu_submenus[submenu].buttons[devicename].Type
@@ -459,26 +479,26 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
     --  when Button is pressed and Type "command" and no actions defined for the command then check for prompt and hand back without updating the keyboard
     if cmdisbutton and ChkEmpty(dtgmenu_submenus[submenu].buttons[command].actions) then
       -- prompt for parameter when requested in the config
-      if dtgmenu_submenus[LastCommand[SendTo]["submenu"]].buttons[commandline].prompt then
+      if dtgmenu_submenus[LastCommand["submenu"]].buttons[commandline].prompt then
         -- no prompt defined so simply return to dtgbot with status 0 so it will be performed and reset the keyboard to just MENU
-        LastCommand[SendTo]["device"] = commandline
-        LastCommand[SendTo]["prompt"] = 1
+        LastCommand["device"] = commandline
+        LastCommand["prompt"] = 1
         replymarkup = '{"force_reply":true}'
-        LastCommand[SendTo]["replymarkup"] = replymarkup
+        LastCommand["replymarkup"] = replymarkup
         status = true
         response = DTGMenu_translate_desc(Language, "Specifyvalue")
         Print_to_Log(1, "-<1 found regular lua command that need Param ")
       else
         replymarkup = '{"keyboard":[["menu"]],"resize_keyboard":true}'
         status = false
-        LastCommand[SendTo]["submenu"] = ""
-        LastCommand[SendTo]["device"] = ""
-        LastCommand[SendTo]["l1menu"] = ""
-        LastCommand[SendTo]["l2menu"] = ""
-        LastCommand[SendTo]["l3menu"] = ""
+        LastCommand["submenu"] = ""
+        LastCommand["device"] = ""
+        LastCommand["l1menu"] = ""
+        LastCommand["l2menu"] = ""
+        LastCommand["l3menu"] = ""
         Print_to_Log(1, "-<1 found regular lua command. -> hand back to dtgbot to run")
       end
-      Persistent.Lastcommand = LastCommand
+      Persistent[SendTo]["LastCommand"] = LastCommand
       return status, response, replymarkup
     end
 
@@ -488,14 +508,14 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
       replymarkup = '{"keyboard":[["menu"]],"resize_keyboard":true}'
       response = ""
       -- add previous command ot the current command
-      commandline = LastCommand[SendTo]["device"] .. " " .. commandline
-      LastCommand[SendTo]["submenu"] = ""
-      LastCommand[SendTo]["device"] = ""
-      LastCommand[SendTo]["l1menu"] = ""
-      LastCommand[SendTo]["l2menu"] = ""
-      LastCommand[SendTo]["l3menu"] = ""
-      Print_to_Log(1, "-<2 found regular lua command. -> hand back to dtgbot to run:" .. LastCommand[SendTo]["device"] .. " " .. commandline)
-      Persistent.Lastcommand = LastCommand
+      commandline = LastCommand["device"] .. " " .. commandline
+      LastCommand["submenu"] = ""
+      LastCommand["device"] = ""
+      LastCommand["l1menu"] = ""
+      LastCommand["l2menu"] = ""
+      LastCommand["l3menu"] = ""
+      Print_to_Log(1, "-<2 found regular lua command. -> hand back to dtgbot to run:" .. LastCommand["device"] .. " " .. commandline)
+      Persistent[SendTo]["LastCommand"] = LastCommand
       return false, response, replymarkup
     end
   end
@@ -505,21 +525,21 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
   -------------------------------------------------
   -- ==== Show Submenu when no device is specified================
   if cmdissubmenu then
-    LastCommand[SendTo]["submenu"] = submenu
+    LastCommand["submenu"] = submenu
     Print_to_Log(1, " - Showing Submenu as no device name specified. submenu: " .. submenu)
     local rdevicename
     -- when showactions is defined for a device, the devicename will be returned
     replymarkup, rdevicename = dtgmenubottom.makereplymenu(SendTo, "submenu", submenu)
     -- not an menu command received
     if rdevicename ~= "" then
-      LastCommand[SendTo]["device"] = rdevicename
+      LastCommand["device"] = rdevicename
       Print_to_Log(1, " -- Changed to devicelevel due to showactions defined for device " .. rdevicename)
       response = DTGMenu_translate_desc(Language, "SelectOptionwo") .. " " .. rdevicename
     else
       response = submenu .. ":" .. DTGMenu_translate_desc("Select", Language, "Select option.")
     end
     Print_to_Log(1, "-< show options in submenu.")
-    Persistent.Lastcommand = LastCommand
+    Persistent[SendTo]["LastCommand"] = LastCommand
     return true, response, replymarkup
   end
 
@@ -530,7 +550,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
     -- create reply menu and update table with device details
     replymarkup = dtgmenubottom.makereplymenu(SendTo, "devicemenu", submenu, devicename)
     -- Save the current device
-    LastCommand[SendTo]["device"] = devicename
+    LastCommand["device"] = devicename
     local switchstatus = ""
     local found = 0
     if DeviceType == "scenes" then
@@ -570,7 +590,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
       response = DTGMenu_translate_desc("Select", Language, "Select option.")
       Print_to_Log(1, "-< Show options menu plus other devices in submenu.")
     end
-    Persistent.Lastcommand = LastCommand
+    Persistent[SendTo]["LastCommand"] = LastCommand
     return true, response, replymarkup
   end
 
@@ -583,7 +603,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
     -- prompt for themperature
     if commandline == "?" then
       replymarkup = '{"force_reply":true}'
-      LastCommand[SendTo]["replymarkup"] = replymarkup
+      LastCommand["replymarkup"] = replymarkup
       response = DTGMenu_translate_desc(Language, "Specifyvalue")
       Print_to_Log(1, "-< " .. response)
       return true, response, replymarkup
@@ -648,7 +668,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
     -- Unknown Action
     -------------------------------------------------
     replymarkup = '{"force_reply":true}'
-    LastCommand[SendTo]["replymarkup"] = replymarkup
+    LastCommand["replymarkup"] = replymarkup
     response = DTGMenu_translate_desc(Language, "Specifyvalue")
     Print_to_Log(1, "-<" .. response)
     return true, response, replymarkup
