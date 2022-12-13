@@ -253,7 +253,7 @@ function dtgmenuinline.handler(menu_cli,SendTo)
   for nbr,param in pairs(menu_cli) do
     Print_to_Log(2,"nbr:",nbr," param:",param)
     -- check if
-    if nbr==2 and param=="menu" then
+    if nbr==2 and param:lower()=="menu" then
       menucmd=true
     end
     if nbr > 2 then
@@ -329,8 +329,8 @@ function dtgmenuinline.handler(menu_cli,SendTo)
   -- Process "start" or "menu" commands
   -------------------------------------------------
   -- Build main menu and return
-  if param1 == "dtgmenu" or param1 == "menu" or param1 == "start"
-  or (cmdisbutton and (param2 == "dtgmenu" or param2 == "menu")) then
+  if param1:lower() == "dtgmenu" or param1:lower() == "menu" or param1:lower() == "start"
+  or (cmdisbutton and (param2:lower() == "dtgmenu" or param2:lower() == "menu")) then
     response=dtgmenu_lang[menu_language].text["main"]
     replymarkup = dtgmenuinline.makereplymenu(SendTo, "mainmenu")
     status=1
