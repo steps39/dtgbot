@@ -1,7 +1,9 @@
 # DTGOT Telegram Bot for Domoticz
 
-This branch is the version of DTGBOT with much more errorchecking to increase stability and logging.
-It is still under development....
+This branch is the version of DTGBOT with much more errorchecking to increase stability and logging.<br>
+It combines the Menus at the Bottom and the Inline Menu versions.<br>
+It now uses standard ssl and LUA install packages in stead of the previous compiled usr versions.<br>
+Works much more stable and installs on the new Debian version. 
 
 ## Setup
 
