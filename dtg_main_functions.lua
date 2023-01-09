@@ -172,6 +172,7 @@ function PreProcess_Received_Message(tt)
       return result, result_err
     end
   else
+    local msg_from = tostring(msg.from.id)
     Print_to_Log(0, "id " .. msg_from .. " not on white list, command ignored")
     Telegram_SendMessage(msg_from, "⚡️ ID Not Recognised - Command Ignored ⚡️", msg_id)
     return "", "ID not autherized"
