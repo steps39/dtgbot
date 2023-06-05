@@ -169,7 +169,12 @@ end
 -- returns a device table of Domoticz items based on type i.e. devices or scenes
 function Domo_Device_List(DeviceType)
   local t, jresponse, status, decoded_response
-  t = Domoticz_Url .. "/json.htm?type=" .. DeviceType .. "&order=name&used=true"
+  -- Use new API format as of Revison 15326.
+  if (DomoticzRevision or 0) > 15325 then
+    t = Domoticz_Url .. "//json.htm?type=command&param=get" .. DeviceType .. "&order=name&used=true"
+  else
+    t = Domoticz_Url .. "/json.htm?type=" .. DeviceType .. "&order=name&used=true"
+  end
   Print_to_Log(1, "JSON request <" .. t .. ">")
   jresponse, status = HTTP.request(t)
   if jresponse ~= nil then
@@ -406,6 +411,25 @@ function FileExists(name)
     return true
   else
     return false
+  end
+end
+
+function Domoticz_Version()
+  local t, jresponse, status, decoded_response
+  t = Domoticz_Url .. "/json.htm?type=command&param=getversion"
+  jresponse = nil
+  Print_to_Log(1, "JSON request <" .. t .. ">")
+  jresponse, status = HTTP.request(t)
+  Print_to_Log(9, jresponse)
+  if jresponse ~= nil then
+    decoded_response = JSON.decode(jresponse)
+  else
+    decoded_response = {}
+  end
+  if jresponse ~= nil then
+    -- Set the Global variables for Domoticz version and revision
+    DomoticzRevision = (decoded_response["Revision"] or 0)
+    DomoticzVersion = (decoded_response["version"] or 0)
   end
 end
 

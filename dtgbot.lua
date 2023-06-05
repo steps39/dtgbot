@@ -88,6 +88,9 @@ local return_status, result =
     Domoticz_Url = "http://" .. DomoticzIP .. ":" .. DomoticzPort
     Telegram_Url = "https://api.telegram.org/bot" .. TelegramBotToken .. "/"
     UserScriptPath = BotBashScriptPath
+    -- define global Variables
+    DomoticzRevision = 0;
+    DomoticzVersion = 0;
   end,
   ErrorHandler
 )

@@ -9,6 +9,9 @@
 --  load the available modules
 -- ===========================================================================================================
 function DtgBot_Initialise()
+  --Set global variables DomoticzRevision DomoticzVersion
+  Domoticz_Version()
+  Print_to_Log(1, "Domoticz version:".. DomoticzVersion .."  Revision:".. DomoticzRevision )
   Variablelist = Domo_Variable_List_Names_IDXs()
   Devicelist = Domo_Device_List_Names_IDXs("devices")
   Scenelist, Sceneproperties = Domo_Device_List_Names_IDXs("scenes")
