@@ -7,10 +7,12 @@ Works much more stable and installs on the new Debian version.
 
 ## Setup
 
-### Debian
+### Debian & Ubuntu
 
+   1. LUA:  sudo apt install lua5.2
    1. JSON: sudo apt install lua-json
-   1. HTTPS:sudo apt install lua-socket
+   1. HTTP: sudo apt install lua-socket
+   1. HTTPS: sudo apt install lua-sec
 
 ### Windows
 
