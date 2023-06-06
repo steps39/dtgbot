@@ -1,3 +1,4 @@
+dtgmenu_version = '0.9 202306061126'
 -- =====================================================================================================================
 -- =====================================================================================================================
 -- Menu script which enables the option in DTGBOT to use a reply keyboard to perform actions on:
@@ -5,7 +6,6 @@
 --  - all static actions defined in DTGMENU.CFG. Open the file for descript of the details.
 --
 -- programmer: Jos van der Zande
--- Version 0.901 20221127
 -- =====================================================================================================================
 -----------------------------------------------------------------------------------------------------------------------
 -- these are the different formats of reply_markup. looksimple but needed a lot of testing before it worked :)
@@ -379,12 +379,10 @@ dtgmenu_submenus = {}
 
 -- Set the appropriate handler to use for the keyboard
 if UseInlineMenu then
-  Print_to_Log(1, "Set Handler to DTGil.handler")
   dtgmenu_commands = {["menu"] = {handler = DTGil.handler, description = "Will start menu functionality."},
                    ["dtgmenu"] = {handler = DTGil.handler, description = "Will start menu functionality."}
   }
 else
-  Print_to_Log(1, "Set Handler to DTGbo.handler")
   dtgmenu_commands = {["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."},
                    ["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
   }

@@ -1,5 +1,5 @@
+dtg_domoticz_version = '0.9 202306061126'
 --[[
-  Version 0.9 20210114
   A set of support functions currently aimed at dtgbot,
   but probably more general
 ]]

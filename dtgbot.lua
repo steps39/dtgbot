@@ -1,5 +1,5 @@
+dtgbot_version = '0.9 202306061126'
 --[[
-  Version 0.9 20210113
   Automation bot framework for telegram to control Domoticz
   dtgbot.lua does not require any customisation (see below)
   and does not require any telegram client to be installed
@@ -51,6 +51,9 @@ local return_status, result =
     -- Load All general Main functions
     require("dtg_main_functions")
     require("dtg_domoticz")
+	  Print_to_Log(0, "Starting dtgbot_version   :" .. (dtgbot_version or "?"))
+	  Print_to_Log(0, "dtg_main_functions_version:" .. (dtg_main_functions_version or "?"))
+	  Print_to_Log(0, "dtg_domoticz_version      :" .. (dtg_domoticz_version or "?"))
 
     -- All these values are set in /etc/profile.d/DomoticzData.sh
     TelegramBotToken = DomoticzData("TelegramBotToken")

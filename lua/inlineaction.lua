@@ -91,7 +91,7 @@ local function perform_action(parsed_cli, SendTo, MessageId, org_replymarkup)
   if DeviceID == nil then
     -- Its not a device so check if a scene
     DeviceID = Domo_Idx_From_Name(DeviceName, "scenes")
-    switchtype = "scene"
+    switchtype = "scenes"
   end
   -- process the action when either a device or a scene
   if DeviceID ~= nil then

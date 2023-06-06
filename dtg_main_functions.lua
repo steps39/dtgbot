@@ -1,5 +1,5 @@
+dtg_main_functions_version = '0.9 202306061126'
 --[[
--- Version 0.900 20210113
   functions for the main dtgbot.au3 script
 ]]
 
@@ -803,6 +803,14 @@ function Load_LUA_Modules()
   end
   -- check if dtgmenu.lua loaded succesfully
   if Available_Commands["dtgmenu"] ~= nil then
+    Print_to_Log(0, "loaded dtgmenu_version      :" .. (dtgmenu_version or "?"))
+    if dtgmenuinline_version then
+      Print_to_Log(0, "loaded dtgmenuinline version:"..(dtgmenuinline_version or "?"))
+    end
+    if dtgmenubottom_version then
+      Print_to_Log(0, "loaded dtgmenubottom version:"..(dtgmenubottom_version or "?"))
+    end
+
     -- Initialise and populate dtgmenu tables in case the menu is switched on
     Persistent.UseDTGMenu = tonumber(Persistent.UseDTGMenu) or 0
     Print_to_Log(0, Sprintf("Menu restored state %s (0=disabled;1=enabled)", Persistent.UseDTGMenu))

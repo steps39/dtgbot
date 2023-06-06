@@ -45,3 +45,7 @@ Temporary Items
 /dtgbot-user.cfg
 /lua/dtgmenu-user.cfg
 /.vs*
+
+# Jos: Local directories & files to ignore
+backup/*
+_updatemainversion.lua
