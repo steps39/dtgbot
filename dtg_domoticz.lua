@@ -1,4 +1,4 @@
-dtg_domoticz_version = '0.9 202306061126'
+dtg_domoticz_version = '0.9 202306061220'
 --[[
   A set of support functions currently aimed at dtgbot,
   but probably more general
@@ -92,8 +92,8 @@ function Domo_Variable_List()
       end
     end
   end
-  Print_to_Log(0, "Domoticz returned getuservariables after " .. domoticz_tries .. " attempts")
   if jresponse ~= nil then
+    Print_to_Log(0, "Domoticz returned getuservariables after " .. domoticz_tries .. " attempts")
     decoded_response = JSON.decode(jresponse)
   else
     decoded_response = {}
@@ -171,7 +171,7 @@ function Domo_Device_List(DeviceType)
   local t, jresponse, status, decoded_response
   -- Use new API format as of Revison 15326.
   if (DomoticzRevision or 0) > 15325 then
-    t = Domoticz_Url .. "//json.htm?type=command&param=get" .. DeviceType .. "&order=name&used=true"
+    t = Domoticz_Url .. "/json.htm?type=command&param=get" .. DeviceType .. "&order=name&used=true"
   else
     t = Domoticz_Url .. "/json.htm?type=" .. DeviceType .. "&order=name&used=true"
   end
@@ -232,7 +232,11 @@ end
 
 function Domo_Retrieve_Status(idx, DeviceType)
   local t, jresponse, status, decoded_response
-  t = Domoticz_Url .. "/json.htm?type=" .. DeviceType .. "&rid=" .. tostring(idx)
+  if (DomoticzRevision or 0) > 15325 then
+    t = Domoticz_Url .. "/json.htm?type=command&param=get" .. DeviceType .. "&rid=" .. tostring(idx)
+  else
+    t = Domoticz_Url .. "/json.htm?type=" .. DeviceType .. "&rid=" .. tostring(idx)
+  end
   Print_to_Log(2, "JSON request <" .. t .. ">")
   jresponse, status = HTTP.request(t)
   if jresponse ~= nil then
