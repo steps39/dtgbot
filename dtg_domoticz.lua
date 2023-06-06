@@ -1,4 +1,4 @@
-dtg_domoticz_version = '0.9 202306061220'
+dtg_domoticz_version = '0.9 202306061400'
 --[[
   A set of support functions currently aimed at dtgbot,
   but probably more general
@@ -167,13 +167,21 @@ function Domo_Get_Names_From_Variable(DividedString)
 end
 
 -- returns a device table of Domoticz items based on type i.e. devices or scenes
-function Domo_Device_List(DeviceType)
+function Domo_Device_List(DeviceType, idx)
   local t, jresponse, status, decoded_response
   -- Use new API format as of Revison 15326.
-  if (DomoticzRevision or 0) > 15325 then
-    t = Domoticz_Url .. "/json.htm?type=command&param=get" .. DeviceType .. "&order=name&used=true"
+  if DeviceType == "plandevices" then
+    if idx then
+      t = Domoticz_Url .. "/json.htm?type=command&param=get" .. DeviceType .. "&idx=" .. idx
+    else
+      Print_to_Log(0, " idx parameter missing for Devicelist update :" .. DeviceType)
+    end
   else
-    t = Domoticz_Url .. "/json.htm?type=" .. DeviceType .. "&order=name&used=true"
+    if (DomoticzRevision or 0) > 15325 then
+      t = Domoticz_Url .. "/json.htm?type=command&param=get" .. DeviceType .. "&order=name&used=true"
+    else
+      t = Domoticz_Url .. "/json.htm?type=" .. DeviceType .. "&order=name&used=true"
+    end
   end
   Print_to_Log(1, "JSON request <" .. t .. ">")
   jresponse, status = HTTP.request(t)

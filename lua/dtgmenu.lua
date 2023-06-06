@@ -1,4 +1,4 @@
-dtgmenu_version = '0.9 202306061126'
+dtgmenu_version = '0.9 202306061400'
 -- =====================================================================================================================
 -- =====================================================================================================================
 -- Menu script which enables the option in DTGBOT to use a reply keyboard to perform actions on:
@@ -152,7 +152,8 @@ function MakeRoomMenus(iLevel, iSubmenu)
     -----------------------------------------------------------
     -- retrieve all devices/scenes for this plan from Domoticz
     -----------------------------------------------------------
-    Devsinplan = Domo_Device_List("command&param=getplandevices&idx=" .. room_number)
+    --Devsinplan = Domo_Device_List("command&param=getplandevices&idx=" .. room_number)
+    Devsinplan = Domo_Device_List("plandevices", room_number)
     DIPresult = Devsinplan["result"]
     if DIPresult ~= nil then
       Print_to_Log(1, "For room " .. room_name .. "/".. room_number .." got some devices and/or scenes")
