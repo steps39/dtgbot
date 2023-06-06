@@ -193,6 +193,7 @@ function Domo_Device_List_Names_IDXs(DeviceType)
   decoded_response = Domo_Device_List(DeviceType)
   local result = decoded_response["result"]
   local devices = {}
+  local dcount = 0;
   local devicesproperties = {}
   if result ~= nil then
     for i = 1, #result do
@@ -200,15 +201,18 @@ function Domo_Device_List_Names_IDXs(DeviceType)
       if type(record) == "table" then
         if DeviceType == "plans" then
           devices[record["Name"]] = record["idx"]
+          dcount = dcount + 1
         else
           devices[string.lower(record["Name"])] = record["idx"]
           devices[record["idx"]] = record["Name"]
           if DeviceType == "scenes" then
             devicesproperties[record["idx"]] = {Type = record["Type"], SwitchType = record["Type"]}
           end
+          dcount = dcount + 1
         end
       end
     end
+    Print_to_Log(1,"DeviceType:"..DeviceType.."  count:"..dcount.."   DomoticzRevision:"..DomoticzRevision)
   else
     Print_to_Log(0, " !!!! Domo_Device_List_Names_IDXs(): nothing found for ", DeviceType)
   end
@@ -416,17 +420,26 @@ end
 
 function Domoticz_Version()
   local t, jresponse, status, decoded_response
+  local domoticz_tries = 1
   t = Domoticz_Url .. "/json.htm?type=command&param=getversion"
   jresponse = nil
-  Print_to_Log(1, "JSON request <" .. t .. ">")
-  jresponse, status = HTTP.request(t)
+  -- Domoticz seems to take a while to respond API calls after start-up
+  -- So just keep trying after 1 second sleep
+  while (jresponse == nil) do
+    Print_to_Log(1, "JSON request <" .. t .. ">")
+    jresponse, status = HTTP.request(t)
+    if (jresponse == nil) then
+      SOCKET.sleep(1)
+      domoticz_tries = domoticz_tries + 1
+      if domoticz_tries > 20 then
+        Print_to_Log(0, "Domoticz not replying to the getversion")
+        break
+      end
+    end
+  end
   Print_to_Log(9, jresponse)
   if jresponse ~= nil then
     decoded_response = JSON.decode(jresponse)
-  else
-    decoded_response = {}
-  end
-  if jresponse ~= nil then
     -- Set the Global variables for Domoticz version and revision
     DomoticzRevision = (decoded_response["Revision"] or 0)
     DomoticzVersion = (decoded_response["version"] or 0)
