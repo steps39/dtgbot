@@ -12,4 +12,5 @@ export TelegramChatId='012343553'
 export TelegramBotToken="000000000:keykeykeykeykeykeykeykey"
 export TelegramBotOffset="TelegramBotOffset"
 export EmailTo="joe.blogs@amailsystem.com"
-/usr/bin/lua $BotHomePath"dtgbot.lua" >$BotLuaLog 2>>$BotLuaLog.errors
+# Force use of Lua 5.2 or else lua socks will fail with ltn12 error
+/usr/bin/lua5.2 $BotHomePath"dtgbot.lua" >$BotLuaLog 2>>$BotLuaLog.errors
