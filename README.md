@@ -1,4 +1,4 @@
-# DTGOT Telegram Bot for Domoticz
+# DTGBOT Telegram Bot for Domoticz
 
 This branch is the version of DTGBOT with much more errorchecking to increase stability and logging.<br>
 It combines the Menus at the Bottom and the Inline Menu versions.<br>
