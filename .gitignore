@@ -48,4 +48,4 @@ Temporary Items
 
 # Jos: Local directories & files to ignore
 backup/*
-_updatemainversion.lua
+_updateversions.php

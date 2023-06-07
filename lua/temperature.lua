@@ -10,8 +10,13 @@ function get_temperature(DeviceName)
   Temperature = -999
   Humidity = -999
   Pressure = -999
--- Determine temperature
-  t = Domoticz_Url.."/json.htm?type=devices&rid=" .. idx
+  -- Determine temperature
+  if (DomoticzRevision or 0) > 15325 then
+    t = Domoticz_Url.."/json.htm?type=command&param=getdevices&rid=" .. idx
+  else
+    t = Domoticz_Url.."/json.htm?type=devices&rid=" .. idx
+  end
+
   print ("JSON request <"..t..">");
   jresponse, status = HTTP.request(t)
   decoded_response = JSON.decode(jresponse)
