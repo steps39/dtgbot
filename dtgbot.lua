@@ -1,4 +1,4 @@
-dtgbot_version = '0.9 202306061126'
+dtgbot_version = '0.9 202306080851'
 --[[
   Automation bot framework for telegram to control Domoticz
   dtgbot.lua does not require any customisation (see below)
@@ -130,7 +130,8 @@ local return_status, result =
     Print_to_Log(0, "-------------------------------------------")
     Print_to_Log(0, "### Starting longpoll with Telegram servers")
     Print_to_Log(0, "-------------------------------------------")
-
+    Persistent.TelegramBotOffset = Persistent.TelegramBotOffset or 0
+    Print_to_Log(1,'TelegramBotOffset='..(Persistent.TelegramBotOffset))
     while true do
       -- loop till messages is received
       while true do
@@ -141,7 +142,7 @@ local return_status, result =
         local return_status, result =
           xpcall(
           function()
-            local url = Sprintf("%sgetUpdates?timeout=%s&limit=1&offset=%s", Telegram_Url, (Telegram_Longpoll_TimeOut or "30"), TelegramBotOffset)
+            local url = Sprintf("%sgetUpdates?timeout=%s&limit=1&offset=%s", Telegram_Url, (Telegram_Longpoll_TimeOut or "30"), Persistent.TelegramBotOffset)
             Print_to_Log(1, url)
             response, status = GetUrl(url)
           end,
@@ -188,8 +189,12 @@ local return_status, result =
       local tt = decoded_response["result"][1] or {}
       Print_to_Log(1, "update_id ", tt.update_id)
       -- set next msgid we want to receive
-      TelegramBotOffset = tt.update_id + 1
-      Print_to_Log(1, "TelegramBotOffset " .. TelegramBotOffset)
+      Persistent.TelegramBotOffset = tt.update_id + 1
+      Print_to_Log(1, "TelegramBotOffset " .. Persistent.TelegramBotOffset)
+      -- save the persistent variables to save the TelegramBotOffset to the table.
+      -- this to a void reprocessing the same message in case of reboot during processing
+      -- This allows for a reboot command to be send without being re-processed causing a loop
+      Save_Persistent_Vars()
       -- reload modules in case a command failure happened so you can update the modules without a dtgbot restart
       if reloadmodules then
         Available_Commands = {}
