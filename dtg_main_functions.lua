@@ -1,4 +1,4 @@
-dtg_main_functions_version = '0.9 202306061126'
+dtg_main_functions_version = '0.9 20230606112'
 --[[
   functions for the main dtgbot.au3 script
 ]]

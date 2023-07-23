@@ -1,4 +1,4 @@
-dtgbot_version = '0.9 202306080851'
+dtgbot_version = '0.9 20230608085'
 --[[
   Automation bot framework for telegram to control Domoticz
   dtgbot.lua does not require any customisation (see below)

@@ -1,4 +1,4 @@
-dtg_domoticz_version = '0.9 202306061400'
+dtg_domoticz_version = '0.9 20230606140'
 --[[
   A set of support functions currently aimed at dtgbot,
   but probably more general
