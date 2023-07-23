@@ -177,7 +177,7 @@ function Domo_Device_List(DeviceType, idx)
       Print_to_Log(0, " idx parameter missing for Devicelist update :" .. DeviceType)
     end
   else
-    if (DomoticzRevision or 0) > 15325 then
+    if (DomoticzBuildDate or 0) > 20230601 then
       t = Domoticz_Url .. "/json.htm?type=command&param=get" .. DeviceType .. "&order=name&used=true"
     else
       t = Domoticz_Url .. "/json.htm?type=" .. DeviceType .. "&order=name&used=true"
@@ -220,7 +220,7 @@ function Domo_Device_List_Names_IDXs(DeviceType)
         end
       end
     end
-    Print_to_Log(1,"DeviceType:"..DeviceType.."  count:"..dcount.."   DomoticzRevision:"..DomoticzRevision)
+    Print_to_Log(1,"DeviceType:"..DeviceType.."  count:"..dcount.."   DomoticzBuildDate:"..DomoticzBuildDate)
   else
     Print_to_Log(0, " !!!! Domo_Device_List_Names_IDXs(): nothing found for ", DeviceType)
   end
@@ -240,7 +240,7 @@ end
 
 function Domo_Retrieve_Status(idx, DeviceType)
   local t, jresponse, status, decoded_response
-  if (DomoticzRevision or 0) > 15325 then
+  if (DomoticzBuildDate or 0) > 20230601 then
     t = Domoticz_Url .. "/json.htm?type=command&param=get" .. DeviceType .. "&rid=" .. tostring(idx)
   else
     t = Domoticz_Url .. "/json.htm?type=" .. DeviceType .. "&rid=" .. tostring(idx)
@@ -455,6 +455,10 @@ function Domoticz_Version()
     -- Set the Global variables for Domoticz version and revision
     DomoticzRevision = (decoded_response["Revision"] or 0)
     DomoticzVersion = (decoded_response["version"] or 0)
+    			-- build_time: "2023-06-18 14:39:26" convert to number 20230618 to allow for comparing
+    DomoticzBuildDate = (decoded_response['build_time'] or 0)
+    DomoticzBuildDate = DomoticzBuildDate:gsub("(%d+)%-(%d+)%-(%d+).*","%1%2%3")
+    DomoticzBuildDate = tonumber(DomoticzBuildDate or 0)
   end
 end
 

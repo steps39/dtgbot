@@ -11,7 +11,7 @@ dtg_main_functions_version = '0.9 202306061126'
 function DtgBot_Initialise()
   --Set global variables DomoticzRevision DomoticzVersion
   Domoticz_Version()
-  Print_to_Log(1, "Domoticz version:".. DomoticzVersion .."  Revision:".. DomoticzRevision )
+  Print_to_Log(1, "Domoticz version:".. DomoticzVersion .."  Revision:".. DomoticzRevision  .. "  BuildDate:".. DomoticzBuildDate )
   Variablelist = Domo_Variable_List_Names_IDXs()
   Devicelist = Domo_Device_List_Names_IDXs("devices")
   Scenelist, Sceneproperties = Domo_Device_List_Names_IDXs("scenes")
@@ -49,7 +49,7 @@ function DtgBot_Initialise()
   MenuWhiteList = {}
   if MenuWLidx == nil then
     Print_to_Log(1, MenuWLName .. " user variable does not exist in Domoticz")
-    Print_to_Log(1, "So everybody will see all available rooms in DOmoticz!")
+    Print_to_Log(1, "So everybody will see all available rooms in Domoticz!")
   else
     Print_to_Log(1, "-> Get Menu Whitelist per SendTo and/or Default(0) from Domoticz")
     MenuWhiteListin = Domo_Get_Variable_Value(MenuWLidx).."|"

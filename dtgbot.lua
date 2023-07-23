@@ -94,6 +94,7 @@ local return_status, result =
     -- define global Variables
     DomoticzRevision = 0;
     DomoticzVersion = 0;
+    DomoticzBuildDate = 0;
   end,
   ErrorHandler
 )

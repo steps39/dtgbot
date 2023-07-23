@@ -8,7 +8,7 @@ function get_battery_level(DeviceName)
     return DeviceName, -999, 0
   end
   -- Determine battery level
-  if (DomoticzRevision or 0) > 15325 then
+  if (DomoticzBuildDate or 0) > 20230601 then
     t = Domoticz_Url .. "/json.htm?type=command&param=getdevices&rid=" .. idx
   else
     t = Domoticz_Url .. "/json.htm?type=devices&rid=" .. idx

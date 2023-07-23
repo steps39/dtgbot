@@ -11,7 +11,7 @@ function get_temperature(DeviceName)
   Humidity = -999
   Pressure = -999
   -- Determine temperature
-  if (DomoticzRevision or 0) > 15325 then
+  if (DomoticzBuildDate or 0) > 20230601 then
     t = Domoticz_Url.."/json.htm?type=command&param=getdevices&rid=" .. idx
   else
     t = Domoticz_Url.."/json.htm?type=devices&rid=" .. idx

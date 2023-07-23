@@ -20,7 +20,7 @@ function list_module.handler(parsed_cli)
     match_type = ""
   end
 
-  if (DomoticzRevision or 0) > 15325 then
+  if (DomoticzBuildDate or 0) > 20230601 then
     t = Domoticz_Url .. "/json.htm?type=command&param=getdevices"
   else
     t = Domoticz_Url .. "/json.htm?type=devices"
