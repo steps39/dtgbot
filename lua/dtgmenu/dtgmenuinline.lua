@@ -1,4 +1,4 @@
-dtgmenuinline_version = '0.9 202306061126'
+dtgmenuinline_version = '0.9 202311260736'
 local dtgmenuinline =  {}
 -- =====================================================================================================================
 -- =====================================================================================================================
@@ -496,7 +496,7 @@ function dtgmenuinline.handler(menu_cli,SendTo)
   -------------------------------------------------
   Print_to_Log(1,"   -> Start Action:"..action)
 
-  if Type == "Thermostat" then
+  if Type == "Thermostat" or Type == "SetPoint" then
     -- Set Temp + or - .5 degrees
     if action == "+" or action == "-" then
       dstatus = dstatus:gsub("°C", "")
@@ -515,6 +515,9 @@ function dtgmenuinline.handler(menu_cli,SendTo)
   elseif SwitchType=="Selector" then
     local sfound,Selector_Option = ChkInTable(LevelNames,action)
     if sfound then
+      if LevelNames:sub(1, 1) ~= '|' then
+        Selector_Option = Selector_Option - 1
+      end
       Selector_Option=(Selector_Option)*10
       Print_to_Log(2,"    -> Selector Switch level found ", Selector_Option,LevelNames,action)
       response=Domo_sSwitchName(realdevicename,DeviceType,SwitchType,idx,"Set Level "..Selector_Option)

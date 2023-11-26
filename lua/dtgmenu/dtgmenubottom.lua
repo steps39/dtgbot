@@ -1,4 +1,4 @@
-dtgmenubottom_version = '0.9 202306061126'
+dtgmenubottom_version = '0.9 202311260732'
 local dtgmenubottom =  {}
 -- =====================================================================================================================
 -- =====================================================================================================================
@@ -584,7 +584,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
   -------------------------------------------------
   -- Specials
   -------------------------------------------------
-  if Type == "Thermostat" then
+  if Type == "Thermostat" or Type == "SetPoint" then
     -- prompt for themperature
     if commandline == "?" then
       replymarkup = '{"force_reply":true}'
@@ -599,7 +599,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
         dstatus = dstatus:gsub(" ", "")
         commandline = tonumber(dstatus) + tonumber(commandline .. "0.5")
       end
-      -- set thermostate temperature
+      -- set thermostat temperature
       local t, jresponse
       t = Domoticz_Url .. "/json.htm?type=command&param=udevice&idx=" .. idx .. "&nvalue=0&svalue=" .. commandline
       Print_to_Log(1, "JSON request <" .. t .. ">")

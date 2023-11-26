@@ -49,3 +49,4 @@ Temporary Items
 # Jos: Local directories & files to ignore
 backup/*
 _updateversions.php
+.luacheckrc
