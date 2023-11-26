@@ -1,4 +1,4 @@
-dtgmenubottom_version = '0.9 202311260732'
+dtgmenubottom_version = '0.9 202311262040'
 local dtgmenubottom =  {}
 -- =====================================================================================================================
 -- =====================================================================================================================
@@ -584,7 +584,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
   -------------------------------------------------
   -- Specials
   -------------------------------------------------
-  if Type == "Thermostat" or Type == "SetPoint" then
+  if Type == "Thermostat" or Type:lower() == "setpoint" then
     -- prompt for themperature
     if commandline == "?" then
       replymarkup = '{"force_reply":true}'

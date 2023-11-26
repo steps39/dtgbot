@@ -1,4 +1,4 @@
-dtgmenuinline_version = '0.9 202311260736'
+dtgmenuinline_version = '0.9 202311262041'
 local dtgmenuinline =  {}
 -- =====================================================================================================================
 -- =====================================================================================================================
@@ -496,7 +496,7 @@ function dtgmenuinline.handler(menu_cli,SendTo)
   -------------------------------------------------
   Print_to_Log(1,"   -> Start Action:"..action)
 
-  if Type == "Thermostat" or Type == "SetPoint" then
+  if Type == "Thermostat" or Type:lower() == "setpoint"  then
     -- Set Temp + or - .5 degrees
     if action == "+" or action == "-" then
       dstatus = dstatus:gsub("°C", "")
