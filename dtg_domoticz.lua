@@ -108,10 +108,12 @@ function Domo_Variable_List_Names_IDXs()
   decoded_response = Domo_Variable_List()
   result = decoded_response["result"]
   local variables = {}
-  for i = 1, #result do
-    record = result[i]
-    if type(record) == "table" then
-      variables[record["Name"]] = record["idx"]
+  if result then
+    for i = 1, #result do
+      record = result[i]
+      if type(record) == "table" then
+        variables[record["Name"]] = record["idx"]
+      end
     end
   end
   return variables
