@@ -11,7 +11,8 @@
 		"Lua.workspace.ignoreSubmodules": false,
 		"Lua.diagnostics.globals": [
 			"LastCommand","Available_Commands"
-		]
+    ],
+    "lua.format.singleQuote": false
   },
   "launch": {
     "version": "0.2.0",

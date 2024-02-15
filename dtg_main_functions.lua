@@ -1,4 +1,4 @@
-dtg_main_functions_version = '0.9 20230723091'
+dtg_main_functions_version = '0.9 202402151457'
 --[[
   functions for the main dtgbot.au3 script
 ]]
@@ -163,7 +163,7 @@ function PreProcess_Received_Message(tt)
         if msg_type == "voice" then
           Print_to_Log(0, "!! Voice file received but voice.sh or lua not found to process it. skipping the message.")
           Telegram_SendMessage(msg_from, "⚡️ voice.sh or lua missing?? ⚡️", msg_id)
-        elseif msg_type == "voice" then
+        elseif msg_type == "video" then
           Print_to_Log(0, "!! Video file received but video_note.sh or lua not found to process it. Skipping the message.")
           Telegram_SendMessage(msg_from, "⚡️ video_note.sh or lua missing?? ⚡️", msg_id)
         else

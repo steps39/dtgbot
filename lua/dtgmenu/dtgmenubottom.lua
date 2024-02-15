@@ -1,5 +1,5 @@
-dtgmenubottom_version = '0.9 202311262040'
-local dtgmenubottom =  {}
+dtgmenubottom_version = '0.9 202402151445'
+local dtgmenubottom = {}
 -- =====================================================================================================================
 -- =====================================================================================================================
 -- DTGBOTMENU functions for Keyboard at the bottom style
@@ -50,22 +50,22 @@ function dtgmenubottom.makereplymenu(SendTo, Level, submenu, devicename)
         if get.RoomNumber then
           -- Check Whitelist for the Sender's id
           if MenuWhiteList[SendTo] then
-            Print_to_Log(1, SendTo.." in MenuWhiteList Check room:"..(get.RoomNumber).."|", MenuWhiteList[SendTo][get.RoomNumber] or " -> not there" )
+            -- else check for the standard/default menus to be shown
+            Print_to_Log(1, SendTo .. " in MenuWhiteList Check room:" .. (get.RoomNumber) .. "|", MenuWhiteList[SendTo][get.RoomNumber] or " -> not there")
             if MenuWhiteList[SendTo][get.RoomNumber] then
               l1menu = l1menu .. i .. "|"
             end
-            -- esle check for the standard/default menus to be shown
-          elseif MenuWhiteList['0'] then
-            Print_to_Log(1, "0 in MenuWhiteList Check room:"..(get.RoomNumber).."|", MenuWhiteList['0'][get.RoomNumber] or " -> not there" )
-            if MenuWhiteList['0'] and MenuWhiteList['0'][get.RoomNumber] then
+          elseif MenuWhiteList["0"] then
+            Print_to_Log(1, "0 in MenuWhiteList Check room:" .. (get.RoomNumber) .. "|", MenuWhiteList["0"][get.RoomNumber] or " -> not there")
+            if MenuWhiteList["0"] and MenuWhiteList["0"][get.RoomNumber] then
               l1menu = l1menu .. i .. "|"
             end
           else
-            Print_to_Log(1, SendTo.." No 0/SendTo in list -> add to menu: ")
+            Print_to_Log(1, SendTo .. " No 0/SendTo in list -> add to menu: ")
             l1menu = l1menu .. i .. "|"
           end
         else
-          Print_to_Log(1, SendTo.." No Roomnumber -> add to menu: ")
+          Print_to_Log(1, SendTo .. " No Roomnumber -> add to menu: ")
           l1menu = l1menu .. i .. "|"
         end
       end
@@ -156,7 +156,7 @@ function dtgmenubottom.makereplymenu(SendTo, Level, submenu, devicename)
   ------------------------------
   if l3menu ~= "" then
     replymarkup = replymarkup .. dtgmenubottom.buildmenu(l3menu, ActMenuwidth, "") .. ","
-    l1menu = "back"
+    l1menu = dtgmenu_lang[menu_language].text["back"] or "back"
   end
   ------------------------------
   -- Add level 2 next if needed
@@ -169,7 +169,7 @@ function dtgmenubottom.makereplymenu(SendTo, Level, submenu, devicename)
       end
     end
     replymarkup = replymarkup .. dtgmenubottom.buildmenu(l2menu, mwitdh, "") .. ","
-    l1menu = "back"
+    l1menu = dtgmenu_lang[menu_language].text["back"] or "back"
   end
   -------------------------------
   -- Add level 1 -- the main menu
@@ -234,7 +234,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
     bLastCommand = Persistent[SendTo].bbLastCommand or {}
   else
     bLastCommand = {}
-	Persistent[SendTo] = {}
+    Persistent[SendTo] = {}
   end
 
   -- initialise the user table in case it runs the firsttime
@@ -288,11 +288,11 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
   -- Exit menu
   if lcommand == "menu" and param1 == "exit" then
     -- Clear menu end set exit messge
-    response=dtgmenu_lang[menu_language].text["exit"]
+    response = dtgmenu_lang[menu_language].text["exit"]
     replymarkup = ""
-    status=1
+    status = 1
     Persistent[SendTo].bbLastCommand = nil
-    Print_to_Log(0,"==< Exit main inline menu")
+    Print_to_Log(0, "==< Exit main inline menu")
     return status, response, replymarkup, commandline
   end
 
@@ -328,7 +328,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
     Print_to_Log(1, Sprintf("Persistent.iUseDTGMenu=%s", Persistent.UseDTGMenu))
     -- clean all messages but last when option MenuMessagesCleanOnExit is set true
     if MenuMessagesCleanOnExit then
-      Telegram_CleanMessages(SendTo, 0, 0,"menu", true)
+      Telegram_CleanMessages(SendTo, 0, 0, "menu", true)
     end
     return true, response, replymarkup
   end
