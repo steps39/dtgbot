@@ -20,7 +20,11 @@ function help_module.handler(parsed_cli)
   local DotPos = 0
   HelpText='(all command will also work without the /)\n'
   HelpText=HelpText..'⚠️ Internal commands: ⚠️\n'
-  HelpText=HelpText..'Start Menu: /menu \n'
+  HelpText=HelpText..'Start Menu: /menu'
+  if dtgmenu_lang[menu_language].command["menu"] and dtgmenu_lang[menu_language].command["menu"]:lower()  ~= "menu" then
+    HelpText=HelpText..' or /'..dtgmenu_lang[menu_language].command["menu"]
+  end
+  HelpText=HelpText..'\n'
   HelpText=HelpText..'Keyboard toggle: /_ToggleKeyboard \n'
   HelpText=HelpText..'Reload Config: /_reloadconfig \n'
   HelpText=HelpText..'Reload modules: /_reloadmodules \n\n'

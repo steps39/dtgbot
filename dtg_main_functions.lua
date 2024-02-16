@@ -1,8 +1,7 @@
-dtg_main_functions_version = '0.9 202402151457'
+dtg_main_functions_version = '0.9 202402161910'
 --[[
   functions for the main dtgbot.au3 script
 ]]
-
 -- ===========================================================================================================
 -- dtgbot initialisation step to:
 --  initialise room, device, scene and variable list from Domoticz
@@ -11,7 +10,7 @@ dtg_main_functions_version = '0.9 202402151457'
 function DtgBot_Initialise()
   --Set global variables DomoticzRevision DomoticzVersion
   Domoticz_Version()
-  Print_to_Log(1, "Domoticz version:".. DomoticzVersion .."  Revision:".. DomoticzRevision  .. "  BuildDate:".. DomoticzBuildDate )
+  Print_to_Log(1, "Domoticz version:" .. DomoticzVersion .. "  Revision:" .. DomoticzRevision .. "  BuildDate:" .. DomoticzBuildDate)
   Variablelist = Domo_Variable_List_Names_IDXs()
   Devicelist = Domo_Device_List_Names_IDXs("devices")
   Scenelist, Sceneproperties = Domo_Device_List_Names_IDXs("scenes")
@@ -52,13 +51,13 @@ function DtgBot_Initialise()
     Print_to_Log(1, "So everybody will see all available rooms in Domoticz!")
   else
     Print_to_Log(1, "-> Get Menu Whitelist per SendTo and/or Default(0) from Domoticz")
-    MenuWhiteListin = Domo_Get_Variable_Value(MenuWLidx).."|"
+    MenuWhiteListin = Domo_Get_Variable_Value(MenuWLidx) .. "|"
     for iSendTo, iWhiteList in MenuWhiteListin:gmatch("(%d+)[:=]([^|]+)") do
       MenuWhiteList[iSendTo] = {}
-      Print_to_Log(1,">",iSendTo or "nil", iWhiteList or "nil")
+      Print_to_Log(1, ">", iSendTo or "nil", iWhiteList or "nil")
       for iMenu in iWhiteList:gmatch("%s*(%d+)%s*,?") do
         MenuWhiteList[iSendTo][tostring(iMenu)] = 1
-        Print_to_Log(1,"   ",#MenuWhiteList[iSendTo],iSendTo or "nil", iMenu or "nil")
+        Print_to_Log(1, "   ", #MenuWhiteList[iSendTo], iSendTo or "nil", iMenu or "nil")
       end
     end
   end
@@ -96,10 +95,10 @@ function PreProcess_Received_Message(tt)
   local ReceivedText, msg_type = "command"
 
   --Check to see if id is whitelisted, if not record in log and exit
+  local grp_from = tostring(msg.chat.id)
+  local msg_from = tostring(msg.from.id)
+  local msg_id = tostring(msg.message_id)
   if ID_WhiteList_Check(msg.from.id) then
-    local grp_from = tostring(msg.chat.id)
-    local msg_from = tostring(msg.from.id)
-    local msg_id = tostring(msg.message_id)
     local chat_type = ""
     -- determine the chat_type
     if msg.chat.type == "channel" then
@@ -111,6 +110,11 @@ function PreProcess_Received_Message(tt)
     if msg.text then -- check if message is text
       -- check for received voicefiles
       ReceivedText = msg.text
+      if (msg.chat.type == "group" or msg.chat.type == "channel") then
+        Print_to_Log(0, Sprintf("!!>> msg_id:%s msg_from:%s  grp_from %s text: %s", msg_id, msg_from, grp_from, ReceivedText))
+        ReceivedText = ReceivedText:match("([^@]*)@-") -- strip possible @group/channel name
+        Print_to_Log(0, Sprintf("!!<< msg_id:%s msg_from:%s  grp_from %s text: %s", msg_id, msg_from, grp_from, ReceivedText))
+      end
     elseif msg.voice then -- check if message is voicefile
       -- check for received voicefiles
       Print_to_Log(0, "msg.voice.file_id:", msg.voice.file_id)
@@ -152,7 +156,7 @@ function PreProcess_Received_Message(tt)
      ]]
     if not result_status then
       -- Hard error process - send warning to telegram to inform sender of the failure amd return the info for logging
-      Telegram_SendMessage(msg_from, Sprintf("⚡️ Command caused error. check dtgbot log ⚡️\nError:%s", result[1]), msg_id)
+      Telegram_SendMessage(grp_from, Sprintf("⚡️ Command caused error. check dtgbot log ⚡️\nError:%s", result[1]), msg_id)
       Print_to_Log(0, Sprintf("<- !!! function PreProcess_Received_Message failed: \nError:%s\n%s", result[1], result[2]))
       return "", "PreProcess_Received_Message failed"
     else
@@ -162,20 +166,19 @@ function PreProcess_Received_Message(tt)
       else
         if msg_type == "voice" then
           Print_to_Log(0, "!! Voice file received but voice.sh or lua not found to process it. skipping the message.")
-          Telegram_SendMessage(msg_from, "⚡️ voice.sh or lua missing?? ⚡️", msg_id)
+          Telegram_SendMessage(grp_from, "⚡️ voice.sh or lua missing?? ⚡️", msg_id)
         elseif msg_type == "video" then
           Print_to_Log(0, "!! Video file received but video_note.sh or lua not found to process it. Skipping the message.")
-          Telegram_SendMessage(msg_from, "⚡️ video_note.sh or lua missing?? ⚡️", msg_id)
+          Telegram_SendMessage(grp_from, "⚡️ video_note.sh or lua missing?? ⚡️", msg_id)
         else
           --print(ReceivedText)
           Print_to_Log(0, Sprintf("!! error in command: %s - %s ", result, result_err))
-          Telegram_SendMessage(msg_from, "⚡️ " .. result .. " " .. result_err .. " ⚡️", msg_id)
+          Telegram_SendMessage(grp_from, "⚡️ " .. result .. " " .. result_err .. " ⚡️", msg_id)
         end
       end
       return result, result_err
     end
   else
-    local msg_from = tostring(msg.from.id)
     Print_to_Log(0, "id " .. msg_from .. " not on white list, command ignored")
     Telegram_SendMessage(msg_from, "⚡️ ID Not Recognised - Command Ignored ⚡️", msg_id)
     return "", "ID not autherized"
@@ -194,9 +197,9 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
   -- set to last used Keyboard menu type
   Persistent[SendTo] = Persistent[SendTo] or {}
   if Persistent[SendTo].UseInlineMenu then
-    UseInlineMenu=Persistent[SendTo].UseInlineMenu=="true"
+    UseInlineMenu = Persistent[SendTo].UseInlineMenu == "true"
   else
-    Persistent[SendTo].UseInlineMenu=tostring(UseInlineMenu)
+    Persistent[SendTo].UseInlineMenu = tostring(UseInlineMenu)
   end
 
   if UseInlineMenu then
@@ -208,14 +211,13 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     --}
     replymarkup = '{"remove_keyboard":true}'
   else
-    Print_to_Log(1, "Set Handler to DTGbo.handler")
-    Available_Commands["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
-    Available_Commands["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
     --dtgmenu_commands = {["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."},
     --                 ["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
     --}
+    Print_to_Log(1, "Set Handler to DTGbo.handler")
+    Available_Commands["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
+    Available_Commands["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
   end
-
 
   Print_to_Log(0, Sprintf("dtgbot: HandleCommand=> cmd:%s  SendTo:%s  Group:%s  chat_type:%s ", cmd, SendTo, Group, chat_type))
   --- parse the command
@@ -248,10 +250,7 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
   ---------------------------------------------------------------------------
   -- Start integration for dtgmenu.lua option
   ---------------------------------------------------------------------------
-  if (Persistent.UseDTGMenu == 1
-      or string.lower(parsed_command[2]) == "dtgmenu"
-      or string.lower(parsed_command[2]) == "menu")
-    and chat_type ~= "channel" then
+  if (Persistent.UseDTGMenu == 1 or string.lower(parsed_command[2]) == dtgmenu_lang[Language].command["menu"] or string.lower(parsed_command[2]) == "dtgmenu" or string.lower(parsed_command[2]) == "menu") and chat_type ~= "channel" then
     Print_to_Log(0, Sprintf("-> forward to dtgmenu :%s  %s", cmd, parsed_command[2]))
     command_dispatch = Available_Commands["dtgmenu"] or {handler = {}}
     found, text, replymarkup = command_dispatch.handler(parsed_command, SendTo, cmd)
@@ -259,14 +258,14 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
       handled_by = "menu"
     elseif UseInlineMenu and parsed_command[2] == "menu" then
       -- remove the 2 layer inline menu commands
-      for i = 2, #parsed_command-2, 1 do
-        Print_to_Log(1,parsed_command[i] or "nil",parsed_command[i+2] or "nil" )
-        if not parsed_command[i+2] or parsed_command[i+2] == "" then
+      for i = 2, #parsed_command - 2, 1 do
+        Print_to_Log(1, parsed_command[i] or "nil", parsed_command[i + 2] or "nil")
+        if not parsed_command[i + 2] or parsed_command[i + 2] == "" then
           parsed_command[i] = ""
           break
         end
-        parsed_command[i] = parsed_command[i+2]
-        parsed_command[i+2] = ""
+        parsed_command[i] = parsed_command[i + 2]
+        parsed_command[i + 2] = ""
       end
     end
   end
@@ -285,50 +284,47 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     -- ensure the require packages for dtgmenu are removed
     package.loaded["dtgmenubottom"] = nil
     package.loaded["dtgmenuinline"] = nil
-   -- Now reload the modules
+    -- Now reload the modules
     Load_LUA_Modules()
-
   elseif string.lower(parsed_command[2]) == "_reloadconfig" then
     Print_to_Log("-> Start _reloadconfig process.")
---~ =========================================================
---~ commented as this is handled by the reload of the modules
---~ =========================================================
---~ 	-- save current menu type
---~ 	saveUseInlineMenu = UseInlineMenu
---~     if (FileExists(ScriptDirectory .. "dtgbot-user.cfg")) then
---~       assert(loadfile(ScriptDirectory .. "dtgbot-user.cfg"))()
---~       Print_to_Log(0, "Using DTGBOT config file:" .. ScriptDirectory .. "dtgbot-user.cfg")
---~     else
---~       assert(loadfile(ScriptDirectory .. "dtgbot.cfg"))()
---~       Print_to_Log(0, "Using DTGBOT config file:" .. ScriptDirectory .. "dtgbot.cfg")
---~     end
---~ 	-- override config with the last used menu type
---~ 	UseInlineMenu=saveUseInlineMenu
+    --~ =========================================================
+    --~ commented as this is handled by the reload of the modules
+    --~ =========================================================
+    --~ 	-- save current menu type
+    --~ 	saveUseInlineMenu = UseInlineMenu
+    --~     if (FileExists(ScriptDirectory .. "dtgbot-user.cfg")) then
+    --~       assert(loadfile(ScriptDirectory .. "dtgbot-user.cfg"))()
+    --~       Print_to_Log(0, "Using DTGBOT config file:" .. ScriptDirectory .. "dtgbot-user.cfg")
+    --~     else
+    --~       assert(loadfile(ScriptDirectory .. "dtgbot.cfg"))()
+    --~       Print_to_Log(0, "Using DTGBOT config file:" .. ScriptDirectory .. "dtgbot.cfg")
+    --~     end
+    --~ 	-- override config with the last used menu type
+    --~ 	UseInlineMenu=saveUseInlineMenu
     -- reset these tables to start with a clean slate
     Available_Commands = {}
     -- ensure the require packages for dtgmenu are removed
     package.loaded["dtgmenubottom"] = nil
     package.loaded["dtgmenuinline"] = nil
-  -- reinit dtgbot
+    -- reinit dtgbot
     DtgBot_Initialise()
     found = true
     text = "Config and Modules reloaded"
-
   elseif string.lower(parsed_command[2]) == "_cleanall" then
     Print_to_Log("-> Start _cleanall process.")
     Telegram_CleanMessages(SendTo, MessageId, 0, "", true)
     found = true
     text = ""
-
   elseif string.lower(parsed_command[2]) == "_togglekeyboard" then
     Print_to_Log("-> Start _ToggleKeyboard process.")
     ----------------------------------
     -- start disabled current keyboard
-    local tcommand={"","Exit_Menu","Exit_Menu",""}
+    local tcommand = {"", "Exit_Menu", "Exit_Menu", ""}
     local icmdline = "Exit_Menu"
     local iMessageId = MessageId
     if UseInlineMenu then
-      tcommand={"menu exit","menu","exit",""}
+      tcommand = {"menu exit", "menu", "exit", ""}
       icmdline = ""
       Print_to_Log(1, Sprintf("Persistent.LastInlinemessage_id=%s", Persistent.LastInlinemessage_id or "nil"))
       iMessageId = Persistent.LastInlinemessage_id or MessageId
@@ -336,9 +332,9 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     command_dispatch = Available_Commands["dtgmenu"] or {handler = {}}
     status, text, replymarkup = command_dispatch.handler(tcommand, SendTo, icmdline)
     -- reset vars
-    Persistent.UseDTGMenu=0
-    Persistent[SendTo].iLastcommand=""
-    chat_type=""
+    Persistent.UseDTGMenu = 0
+    Persistent[SendTo].iLastcommand = ""
+    chat_type = ""
 
     -- send telegram msg
     if Group ~= "" then
@@ -346,10 +342,10 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
     else
       Telegram_SendMessage(SendTo, "removed keyboard", iMessageId, replymarkup, "callback", handled_by)
     end
-  ----------------------------------
+    ----------------------------------
     -- toggle setting
     UseInlineMenu = not UseInlineMenu
-    Persistent[SendTo].UseInlineMenu=tostring(UseInlineMenu)
+    Persistent[SendTo].UseInlineMenu = tostring(UseInlineMenu)
     ----------------------------------
     -- Reset handler
     --Available_Commands["menu"] = nil
@@ -364,22 +360,21 @@ function HandleCommand(cmd, SendTo, Group, MessageId, chat_type)
       --}
       replymarkup = '{"remove_keyboard":true}'
     else
-      Print_to_Log(1, "Set Handler to DTGbo.handler")
-      Available_Commands["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
-      Available_Commands["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
       --dtgmenu_commands = {["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."},
       --                 ["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
       --}
+      Print_to_Log(1, "Set Handler to DTGbo.handler")
+      Available_Commands["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
+      Available_Commands["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
     end
     ----------------------------------
     -- show Keyboard
-    local tcommand={"menu","menu","menu",""}
+    local tcommand = {"menu", "menu", "menu", ""}
     command_dispatch = Available_Commands["dtgmenu"] or {handler = {}}
     found, text, replymarkup = command_dispatch.handler(tcommand, SendTo, "menu")
 
     Print_to_Log("-> end  _ToggleKeyboard process.")
     found = true
-
   elseif not found then
     -- check for loaded LUA modules
     Print_to_Log(Sprintf("Not found as Menu or Fixed command so try Lua or Bash options for %s", string.lower(parsed_command[2])))
@@ -539,12 +534,12 @@ function Print_to_Log(loglevel, logmessage, ...)
       lvl2 = "-> * "
       if debug.getinfo(2) and debug.getinfo(2).name then
         --lvl2 = "->"..string.format("%-15s",debug.getinfo(2).name) .. ""
-        lvl2 = "->"..debug.getinfo(2).name .. " "
+        lvl2 = "->" .. debug.getinfo(2).name .. " "
       end
       lvl3 = "-> * "
       if debug.getinfo(3) and debug.getinfo(3).name then
         --lvl3 = "->"..string.format("%-15s",debug.getinfo(3).name) .. ""
-        lvl3 = "->"..debug.getinfo(3).name .. " "
+        lvl3 = "->" .. debug.getinfo(3).name .. " "
       end
     end
     -- print message to console
@@ -805,10 +800,10 @@ function Load_LUA_Modules()
   if Available_Commands["dtgmenu"] ~= nil then
     Print_to_Log(0, "loaded dtgmenu_version      :" .. (dtgmenu_version or "?"))
     if dtgmenuinline_version then
-      Print_to_Log(0, "loaded dtgmenuinline version:"..(dtgmenuinline_version or "?"))
+      Print_to_Log(0, "loaded dtgmenuinline version:" .. (dtgmenuinline_version or "?"))
     end
     if dtgmenubottom_version then
-      Print_to_Log(0, "loaded dtgmenubottom version:"..(dtgmenubottom_version or "?"))
+      Print_to_Log(0, "loaded dtgmenubottom version:" .. (dtgmenubottom_version or "?"))
     end
 
     -- Initialise and populate dtgmenu tables in case the menu is switched on
@@ -1008,7 +1003,7 @@ function Telegram_CleanMessages(From_Id, nsmsgid, nrmsgid, handled_by, remAll)
 end
 
 function Telegram_Remove_Message(SendTo, MessageId)
-  Print_to_Log(2, Sprintf("Delete MessageId:%s for SendTo:%s",MessageId,SendTo))
+  Print_to_Log(2, Sprintf("Delete MessageId:%s for SendTo:%s", MessageId, SendTo))
   if (tonumber(SendTo) or 0) == 0 or (tonumber(MessageId) or 0) == 0 then
     return
   end

@@ -1,4 +1,4 @@
-dtgmenubottom_version = '0.9 202402151445'
+dtgmenubottom_version = '0.9 202402161912'
 local dtgmenubottom = {}
 -- =====================================================================================================================
 -- =====================================================================================================================
@@ -120,8 +120,6 @@ function dtgmenubottom.makereplymenu(SendTo, Level, submenu, devicename)
           SwitchType = dtgmenu_submenus[submenu].buttons[devicename].SwitchType
           Type = dtgmenu_submenus[submenu].buttons[devicename].Type
           if (dtgbot_type_status[Type] == nil or dtgbot_type_status[Type].DisplayActions ~= false) then
-            if (dtgbot_type_status[Type] ~= nil) then
-            end
             -- set reply markup to the override when provide
             l3menu = get.actions
             Print_to_Log(1, " ---< ", Type, SwitchType, " using replymarkup:", l3menu)
@@ -146,8 +144,8 @@ function dtgmenubottom.makereplymenu(SendTo, Level, submenu, devicename)
   -------------------------------------------------------------------
   -- Start building the proper layout for the 3 levels of menu items
   -------------------------------------------------------------------
-  -- Always add "menu" as last option to level1 menu
-  l1menu = l1menu .. "Exit_Menu"
+  -- Always add "exit_menu" as last option to level1 menu
+  l1menu = l1menu .. (dtgmenu_lang[menu_language].command["exit_menu"] or "Exit_Menu")
   ------------------------------
   -- start build total replymarkup
   local replymarkup = '{"keyboard":['
@@ -156,7 +154,7 @@ function dtgmenubottom.makereplymenu(SendTo, Level, submenu, devicename)
   ------------------------------
   if l3menu ~= "" then
     replymarkup = replymarkup .. dtgmenubottom.buildmenu(l3menu, ActMenuwidth, "") .. ","
-    l1menu = dtgmenu_lang[menu_language].text["back"] or "back"
+    l1menu = dtgmenu_lang[menu_language].command["back"] or "back"
   end
   ------------------------------
   -- Add level 2 next if needed
@@ -169,7 +167,7 @@ function dtgmenubottom.makereplymenu(SendTo, Level, submenu, devicename)
       end
     end
     replymarkup = replymarkup .. dtgmenubottom.buildmenu(l2menu, mwitdh, "") .. ","
-    l1menu = dtgmenu_lang[menu_language].text["back"] or "back"
+    l1menu = dtgmenu_lang[menu_language].command["back"] or "back"
   end
   -------------------------------
   -- Add level 1 -- the main menu
@@ -297,12 +295,12 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
   end
 
   -- Build main menu and return
-  if cmdisaction == false and (lcommand == "dtgmenu" or lcommand == "menu" or lcommand == "showmenu" or lcommand == "start") then
+  if cmdisaction == false and (lcommand == "menu" or lcommand == dtgmenu_lang[Language].command["menu"]:lower() or lcommand == "dtgmenu" or lcommand == "showmenu" or lcommand == "start") then
     Persistent.UseDTGMenu = 1
     Print_to_Log(1, Sprintf("Persistent.UseDTGMenu=%s", Persistent.UseDTGMenu))
     -- ensure the menu is always rebuild for Menu or Start
     bLastCommand["replymarkup"] = ""
-    local response = DTGMenu_translate_desc("main", menu_language, "Select the submenu.")
+    local response = DTGMenu_translate_desc(menu_language, "main", "Select the submenu.")
     replymarkup = dtgmenubottom.makereplymenu(SendTo, "mainmenu")
     bLastCommand["submenu"] = ""
     bLastCommand["device"] = ""
@@ -313,9 +311,9 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
     return true, response, replymarkup
   end
   -- Hide main menu and return
-  if cmdisaction == false and (lcommand == "exit_menu") then
+  if cmdisaction == false and (lcommand == "exit_menu" or lcommandline == (dtgmenu_lang[Language].command["exit_menu"]:lower() or "exit_menu")) then
     -- ensure the menu is always rebuild for Menu or Start
-    local response = DTGMenu_translate_desc("main", menu_language, "type /menu to show it again.")
+    local response = DTGMenu_translate_desc(menu_language, "exit", "type /menu to show it again.")
     bLastCommand["replymarkup"] = ""
     replymarkup = '{"remove_keyboard":true}'
     bLastCommand["submenu"] = ""
@@ -521,7 +519,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
       Print_to_Log(1, " -- Changed to devicelevel due to showactions defined for device " .. rdevicename)
       response = DTGMenu_translate_desc(Language, "SelectOptionwo") .. " " .. rdevicename
     else
-      response = submenu .. ":" .. DTGMenu_translate_desc("Select", Language, "Select option.")
+      response = submenu .. ":" .. DTGMenu_translate_desc(Language, "Select", "Select option.")
     end
     Print_to_Log(1, "-< show options in submenu.")
     Persistent[SendTo].bbLastCommand = bLastCommand
@@ -549,7 +547,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
       end
     elseif dtgbot_type_status[Type] ~= nil and dtgbot_type_status[Type].DisplayActions == false then
       -- when temp device is selected them just return with resetting keyboard and ask to select device.
-      response = DTGMenu_translate_desc("Select", Language, "Select option.")
+      response = DTGMenu_translate_desc(Language, "Select", "Select option.")
       Print_to_Log(1, "-< Don't do anything as a temp device was selected.")
     elseif DeviceType == "devices" then
       -- Only show current status in the text when not shown on the action options
@@ -572,7 +570,7 @@ function dtgmenubottom.handler(menu_cli, SendTo, commandline)
       end
       Print_to_Log(1, "-< Show device options menu plus other devices in submenu.")
     else
-      response = DTGMenu_translate_desc("Select", Language, "Select option.")
+      response = DTGMenu_translate_desc(Language, "Select", "Select option.")
       Print_to_Log(1, "-< Show options menu plus other devices in submenu.")
     end
     Persistent[SendTo].bbLastCommand = bLastCommand

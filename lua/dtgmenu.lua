@@ -1,4 +1,4 @@
-dtgmenu_version = '0.9 202306061400'
+dtgmenu_version = '0.9 202402161925'
 -- =====================================================================================================================
 -- =====================================================================================================================
 -- Menu script which enables the option in DTGBOT to use a reply keyboard to perform actions on:
@@ -43,7 +43,7 @@ end
 -- override config with the last used menu type when set. This happens with reloadconfig or modules
 
 if saveUseInlineMenu then
-	UseInlineMenu=saveUseInlineMenu
+  UseInlineMenu = saveUseInlineMenu
 end
 
 local http = require "socket.http"
@@ -51,7 +51,7 @@ DTGil = require("dtgmenuinline")
 DTGbo = require("dtgmenubottom")
 
 -- definition used by DTGBOT
-DTGMenu_Modules = {}  -- global!
+DTGMenu_Modules = {} -- global!
 menu_language = Language
 
 -- If Domoticz Language is not used then revert to English
@@ -59,6 +59,12 @@ if dtgmenu_lang[menu_language] == nil then
   Print_to_Log("Domoticz Language is not available for dtgmenus. Using English.")
   menu_language = "en"
 end
+if dtgmenu_lang[menu_language].command == nil then
+  Print_to_Log("dtgmenu_lang[" .. menu_language .. "].command not defined..  using defaults.")
+end
+dtgmenu_lang[menu_language].command["back"] = dtgmenu_lang[menu_language].command["back"]:gsub(" ","_") or 'back'
+dtgmenu_lang[menu_language].command["menu"] = dtgmenu_lang[menu_language].command["menu"]:gsub(" ","_") or 'menu'
+dtgmenu_lang[menu_language].command["exit_menu"] = dtgmenu_lang[menu_language].command["exit_menu"]:gsub(" ","_") or 'exit_menu'
 
 ------------------------------------------------------------------------------
 -- Start Functions to SORT the TABLE
@@ -156,7 +162,7 @@ function MakeRoomMenus(iLevel, iSubmenu)
     Devsinplan = Domo_Device_List("plandevices", room_number)
     DIPresult = Devsinplan["result"]
     if DIPresult ~= nil then
-      Print_to_Log(1, "For room " .. room_name .. "/".. room_number .." got some devices and/or scenes")
+      Print_to_Log(1, "For room " .. room_name .. "/" .. room_number .. " got some devices and/or scenes")
       dtgmenu_submenus[rbutton] = {RoomNumber = room_number, whitelist = "", showdevstatus = "y", buttons = {}}
       -----------------------------------------------------------
       -- process all found entries in the plan record
@@ -380,12 +386,14 @@ dtgmenu_submenus = {}
 
 -- Set the appropriate handler to use for the keyboard
 if UseInlineMenu then
-  dtgmenu_commands = {["menu"] = {handler = DTGil.handler, description = "Will start menu functionality."},
-                   ["dtgmenu"] = {handler = DTGil.handler, description = "Will start menu functionality."}
+  dtgmenu_commands = {
+    ["menu"] = {handler = DTGil.handler, description = "Will start menu functionality."},
+    ["dtgmenu"] = {handler = DTGil.handler, description = "Will start menu functionality."}
   }
 else
-  dtgmenu_commands = {["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."},
-                   ["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
+  dtgmenu_commands = {
+    ["menu"] = {handler = DTGbo.handler, description = "Will start menu functionality."},
+    ["dtgmenu"] = {handler = DTGbo.handler, description = "Will start menu functionality."}
   }
 end
 
