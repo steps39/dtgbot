@@ -288,9 +288,12 @@ end
 function getSelectorStatusLabel(itab, ival)
   Print_to_Log(2, " getSelectorStatusLabel: ", ival, itab)
   local cnt = 0
+  -- Required when the string starts with a ",x,x"!
+  itab = ' ' .. itab
   --
   if itab ~= nil then
     -- convert 0;10;20;30  etc  to 1;2;3;5  etc
+    -- convert ,10,20,30  etc  to 1;2;3;5  etc
     if ival > 9 then
       ival = (ival / 10)
     end
