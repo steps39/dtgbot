@@ -1,4 +1,4 @@
-dtgmenu_version = '0.9 202402161925'
+dtgmenu_version = '0.9 202402162235'
 -- =====================================================================================================================
 -- =====================================================================================================================
 -- Menu script which enables the option in DTGBOT to use a reply keyboard to perform actions on:
@@ -62,9 +62,9 @@ end
 if dtgmenu_lang[menu_language].command == nil then
   Print_to_Log("dtgmenu_lang[" .. menu_language .. "].command not defined..  using defaults.")
 end
-dtgmenu_lang[menu_language].command["back"] = dtgmenu_lang[menu_language].command["back"]:gsub(" ","_") or 'back'
-dtgmenu_lang[menu_language].command["menu"] = dtgmenu_lang[menu_language].command["menu"]:gsub(" ","_") or 'menu'
-dtgmenu_lang[menu_language].command["exit_menu"] = dtgmenu_lang[menu_language].command["exit_menu"]:gsub(" ","_") or 'exit_menu'
+dtgmenu_lang[menu_language].command["back"] = (dtgmenu_lang[menu_language].command["back"]  or 'back'):gsub(" ","_")
+dtgmenu_lang[menu_language].command["menu"] = (dtgmenu_lang[menu_language].command["menu"] or 'menu'):gsub(" ","_")
+dtgmenu_lang[menu_language].command["exit_menu"] = (dtgmenu_lang[menu_language].command["exit_menu"] or 'exit_menu'):gsub(" ","_")
 
 ------------------------------------------------------------------------------
 -- Start Functions to SORT the TABLE
