@@ -1,4 +1,4 @@
-dtgmenuinline_version = '0.9 202402161814'
+dtgmenuinline_version = "0.9 202402161814"
 local dtgmenuinline = {}
 -- =====================================================================================================================
 -- =====================================================================================================================
@@ -326,7 +326,7 @@ function dtgmenuinline.handler(menu_cli, SendTo)
   -- Process "start" or "menu" commands
   -------------------------------------------------
   -- Build main menu and return
-  if param1:lower() == "menu" or param1:lower() == (dtgmenu_lang[_G.MenuLanguage].command["menu"] or "menu"):lower() or param1:lower() == "dtgmenu" or param1:lower() == "start" or (cmdisbutton and (param2:lower() == "menu" or param2:lower() == (dtgmenu_lang[_G.MenuLanguage].command["menu"] or "menu"):lower() or param2:lower() == "dtgmenu")) then
+  if param1:lower() == "menu" or param1:lower() == (dtgmenu_lang[menu_language].command["menu"] or "menu"):lower() or param1:lower() == "dtgmenu" or param1:lower() == "start" or (cmdisbutton and (param2:lower() == "menu" or param2:lower() == (dtgmenu_lang[menu_language].command["menu"] or "menu"):lower() or param2:lower() == "dtgmenu")) then
     response = dtgmenu_lang[menu_language].text["main"]
     replymarkup = dtgmenuinline.makereplymenu(SendTo, "mainmenu")
     status = 1
