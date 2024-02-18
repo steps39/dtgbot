@@ -1,4 +1,4 @@
-dtg_domoticz_version = '0.9 20230723093'
+dtg_domoticz_version = '0.9 202402091028'
 --[[
   A set of support functions currently aimed at dtgbot,
   but probably more general
@@ -302,18 +302,18 @@ function Domo_Devinfo_From_Name(idx, DeviceName, DeviceScene)
           -- use the dtgbot_type_status to retrieve the status from the "other devices" field as defined in the table.
           Print_to_Log(2, "Type ", Type)
           if dtgbot_type_status[Type] ~= nil then
-            Print_to_Log(2, "dtgbot_type_status[Type] ", dtgbot_type_status[Type])
+            Print_to_Log(2, "dtgbot_type_status[Type] ", JSON.encode(dtgbot_type_status[Type]))
             if dtgbot_type_status[Type].Status ~= nil then
               status = ""
               CurrentStatus = dtgbot_type_status[Type].Status
-              Print_to_Log(2, "CurrentStatus ", CurrentStatus)
+              Print_to_Log(2, "CurrentStatus ", JSON.encode(CurrentStatus))
               for i = 1, #CurrentStatus do
                 if status ~= "" then
                   status = status .. " - "
                 end
                 cindex, csuffix = next(CurrentStatus[i])
                 status = status .. tostring(record[cindex]) .. tostring(csuffix)
-                Print_to_Log(2, "status ", status)
+                Print_to_Log(2, "cindex:", cindex, "  csuffix:", csuffix,"  status:", status)
               end
             end
           else
