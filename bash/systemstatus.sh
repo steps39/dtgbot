@@ -52,7 +52,7 @@ fi
 #echo "Version:$Version\n"
 #echo "Revision:$Revision\n"
 
-if [[ "$HaveUpdate" -eq "true" ]] ; then
+if [[ "$HaveUpdate" == "true" ]] ; then
    ResultString+="-Domoticz update available! current version $Version build $Revision\n"
 fi
 ##############################################################################
